@@ -1,0 +1,141 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+// 从 version.properties 读取版本号，集中管理
+// 更新版本号请运行 ./gradlew :app:incrementVersion
+def versionPropsFile = file('version.properties')
+def versionProps = new Properties()
+try {
+    versionPropsFile.withInputStream { versionProps.load(it) }
+} catch (Exception e) {
+    versionProps['VERSION_NAME'] = '2.8.3'
+    versionProps['VERSION_CODE'] = '283'
+}
+def appVersionName = versionProps['VERSION_NAME'] ?: '2.8.3'
+def appVersionCode = (versionProps['VERSION_CODE'] ?: '283').toInteger()
+
+android {
+    compileSdkVersion 34
+    defaultConfig {
+        applicationId "com.aicryptowallet.app"
+        minSdkVersion 24
+        targetSdkVersion 34
+        versionCode appVersionCode
+        versionName appVersionName
+        
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    signingConfigs {
+        release {
+            storeFile file("${rootDir}/aicw-keystore.jks")
+            storePassword "aicw2026"
+            keyAlias "aicw"
+            keyPassword "aicw2026"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            versionNameSuffix ""
+            buildConfigField "String", "VERSION_DISPLAY", "\"AI Crypto Wallet v${appVersionName}\""
+            buildConfigField "int", "RELEASE_VERSION_CODE", "1"
+        }
+        debug {
+            minifyEnabled false
+            versionNameSuffix ""
+            buildConfigField "String", "VERSION_DISPLAY", "\"AI Crypto Wallet v${appVersionName}\""
+            buildConfigField "int", "RELEASE_VERSION_CODE", "0"
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            if (variant.buildType.name == "release") {
+                outputFileName = "AICryptoWallet-v${variant.versionName}-release.apk"
+            } else {
+                outputFileName = "AICryptoWallet-v${variant.versionName}-debug.apk"
+            }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    namespace 'com.aicryptowallet.app'
+    packagingOptions {
+        exclude 'google/protobuf/**/*.proto'
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'com.google.protobuf:protobuf-javalite:3.22.3'
+        }
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.gridlayout:gridlayout:1.0.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    // Glide - 代币 LOGO 图片加载（支持多源回退、缓存、占位图）
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'org.json:json:20231013'
+    implementation 'com.google.zxing:core:3.5.2'
+    // ZXing Android Embedded - 扫码转账用，封装相机预览 + 解码
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    implementation('org.bitcoinj:bitcoinj-core:0.15.10') {
+        exclude group: 'org.bouncycastle'
+    }
+    implementation('org.web3j:core:4.9.4') {
+        exclude group: 'org.bouncycastle'
+        exclude group: 'com.google.protobuf'
+    }
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.69'
+    // Trust Wallet Core - 130+链多链签名库 (Apache-2.0, 已内置protobuf-javalite)
+    implementation('com.trustwallet:wallet-core:4.6.15') {
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+}
+
+// 版本号自动递增任务：第三位 +1，满 100 进第二位
+// 小改动运行此任务即可，大改动请手动修改 version.properties
+task incrementVersion {
+    doLast {
+        def propsFile = file('version.properties')
+        def props = new Properties()
+        propsFile.withInputStream { props.load(it) }
+
+        def name = props['VERSION_NAME'] ?: '2.8.3'
+        def parts = name.split('\\.')
+        if (parts.length != 3) {
+            throw new GradleException("版本号格式错误: ${name}，必须是 x.y.z")
+        }
+        def major = parts[0].toInteger()
+        def minor = parts[1].toInteger()
+        def patch = parts[2].toInteger()
+
+        patch += 1
+        if (patch >= 100) {
+            minor += 1
+            patch = 0
+        }
+        def newName = ("${major}.${minor}.${patch}").toString()
+        def newCode = ((props['VERSION_CODE'] ?: '283').toInteger()) + 1
+
+        props['VERSION_NAME'] = newName
+        props['VERSION_CODE'] = newCode.toString()
+        propsFile.withOutputStream { props.store(it, null) }
+
+        println "版本号已更新: ${name} -> ${newName}, versionCode: ${newCode}"
+    }
+}

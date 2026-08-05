@@ -1,0 +1,1091 @@
+[
+  {
+    "text": " (估算)",
+    "occurrences": [
+      [
+        "SwapActivity.java",
+        296
+      ]
+    ]
+  },
+  {
+    "text": " | 自动交易: OFF",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2054
+      ],
+      [
+        "AIAgentActivity.java",
+        2057
+      ]
+    ]
+  },
+  {
+    "text": " | 自动交易: ON",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2054
+      ],
+      [
+        "AIAgentActivity.java",
+        2057
+      ]
+    ]
+  },
+  {
+    "text": " 个代币合约\\n",
+    "occurrences": [
+      [
+        "TokenDiscoveryActivity.java",
+        243
+      ]
+    ]
+  },
+  {
+    "text": " 加入白名单。\\n\\n",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        425
+      ]
+    ]
+  },
+  {
+    "text": " 和金额",
+    "occurrences": [
+      [
+        "SendActivity.java",
+        256
+      ]
+    ]
+  },
+  {
+    "text": " 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。\\n\\n",
+    "occurrences": [
+      [
+        "SendActivity.java",
+        675
+      ]
+    ]
+  },
+  {
+    "text": " 的所有交易和授权操作。\\n\\n",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        407
+      ]
+    ]
+  },
+  {
+    "text": " 配置已保存",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        408
+      ]
+    ]
+  },
+  {
+    "text": " 链未配置稳定币地址，无法执行 BUY",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        1915
+      ]
+    ]
+  },
+  {
+    "text": "(未命名)",
+    "occurrences": [
+      [
+        "AddressBookActivity.java",
+        78
+      ]
+    ]
+  },
+  {
+    "text": "AI 助手",
+    "occurrences": [
+      [
+        "AgentRuntime.java",
+        127
+      ],
+      [
+        "AgentRuntime.java",
+        175
+      ],
+      [
+        "AIAgentActivity.java",
+        666
+      ]
+    ]
+  },
+  {
+    "text": "AI 定时分析失败",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        151
+      ]
+    ]
+  },
+  {
+    "text": "AI 定时分析完成",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        146
+      ]
+    ]
+  },
+  {
+    "text": "AI 定时分析开始",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        108
+      ]
+    ]
+  },
+  {
+    "text": "AI 将禁止 ",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        407
+      ]
+    ]
+  },
+  {
+    "text": "AI 操作记录",
+    "occurrences": [
+      [
+        "AgentToolRegistry.java",
+        2009
+      ]
+    ]
+  },
+  {
+    "text": "AI 智能体后台运行中",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        57
+      ]
+    ]
+  },
+  {
+    "text": "AI 运行中",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        4295
+      ]
+    ]
+  },
+  {
+    "text": "AI 通知",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        4085
+      ]
+    ]
+  },
+  {
+    "text": "API 地址",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        263
+      ]
+    ]
+  },
+  {
+    "text": "API 地址（必填）",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        263
+      ]
+    ]
+  },
+  {
+    "text": "API 地址（高级，一般不需要改）",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        263
+      ]
+    ]
+  },
+  {
+    "text": "DApp 请求发送交易\\n\\n",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2035
+      ]
+    ]
+  },
+  {
+    "text": "DApp 请求连接你的钱包\\n\\n",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        1200
+      ]
+    ]
+  },
+  {
+    "text": "URI 格式错误：缺少 @",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        186
+      ]
+    ]
+  },
+  {
+    "text": "sk-... 或您的 API Key",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        159
+      ],
+      [
+        "ModelConfigActivity.java",
+        159
+      ]
+    ]
+  },
+  {
+    "text": "【市场动态】",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        208
+      ]
+    ]
+  },
+  {
+    "text": "【市场动态速递】\\n",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        207
+      ]
+    ]
+  },
+  {
+    "text": "【自动交易说明】\\n",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2132
+      ]
+    ]
+  },
+  {
+    "text": "】完成 ",
+    "occurrences": [
+      [
+        "CrossChainRiskDialog.java",
+        182
+      ]
+    ]
+  },
+  {
+    "text": "中继连接失败: ",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        293
+      ]
+    ]
+  },
+  {
+    "text": "中继错误: ",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        460
+      ]
+    ]
+  },
+  {
+    "text": "仅本次允许",
+    "occurrences": [
+      [
+        "SafetyGate.java",
+        332
+      ]
+    ]
+  },
+  {
+    "text": "会话",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        1256
+      ]
+    ]
+  },
+  {
+    "text": "余额: ",
+    "occurrences": [
+      [
+        "SwapActivity.java",
+        126
+      ],
+      [
+        "SwapActivity.java",
+        127
+      ]
+    ]
+  },
+  {
+    "text": "保存",
+    "occurrences": [
+      [
+        "AddressBookActivity.java",
+        182
+      ],
+      [
+        "AIAgentActivity.java",
+        2138
+      ],
+      [
+        "HomeActivity.java",
+        2026
+      ],
+      [
+        "ModelConfigActivity.java",
+        343
+      ],
+      [
+        "NodeSelectorActivity.java",
+        204
+      ],
+      [
+        "SecurityCenterActivity.java",
+        157
+      ],
+      [
+        "SecurityCenterActivity.java",
+        217
+      ]
+    ]
+  },
+  {
+    "text": "停止智能体",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2067
+      ],
+      [
+        "AIAgentActivity.java",
+        2069
+      ]
+    ]
+  },
+  {
+    "text": "分享图片",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        387
+      ]
+    ]
+  },
+  {
+    "text": "切换桌面",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        671
+      ]
+    ]
+  },
+  {
+    "text": "切换移动",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        671
+      ]
+    ]
+  },
+  {
+    "text": "创建",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        2659
+      ]
+    ]
+  },
+  {
+    "text": "删除",
+    "occurrences": [
+      [
+        "AddressBookActivity.java",
+        112
+      ],
+      [
+        "HomeActivity.java",
+        2583
+      ],
+      [
+        "ModelConfigActivity.java",
+        333
+      ],
+      [
+        "WalletManagementActivity.java",
+        45
+      ]
+    ]
+  },
+  {
+    "text": "删除配置",
+    "occurrences": [
+      [
+        "ModelConfigActivity.java",
+        329
+      ]
+    ]
+  },
+  {
+    "text": "加入白名单并继续",
+    "occurrences": [
+      [
+        "SafetyGate.java",
+        328
+      ]
+    ]
+  },
+  {
+    "text": "去设置",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        499
+      ],
+      [
+        "HomeActivity.java",
+        1653
+      ]
+    ]
+  },
+  {
+    "text": "发现完成：共扫描 ",
+    "occurrences": [
+      [
+        "TokenDiscoveryActivity.java",
+        243
+      ]
+    ]
+  },
+  {
+    "text": "取消",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2515
+      ],
+      [
+        "CrossChainRiskDialog.java",
+        189
+      ]
+    ]
+  },
+  {
+    "text": "取消收藏",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        656
+      ]
+    ]
+  },
+  {
+    "text": "同意授权",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2577
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2617
+      ]
+    ]
+  },
+  {
+    "text": "启动智能体 (自动交易已开)",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2067
+      ]
+    ]
+  },
+  {
+    "text": "启动智能体 (自动交易未开)",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        2069
+      ]
+    ]
+  },
+  {
+    "text": "复制助记词",
+    "occurrences": [
+      [
+        "SetupActivity.java",
+        116
+      ]
+    ]
+  },
+  {
+    "text": "复制并关闭",
+    "occurrences": [
+      [
+        "WalletManagementActivity.java",
+        111
+      ]
+    ]
+  },
+  {
+    "text": "复制日志",
+    "occurrences": [
+      [
+        "SecurityCenterActivity.java",
+        83
+      ]
+    ]
+  },
+  {
+    "text": "安全警告：HTTP 连接不安全，建议使用 HTTPS",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        398
+      ]
+    ]
+  },
+  {
+    "text": "展开",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        275
+      ]
+    ]
+  },
+  {
+    "text": "已切换到会话：",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        1256
+      ]
+    ]
+  },
+  {
+    "text": "已切换桌面模式",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        760
+      ]
+    ]
+  },
+  {
+    "text": "已切换移动模式",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        760
+      ]
+    ]
+  },
+  {
+    "text": "已取消置顶 ",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        1257
+      ]
+    ]
+  },
+  {
+    "text": "已置顶 ",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        1257
+      ]
+    ]
+  },
+  {
+    "text": "恢复",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        4181
+      ]
+    ]
+  },
+  {
+    "text": "您正在将高风险代币 ",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        425
+      ]
+    ]
+  },
+  {
+    "text": "我已了解风险并继续",
+    "occurrences": [
+      [
+        "CrossChainRiskDialog.java",
+        186
+      ]
+    ]
+  },
+  {
+    "text": "我已保存",
+    "occurrences": [
+      [
+        "SetupActivity.java",
+        137
+      ]
+    ]
+  },
+  {
+    "text": "我已知晓风险，继续",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        430
+      ]
+    ]
+  },
+  {
+    "text": "我的钱包",
+    "occurrences": [
+      [
+        "WalletManager.java",
+        123
+      ]
+    ]
+  },
+  {
+    "text": "我知道了",
+    "occurrences": [
+      [
+        "MainActivity.java",
+        40
+      ]
+    ]
+  },
+  {
+    "text": "批准会话失败: ",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        643
+      ]
+    ]
+  },
+  {
+    "text": "折线图",
+    "occurrences": [
+      [
+        "CoinDetailActivity.java",
+        126
+      ]
+    ]
+  },
+  {
+    "text": "拒绝",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        1212
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2010
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2055
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2098
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2446
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2581
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2621
+      ],
+      [
+        "SafetyGate.java",
+        336
+      ]
+    ]
+  },
+  {
+    "text": "授权并设置额度",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2443
+      ]
+    ]
+  },
+  {
+    "text": "收藏",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        656
+      ]
+    ]
+  },
+  {
+    "text": "收起",
+    "occurrences": [
+      [
+        "AIAgentActivity.java",
+        275
+      ]
+    ]
+  },
+  {
+    "text": "无效的 WalletConnect URI",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        178
+      ]
+    ]
+  },
+  {
+    "text": "是否将以下 DApp 加入 AI 自动操作白名单？\\n\\n",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2435
+      ]
+    ]
+  },
+  {
+    "text": "暂无 AI 操作记录",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        3666
+      ]
+    ]
+  },
+  {
+    "text": "暂无成功的 AI 交易记录",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        3666
+      ]
+    ]
+  },
+  {
+    "text": "本次将通过【",
+    "occurrences": [
+      [
+        "CrossChainRiskDialog.java",
+        182
+      ]
+    ]
+  },
+  {
+    "text": "查看风险日志",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        391
+      ]
+    ]
+  },
+  {
+    "text": "没有待处理的会话提案",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        620
+      ]
+    ]
+  },
+  {
+    "text": "没有活动的会话",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        680
+      ]
+    ]
+  },
+  {
+    "text": "添加",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        2144
+      ],
+      [
+        "HomeActivity.java",
+        2743
+      ],
+      [
+        "TokenDetailActivity.java",
+        832
+      ]
+    ]
+  },
+  {
+    "text": "清空操作日志",
+    "occurrences": [
+      [
+        "LogViewerActivity.java",
+        340
+      ]
+    ]
+  },
+  {
+    "text": "清空闪退记录",
+    "occurrences": [
+      [
+        "LogViewerActivity.java",
+        345
+      ]
+    ]
+  },
+  {
+    "text": "用户拒绝签名",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        1406
+      ],
+      [
+        "DAppBrowserActivity.java",
+        1433
+      ]
+    ]
+  },
+  {
+    "text": "知道了",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        1247
+      ],
+      [
+        "CrossChainRiskDialog.java",
+        208
+      ]
+    ]
+  },
+  {
+    "text": "确定",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        919
+      ],
+      [
+        "HomeActivity.java",
+        2060
+      ],
+      [
+        "HomeActivity.java",
+        2698
+      ]
+    ]
+  },
+  {
+    "text": "确认",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2038
+      ],
+      [
+        "SendActivity.java",
+        741
+      ]
+    ]
+  },
+  {
+    "text": "确认授权",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2489
+      ]
+    ]
+  },
+  {
+    "text": "确认禁止",
+    "occurrences": [
+      [
+        "TokenDetailActivity.java",
+        410
+      ]
+    ]
+  },
+  {
+    "text": "签名",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2070
+      ]
+    ]
+  },
+  {
+    "text": "继续使用",
+    "occurrences": [
+      [
+        "SplashActivity.java",
+        144
+      ]
+    ]
+  },
+  {
+    "text": "继续使用（风险自担）",
+    "occurrences": [
+      [
+        "SplashActivity.java",
+        124
+      ]
+    ]
+  },
+  {
+    "text": "蜡烛图",
+    "occurrences": [
+      [
+        "CoinDetailActivity.java",
+        126
+      ]
+    ]
+  },
+  {
+    "text": "解析 URI 失败: ",
+    "occurrences": [
+      [
+        "WalletConnectRelay.java",
+        237
+      ]
+    ]
+  },
+  {
+    "text": "连接",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        1204
+      ],
+      [
+        "DAppBrowserActivity.java",
+        2001
+      ]
+    ]
+  },
+  {
+    "text": "退出",
+    "occurrences": [
+      [
+        "SplashActivity.java",
+        120
+      ],
+      [
+        "SplashActivity.java",
+        140
+      ]
+    ]
+  },
+  {
+    "text": "链: ",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        108
+      ]
+    ]
+  },
+  {
+    "text": "隐藏",
+    "occurrences": [
+      [
+        "HomeActivity.java",
+        2871
+      ],
+      [
+        "HomeActivity.java",
+        3117
+      ]
+    ]
+  },
+  {
+    "text": "需要悬浮窗权限",
+    "occurrences": [
+      [
+        "DAppBrowserActivity.java",
+        2550
+      ]
+    ]
+  },
+  {
+    "text": "验证",
+    "occurrences": [
+      [
+        "WalletManagementActivity.java",
+        67
+      ]
+    ]
+  },
+  {
+    "text": "（当前）",
+    "occurrences": [
+      [
+        "WalletListActivity.java",
+        80
+      ]
+    ]
+  },
+  {
+    "text": "，正在执行周期分析...",
+    "occurrences": [
+      [
+        "AgentForegroundService.java",
+        108
+      ]
+    ]
+  }
+]

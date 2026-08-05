@@ -1,0 +1,33 @@
+// 项目根目录 settings.gradle
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        // Trust Wallet Core GitHub Packages（从 local.properties 读取认证）
+        maven {
+            url = uri("https://maven.pkg.github.com/trustwallet/wallet-core")
+            credentials {
+                // 尝试从 local.properties 读取，回退到环境变量
+                def localProps = new Properties()
+                def localPropsFile = new File(settingsDir, "local.properties")
+                if (localPropsFile.exists()) {
+                    localProps.load(localPropsFile.newDataInputStream())
+                }
+                username = localProps.getProperty("gpr.user") ?: System.getenv("GITHUB_USER") ?: ""
+                password = localProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
+    }
+}
+
+rootProject.name = "AI Crypto Wallet"
+include ':app'

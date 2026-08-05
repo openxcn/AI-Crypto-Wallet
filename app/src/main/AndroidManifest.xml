@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 系统级弹窗权限：AI 申请 DApp 白名单时，即使 App 在后台也能弹出授权窗口 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:name=".CryptoWalletApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme"
+        android:networkSecurityConfig="@xml/network_security_config">
+        
+        <activity
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+        
+        <activity android:name=".SetupActivity" />
+        <activity android:name=".HomeActivity" />
+        <activity android:name=".TokenDetailActivity" />
+        <activity android:name=".TxDetailActivity" />
+        <activity android:name=".CoinDetailActivity" />
+        <activity android:name=".SendActivity" />
+        <activity android:name=".DAppBrowserActivity"
+            android:exported="true">
+            <!-- 伪装 MetaMask：拦截 metamask:// 深度链接，让系统把我们识别为钱包 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="metamask" />
+            </intent-filter>
+            <!-- WalletConnect 标准 scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wc" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".SwapActivity" />
+        <activity android:name=".AIAgentActivity" />
+        <activity android:name=".NodeSelectorActivity" />
+        <activity android:name=".LogViewerActivity" />
+        <activity android:name=".TokenDiscoveryActivity" />
+        <activity android:name=".AddressBookActivity" />
+        <activity android:name=".ModelConfigActivity" />
+        <activity android:name=".WalletManagementActivity" />
+        <activity android:name=".WalletListActivity" />
+        <activity android:name=".AssetOverviewActivity" />
+        <activity android:name=".SecurityCenterActivity" />
+        <activity android:name=".MarketCoinAnalyzeActivity" />
+        <activity
+            android:name=".AboutActivity"
+            android:theme="@style/AppTheme"
+            android:exported="false" />
+        <activity android:name=".ReceiveActivity"
+            android:theme="@style/AppTheme"
+            android:exported="false" />
+
+        <!-- AI 智能体前台服务：App 关闭后仍保持 AI 运行和信号/新闻推送 -->
+        <service
+            android:name=".AgentForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.aicryptowallet.app.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

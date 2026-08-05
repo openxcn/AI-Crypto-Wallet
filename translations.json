@@ -1,0 +1,3047 @@
+{
+  " syrup糖浆池": {
+    "en": "syrup syrup pool",
+    "ja": "シロップ シロッププール",
+    "de": "Sirup-Sirup-Pool"
+  },
+  " 新品 ": {
+    "en": "New product",
+    "ja": "新製品",
+    "de": "Neues Produkt"
+  },
+  " 热门 ": {
+    "en": "Popular",
+    "ja": "人気のある",
+    "de": "Beliebt"
+  },
+  "%1$s  ·  %2$s\\n余额: %3$s": {
+    "en": "%1$s·%2$s\\nBalance:%3$s",
+    "ja": "%1$s·%2$s\\n残高:%3$s",
+    "de": "%1$s·%2$s\\nGuthaben:%3$s"
+  },
+  "%1$s K线数据加载失败（可能该币种不在此数据源）": {
+    "en": "%1$sK-line data loading failed (the currency may not be in this data source)",
+    "ja": "%1$sK ライン データの読み込みに失敗しました (通貨がこのデータ ソースにない可能性があります)",
+    "de": "%1$sDas Laden der K-Line-Daten ist fehlgeschlagen (die Währung befindet sich möglicherweise nicht in dieser Datenquelle)"
+  },
+  "%1$s 已加入白名单（操作已记录）": {
+    "en": "%1$shas been added to the whitelist (operation recorded)",
+    "ja": "%1$sがホワイトリストに追加されました (操作が記録されました)",
+    "de": "%1$swurde zur Whitelist hinzugefügt (Vorgang aufgezeichnet)"
+  },
+  "%1$s 条记录": {
+    "en": "%1$srecords",
+    "ja": "%1$sレコード",
+    "de": "%1$sDatensätze"
+  },
+  "%1$s 详情": {
+    "en": "%1$sDetails",
+    "ja": "%1$s詳細",
+    "de": "%1$sDetails"
+  },
+  "%1$s已复制": {
+    "en": "%1$sCopied",
+    "ja": "%1$sコピーしました",
+    "de": "%1$sKopiert"
+  },
+  "+ 创建 / 导入钱包": {
+    "en": "+ Create/Import wallet",
+    "ja": "+ ウォレットの作成/インポート",
+    "de": "+ Wallet erstellen/importieren"
+  },
+  "+ 添加": {
+    "en": "+ add",
+    "ja": "+追加",
+    "de": "+ hinzufügen"
+  },
+  "0 条记录": {
+    "en": "0 records",
+    "ja": "0件のレコード",
+    "de": "0 Datensätze"
+  },
+  "1. 选择下方供应商\\n2. 点击「获取 Key」跳转到供应商官网注册\\n3. 在官网生成 API Key 后复制回来\\n4. 填入 Key 后点击「激活」即可使用\\n\\nAPI Key 会加密存储在本机，不会上传到任何服务器。": {
+    "en": "1. Select the supplier below\\n2. Click \"Get Key\" to jump to the supplier's official website for registration\\n3. Generate the API Key on the official website and copy it back\\n4. Fill in the Key and click \"Activate\" to use it\\n\\nThe API Key will be encrypted and stored locally and will not be uploaded to any server.",
+    "ja": "1. 以下のサプライヤーを選択します\\n2. [キーを取得] をクリックして、サプライヤーの公式 Web サイトに移動して登録します\\n3.公式 Web サイトで API キーを生成し、コピーして戻します\\n4.キーを入力し、[有効化] をクリックして使用します\\n\\nAPI キーは暗号化されてローカルに保存され、どのサーバーにもアップロードされません。",
+    "de": "1. Wählen Sie unten den Lieferanten aus\\n2. Klicken Sie auf „Schlüssel abrufen“, um zur offiziellen Website des Anbieters zur Registrierung zu gelangen\\n3. Generieren Sie den API-Schlüssel auf der offiziellen Website und kopieren Sie ihn zurück\\n4. Geben Sie den Schlüssel ein und klicken Sie auf „Aktivieren“, um ihn zu verwenden.\\n\\nDer API-Schlüssel wird verschlüsselt und lokal gespeichert und nicht auf einen Server hochgeladen."
+  },
+  "1周": {
+    "en": "1 week",
+    "ja": "1週間",
+    "de": "1 Woche"
+  },
+  "1天": {
+    "en": "1 day",
+    "ja": "1日",
+    "de": "1 Tag"
+  },
+  "1时": {
+    "en": "1 hour",
+    "ja": "1時間",
+    "de": "1 Stunde"
+  },
+  "24h 成交量": {
+    "en": "24h trading volume",
+    "ja": "24時間の取引量",
+    "de": "24-Stunden-Handelsvolumen"
+  },
+  "24h 行情": {
+    "en": "24h Quotes",
+    "ja": "24時間の見積もり",
+    "de": "24-Stunden-Angebote"
+  },
+  "24h涨跌": {
+    "en": "24h rise and fall",
+    "ja": "24時間上昇と下降",
+    "de": "24h Aufstieg und Fall"
+  },
+  "4时": {
+    "en": "4 o'clock",
+    "ja": "4時",
+    "de": "4 Uhr"
+  },
+  "AI 交易": {
+    "en": "AI trading",
+    "ja": "AI取引",
+    "de": "KI-Handel"
+  },
+  "AI 交易助手": {
+    "en": "AI trading assistant",
+    "ja": "AI取引アシスタント",
+    "de": "KI-Handelsassistent"
+  },
+  "AI 交易当日亏损达到此限额后将自动停止": {
+    "en": "AI trading will automatically stop after the daily loss reaches this limit.",
+    "ja": "1日の損失がこの制限に達すると、AI取引は自動的に停止されます。",
+    "de": "Der KI-Handel wird automatisch gestoppt, sobald der tägliche Verlust dieses Limit erreicht."
+  },
+  "AI 交易设置": {
+    "en": "AI trading settings",
+    "ja": "AI取引設定",
+    "de": "KI-Handelseinstellungen"
+  },
+  "AI 兑换": {
+    "en": "AI exchange",
+    "ja": "AI交換",
+    "de": "KI-Austausch"
+  },
+  "AI 分析": {
+    "en": "AI analysis",
+    "ja": "AI分析",
+    "de": "KI-Analyse"
+  },
+  "AI 分析报告": {
+    "en": "AI analysis report",
+    "ja": "AI分析レポート",
+    "de": "KI-Analysebericht"
+  },
+  "AI 助手": {
+    "en": "AI assistant",
+    "ja": "AIアシスタント",
+    "de": "KI-Assistent"
+  },
+  "AI 助手未启用": {
+    "en": "AI Assistant is not enabled",
+    "ja": "AI アシスタントが有効になっていません",
+    "de": "AI Assistant ist nicht aktiviert"
+  },
+  "AI 安全拦截": {
+    "en": "AI security interception",
+    "ja": "AIセキュリティ傍受",
+    "de": "Abfangen von KI-Sicherheitsmaßnahmen"
+  },
+  "AI 操作详情": {
+    "en": "AI operation details",
+    "ja": "AI運用詳細",
+    "de": "Details zum KI-Betrieb"
+  },
+  "AI 智能体已停止": {
+    "en": "AI agent has stopped",
+    "ja": "AIエージェントが停止しました",
+    "de": "Der KI-Agent wurde gestoppt"
+  },
+  "AI 智能体已启动 (%1$s)": {
+    "en": "AI agent started (%1$s)",
+    "ja": "AI エージェントが開始されました (%1$s)",
+    "de": "KI-Agent gestartet (%1$s)"
+  },
+  "AI 未启动": {
+    "en": "AI not started",
+    "ja": "AIが起動していない",
+    "de": "KI nicht gestartet"
+  },
+  "AI 模型配置": {
+    "en": "AI model configuration",
+    "ja": "AIモデル構成",
+    "de": "Konfiguration des KI-Modells"
+  },
+  "AI 炒币助手": {
+    "en": "AI currency speculation assistant",
+    "ja": "AI通貨投機アシスタント",
+    "de": "KI-Assistent für Währungsspekulationen"
+  },
+  "AI 申请 DApp 白名单": {
+    "en": "AI applies for DApp whitelist",
+    "ja": "AIがDAppホワイトリストに申請",
+    "de": "AI beantragt die DApp-Whitelist"
+  },
+  "AI 禁止交易": {
+    "en": "AI prohibits transactions",
+    "ja": "AIが取引を禁止",
+    "de": "KI verbietet Transaktionen"
+  },
+  "AI 行情分析": {
+    "en": "AI market analysis",
+    "ja": "AI市場分析",
+    "de": "KI-Marktanalyse"
+  },
+  "AI 风险分析报告": {
+    "en": "AI risk analysis report",
+    "ja": "AIリスク分析レポート",
+    "de": "Bericht zur KI-Risikoanalyse"
+  },
+  "AI 风险监控、交易限额、操作日志实时守护": {
+    "en": "AI risk monitoring, transaction limits, and real-time protection of operation logs",
+    "ja": "AIによるリスク監視、トランザクション制限、操作ログのリアルタイム保護",
+    "de": "KI-Risikoüberwachung, Transaktionslimits und Echtzeitschutz von Betriebsprotokollen"
+  },
+  "AICW钱包纯本地运行，请务必保证设备安全": {
+    "en": "AICW wallet runs purely locally, please be sure to ensure device security",
+    "ja": "AICW ウォレットは純粋にローカルで実行されます。デバイスのセキュリティを必ず確保してください。",
+    "de": "AICW Wallet läuft rein lokal, bitte achten Sie unbedingt auf die Gerätesicherheit"
+  },
+  "AI操作记录": {
+    "en": "AI operation records",
+    "ja": "AI運用記録",
+    "de": "Aufzeichnungen über KI-Operationen"
+  },
+  "AI新闻摘要": {
+    "en": "AI News Summary",
+    "ja": "AIニュースまとめ",
+    "de": "Zusammenfassung der KI-Nachrichten"
+  },
+  "BSC借贷挖矿": {
+    "en": "BSC lending and mining",
+    "ja": "BSC の融資とマイニング",
+    "de": "BSC-Kreditvergabe und Bergbau"
+  },
+  "DApp 浏览器打开失败": {
+    "en": "DApp browser failed to open",
+    "ja": "DAppブラウザを開けませんでした",
+    "de": "Der DApp-Browser konnte nicht geöffnet werden"
+  },
+  "DApp 白名单授权": {
+    "en": "DApp whitelist authorization",
+    "ja": "DApp ホワイトリスト認証",
+    "de": "DApp-Whitelist-Autorisierung"
+  },
+  "DApp 详情": {
+    "en": "DApp details",
+    "ja": "DAppの詳細",
+    "de": "DApp-Details"
+  },
+  "DApp 请求 EIP-712 签名：\\n\\n%1$s": {
+    "en": "DApp requests EIP-712 signature:\\n\\n%1$s",
+    "ja": "DApp は EIP-712 署名を要求します:\\n\\n%1$s",
+    "de": "DApp fordert EIP-712-Signatur an:\\n\\n%1$s"
+  },
+  "DApp 请求签名\\n\\n%1$s": {
+    "en": "DApp requests signature\\n\\n%1$s",
+    "ja": "DApp は署名を要求します\\n\\n%1$s",
+    "de": "DApp fordert Signatur an\\n\\n%1$s"
+  },
+  "DApp 请求签名消息：\\n\\n%1$s": {
+    "en": "DApp requests signed message:\\n\\n%1$s",
+    "ja": "DApp要求署名メッセージ：\\ n\\ n %1$s",
+    "de": "DApp fordert signierte Nachricht an:\\n\\n%1$s"
+  },
+  "DApp详情": {
+    "en": "DApp details",
+    "ja": "DAppの詳細",
+    "de": "DApp-Details"
+  },
+  "DeFi 数据加载失败: %1$s": {
+    "en": "DeFi data loading failed:%1$s",
+    "ja": "DeFiデータの読み込みに失敗しました： %1$s",
+    "de": "Das Laden der DeFi-Daten ist fehlgeschlagen:%1$s"
+  },
+  "Decimals (可选，默认 18)": {
+    "en": "Decimals (optional, default 18)",
+    "ja": "小数点以下桁数（オプション、デフォルト18 ）",
+    "de": "Dezimalstellen (optional, Standard 18)"
+  },
+  "Gas 费用": {
+    "en": "Gas cost",
+    "ja": "ガスコスト",
+    "de": "Gaskosten"
+  },
+  "HD 账户已创建: %1$s": {
+    "en": "HD account created:%1$s",
+    "ja": "HDアカウントが作成されました： %1$s",
+    "de": "HD-Konto erstellt: %1$s"
+  },
+  "Key: %1$s | 模型: %2$s": {
+    "en": "Key:%1$s| Model:%2$s",
+    "ja": "キー： %1$s |モデル： %2$s",
+    "de": "Legende: %1$s | Modell: %2$s"
+  },
+  "MA/MACD/RSI策略": {
+    "en": "MA/MACD/RSI Strategy",
+    "ja": "MA/MACD/RSI戦略",
+    "de": "MA/MACD/RSI-Strategie"
+  },
+  "Meme 分析": {
+    "en": "Meme analysis",
+    "ja": "ミーム分析",
+    "de": "Meme-Analyse"
+  },
+  "Meme分析功能开发中": {
+    "en": "Meme analysis function is under development",
+    "ja": "開発中のミーム分析",
+    "de": "Meme-Analytik in Entwicklung"
+  },
+  "NFT 加载失败": {
+    "en": "NFT loading failed",
+    "ja": "NFTの読み込みに失敗しました",
+    "de": "NFT-Laden fehlgeschlagen"
+  },
+  "NFT 收藏": {
+    "en": "NFT Collection",
+    "ja": "NFTコレクション",
+    "de": "NFT-Kollektion"
+  },
+  "Name (可选)": {
+    "en": "Name (optional)",
+    "ja": "名前（任意）",
+    "de": "Name (optional)"
+  },
+  "Staking流动性挖矿": {
+    "en": "Staking Liquidity Mining",
+    "ja": "ステーキング流動性マイニング",
+    "de": "Staking Liquidity Mining"
+  },
+  "Symbol (可选，自动从合约读取)": {
+    "en": "Symbol (optional, automatically read from the contract)",
+    "ja": "記号（オプション、契約から自動的に読み取り）",
+    "de": "Symbol (optional, automatisch aus Vertrag gelesen)"
+  },
+  "UI 更新失败: %1$s": {
+    "en": "UI update failed:%1$s",
+    "ja": "UIの更新に失敗しました： %1$s",
+    "de": "Aktualisierung der Benutzeroberfläche fehlgeschlagen: %1$s"
+  },
+  "URL 为空": {
+    "en": "URL is empty",
+    "ja": "URLが空です",
+    "de": "URL ist leer"
+  },
+  "URL 已复制": {
+    "en": "URL copied",
+    "ja": "URLをコピーしました",
+    "de": "URL kopiert"
+  },
+  "WalletConnect 交易请求": {
+    "en": "WalletConnect transaction request",
+    "ja": "WalletConnectトランザクションリクエスト",
+    "de": "WalletConnect-Transaktionsanfrage"
+  },
+  "WalletConnect 已断开": {
+    "en": "WalletConnect has been disconnected",
+    "ja": "WalletConnectが切断されました",
+    "de": "WalletConnect getrennt"
+  },
+  "WalletConnect 已连接 %1$s": {
+    "en": "WalletConnect is connected%1$s",
+    "ja": "WalletConnect 已连接 %1$s",
+    "de": "WalletConnect 已连接 %1$s"
+  },
+  "WalletConnect 签名请求": {
+    "en": "WalletConnect Signing Request",
+    "ja": "WalletConnect署名リクエスト",
+    "de": "WalletConnect Signaturanfrage"
+  },
+  "WalletConnect 连接请求": {
+    "en": "WalletConnect connection request",
+    "ja": "WalletConnect接続リクエスト",
+    "de": "WalletConnect-Verbindungsanfrage"
+  },
+  "WalletConnect 错误: %1$s": {
+    "en": "WalletConnect error:%1$s",
+    "ja": "WalletConnectエラー： %1$s",
+    "de": "WalletConnect-Fehler: %1$s"
+  },
+  "⚠ 切勿泄露！可长按上方文字复制，或截图保存。\\n复制后将在 30 秒后自动清除剪贴板。": {
+    "en": "⚠ Don’t reveal it!You can long press the text above to copy, or take a screenshot and save it.\\nAfter copying, the clipboard will be cleared automatically after 30 seconds.",
+    "ja": "漏らす⚠ な！上のテキストを長押ししてコピーするか、スクリーンショットを保存します。\\ nコピー後、クリップボードは30秒後に自動的にクリアされます。",
+    "de": "⚠ Nicht verraten! Drücken Sie lange auf den obigen Text, um den Screenshot zu kopieren oder zu speichern.\\ nNach dem Kopieren wird die Zwischenablage nach 30 Sekunden automatisch gelöscht."
+  },
+  "⚠ 助记词等同私钥，请勿泄露给任何人": {
+    "en": "⚠ The mnemonic phrase is equivalent to the private key, please do not disclose it to anyone",
+    "ja": "⚠ ニーモニックは秘密鍵と同じです。誰にも開示しないでください",
+    "de": "Die ⚠ Gedächtnisstütze ist die gleiche wie der private Schlüssel, bitte geben Sie ihn niemandem bekannt"
+  },
+  "⚠️ 闪退记录": {
+    "en": "⚠️Crash record",
+    "ja": "⚠️ フラッシュバック録音",
+    "de": "⚠️ Flashback-Aufzeichnung"
+  },
+  "⚠️ 高风险操作警告": {
+    "en": "⚠️ High risk operation warning",
+    "ja": "⚠️ 危険度の高い操作に対する警告",
+    "de": "Warnung vor ⚠️ risikoreichen Vorgängen"
+  },
+  "⛔ 已关闭 AI 自动交易，AI 将只对话和分析，不执行交易": {
+    "en": "⛔ AI automatic trading has been turned off, AI will only talk and analyze, but will not execute transactions",
+    "ja": "AI自動取引⛔がオフになり、AIは会話と分析のみを行い、トランザクションを実行しません",
+    "de": "Der automatische Handel mit KI ⛔ ist deaktiviert, KI wird nur sprechen und analysieren, keine Transaktionen ausführen"
+  },
+  "✅ 已开启 AI 自动交易，AI 可自动买卖和调用 DeFi": {
+    "en": "✅ AI automatic trading has been turned on, AI can automatically buy, sell and call DeFi",
+    "ja": "AI自動取引が✅オンになり、AIは自動的に売買してDeFiに電話をかけることができます",
+    "de": "Automatischer KI-Handel ✅ ist aktiviert, KI kann DeFi automatisch kaufen, verkaufen und anrufen"
+  },
+  "【提示】": {
+    "en": "【hint】",
+    "ja": "ヒント",
+    "de": "TIPP"
+  },
+  "【超出自动限额】": {
+    "en": "【Auto limit exceeded】",
+    "ja": "[自動クォータを超えました]",
+    "de": "[Automatische Quote überschritten]"
+  },
+  "【跨链兑换风险提示】": {
+    "en": "[Cross-chain exchange risk warning]",
+    "ja": "【クロスチェーンエクスチェンジリスクのヒント】",
+    "de": "[Cross-Chain Exchange-Risikotipps]"
+  },
+  "一键分享 AI 报告图片": {
+    "en": "Share AI report images with one click",
+    "ja": "AIレポート画像のワンクリック共有",
+    "de": "Ein-Klick-Freigabe von KI-Berichtsbildern"
+  },
+  "上滑加载更多": {
+    "en": "Swipe up to load more",
+    "ja": "上にスワイプしてさらに読み込む",
+    "de": "Wische nach oben, um mehr zu laden"
+  },
+  "下次检查: ": {
+    "en": "Next time to check:",
+    "ja": "次のチェック：",
+    "de": "Nächste Prüfung:"
+  },
+  "两次密码不一致": {
+    "en": "Two passwords are inconsistent",
+    "ja": "パスワードが一致しません",
+    "de": "Die beiden Passwörter stimmen nicht überein"
+  },
+  "中": {
+    "en": "middle",
+    "ja": "中",
+    "de": "Befriedigend"
+  },
+  "主题模式": {
+    "en": "theme mode",
+    "ja": "テーマモード",
+    "de": "Theme-Modus"
+  },
+  "二维码生成失败": {
+    "en": "QR code generation failed",
+    "ja": "QRコードの生成に失敗しました",
+    "de": "QR-Code-Generierung fehlgeschlagen"
+  },
+  "交易冷却中，请稍后再试": {
+    "en": "The transaction is cooling down, please try again later.",
+    "ja": "トランザクションが冷却されています。しばらくしてからもう一度お試しください",
+    "de": "Die Transaktion kühlt sich ab, bitte versuchen Sie es später erneut"
+  },
+  "交易哈希": {
+    "en": "transaction hash",
+    "ja": "トランザクションハッシュ",
+    "de": "Transaktions-Hash"
+  },
+  "交易已发送! TX: %1$s...": {
+    "en": "Transaction sent! TX:%1$s...",
+    "ja": "交易已发送! TX: %1$s...",
+    "de": "交易已发送! TX: %1$s..."
+  },
+  "交易异常: %1$s": {
+    "en": "Transaction exception:%1$s",
+    "ja": "トランザクション異常： %1$s",
+    "de": "Transaktionsanomalie: %1$s"
+  },
+  "交易成功": {
+    "en": "Transaction successful",
+    "ja": "取引成功",
+    "de": "Transaktion erfolgreich"
+  },
+  "交易执行失败": {
+    "en": "Transaction execution failed",
+    "ja": "トランザクションの実行に失敗しました",
+    "de": "Transaktionsausführung fehlgeschlagen"
+  },
+  "交易笔数": {
+    "en": "Number of Transactions ",
+    "ja": "トランザクション数",
+    "de": "Anzahl der Transaktionen"
+  },
+  "交易类型": {
+    "en": "<g id=\"Bold\">Trading Type</g>",
+    "ja": "取引の種類",
+    "de": "Transaktionstyp"
+  },
+  "交易记录": {
+    "en": "TRADE RECORDS",
+    "ja": "支払い履歴",
+    "de": "Transaktionsdatensatz"
+  },
+  "交易详情": {
+    "en": "Transaction Details",
+    "ja": "取引の詳細",
+    "de": "Transaktionsdetails"
+  },
+  "交易链": {
+    "en": "Transaction Chain",
+    "ja": "トランザクションチェーン",
+    "de": "Transaktionskette"
+  },
+  "仅向此地址发送 ": {
+    "en": "Send to this address only",
+    "ja": "この住所にのみ送信",
+    "de": "Nur an diese Adresse senden"
+  },
+  "仅查看": {
+    "en": "View-only",
+    "ja": "表示のみ",
+    "de": "<x id=\"1\"/><x id=\"2\"/>Nur anzeigen"
+  },
+  "今日盈亏": {
+    "en": "Profit/Loss Today",
+    "ja": "本日の損益",
+    "de": "Gewinn/Verlust heute"
+  },
+  "今日盈亏 $0.00(0.00%)": {
+    "en": "Profit or loss today $0.00 (0.00%)",
+    "ja": "本日の損益$ 0.00 (0.00%)",
+    "de": "Gewinn oder Verlust heute 0,00 $ (0,00%)"
+  },
+  "从": {
+    "en": "FROM",
+    "ja": "からです。",
+    "de": "von"
+  },
+  "从同一助记词派生 Account %1$s": {
+    "en": "Derive Account %1$s from the same mnemonic",
+    "ja": "同じニーモニックからアカウント%1$sを抽出する",
+    "de": "Konto %1$s aus derselben Gedächtnisstütze ableiten"
+  },
+  "代币列表加载失败: %1$s": {
+    "en": "Failed to load token list: %1$s",
+    "ja": "トークンリストの読み込みに失敗しました: %1$s",
+    "de": "Token-Liste konnte nicht geladen werden: %1$s"
+  },
+  "以太坊": {
+    "en": "EthereumICO",
+    "ja": "イーサリアム",
+    "de": "Ethereum"
+  },
+  "价格": {
+    "en": "Price",
+    "ja": "価格",
+    "de": "wert"
+  },
+  "价格走势": {
+    "en": "Price trends Falling Stable",
+    "ja": "価格トレンド",
+    "de": "Preistrends"
+  },
+  "会话不存在": {
+    "en": "Session does not exist",
+    "ja": "セッションが存在しません",
+    "de": "Sitzung existiert nicht"
+  },
+  "会话列表": {
+    "en": "Sessions list",
+    "ja": "セッションリスト",
+    "de": "Sitzungsliste"
+  },
+  "会话已删除": {
+    "en": "Sessions deleted.",
+    "ja": "セッションが削除されました",
+    "de": "Sitzung gelöscht"
+  },
+  "余额: 0": {
+    "en": "Balance:",
+    "ja": "残高",
+    "de": "Saldo"
+  },
+  "余额: 加载失败": {
+    "en": "Balance: Failed to load",
+    "ja": "残高：読み込みに失敗しました",
+    "de": "Saldo: Laden fehlgeschlagen"
+  },
+  "余额不足": {
+    "en": "Saldo tidak cukup",
+    "ja": "残高が不足しています",
+    "de": "Solde insuffisant"
+  },
+  "余额查询失败: %1$s": {
+    "en": "Balance check failed: %1$s",
+    "ja": "残高クエリに失敗しました： %1$s",
+    "de": "Saldoabfrage fehlgeschlagen: %1$s"
+  },
+  "例如 10": {
+    "en": "E.g.: 10%.",
+    "ja": "例） 10",
+    "de": "z.B. 10"
+  },
+  "例如 100": {
+    "en": "eg.100",
+    "ja": "例） 100",
+    "de": "z.B. 100"
+  },
+  "例如 30": {
+    "en": "e.g. 30",
+    "ja": "例） 30",
+    "de": "z.B. 30"
+  },
+  "例如 500": {
+    "en": "eg: 500",
+    "ja": "例） 500",
+    "de": "z.B. 500"
+  },
+  "供应商列表": {
+    "en": "Supplier List",
+    "ja": "サプライヤーリスト",
+    "de": "Lieferantenliste"
+  },
+  "保存图片": {
+    "en": "Save Img",
+    "ja": "写真を保存",
+    "de": "<x id=\"1\"/>:'<g id=\"2\">Bild speichern<x id=\"3\"/></g>"
+  },
+  "保存失败": {
+    "en": "Failed to save",
+    "ja": "保存に失敗しました",
+    "de": "Speichern fehlgeschlagen"
+  },
+  "保存失败: %1$s": {
+    "en": "Failed to save: %1$s",
+    "ja": "保存に失敗しました: %1$s",
+    "de": "Speichern fehlgeschlagen: %1$s"
+  },
+  "信号分析": {
+    "en": "Signal Analysis",
+    "ja": "シグナル解析",
+    "de": "Signalanalyse"
+  },
+  "停止智能体": {
+    "en": "Stop Agent",
+    "ja": "エージェントを停止",
+    "de": "Agenten stoppen"
+  },
+  "免责声明": {
+    "en": "DISCLAIMER",
+    "ja": "免責文",
+    "de": "Gegenerklärung"
+  },
+  "兑换": {
+    "en": "Exchange",
+    "ja": "交換",
+    "de": "Tauschen"
+  },
+  "兑换中...": {
+    "en": "Redeeming...",
+    "ja": "引き換え中...",
+    "de": "Einlösen..."
+  },
+  "兑换失败: %1$s": {
+    "en": "Redemption failed: %1$s",
+    "ja": "交換に失敗しました： %1$s",
+    "de": "Einlösung fehlgeschlagen: %1$s"
+  },
+  "兑换成功! TX: %1$s...": {
+    "en": "Redeemed successfully! TX: %1$s...",
+    "ja": "兑换成功! TX: %1$s...",
+    "de": "兑换成功! TX: %1$s..."
+  },
+  "全球首款": {
+    "en": "World's first",
+    "ja": "世界初",
+    "de": "Weltweit erste"
+  },
+  "全部": {
+    "en": "Overall Minimum Value",
+    "ja": "すべて",
+    "de": "Alles"
+  },
+  "全部恢复": {
+    "en": "Restore All",
+    "ja": "すべて復元",
+    "de": "Alle wiederherstellen"
+  },
+  "共 %1$s 条日志": {
+    "en": "Total %1$s logs",
+    "ja": "合計%1$sつのログ",
+    "de": "Insgesamt %1$s Protokoll"
+  },
+  "共 %1$s 次闪退": {
+    "en": "Total %1$s flashbacks",
+    "ja": "合計%1$s回のフラッシュバック",
+    "de": "Insgesamt %1$s Rückblenden"
+  },
+  "关于我们": {
+    "en": "About Us",
+    "ja": "当館について",
+    "de": "Über uns"
+  },
+  "关闭": {
+    "en": "Off",
+    "ja": "オフ",
+    "de": "Closed"
+  },
+  "再次输入密码": {
+    "en": "Input your password again",
+    "ja": "パスワードを再入力",
+    "de": "Passwort nochmals eingeben"
+  },
+  "分享": {
+    "en": "Share",
+    "ja": "シェアする",
+    "de": "Teilen"
+  },
+  "分享 AI 分析报告": {
+    "en": "Share AI insights",
+    "ja": "AIの洞察を共有する",
+    "de": "KI-Einblicke teilen"
+  },
+  "分享 DApp": {
+    "en": "Share DApp",
+    "ja": "DAppを共有",
+    "de": "DApp teilen"
+  },
+  "分享交易": {
+    "en": "Share Transaction",
+    "ja": "シェアトランザクション",
+    "de": "Transaktion teilen"
+  },
+  "分享分析报告": {
+    "en": "Share insights",
+    "ja": "インサイトを共有する",
+    "de": "Einblicke teilen"
+  },
+  "分享失败: %1$s": {
+    "en": "Failed to share: %1$s",
+    "ja": "共有に失敗しました： %1$s",
+    "de": "Weitergabe fehlgeschlagen: %1$s"
+  },
+  "分享日志文件": {
+    "en": "Share log files",
+    "ja": "ログファイルを共有する",
+    "de": "Protokolldateien freigeben"
+  },
+  "分享行情分析": {
+    "en": "Share your insights",
+    "ja": "あなたの洞察を共有する",
+    "de": "Teile deine Erkenntnisse"
+  },
+  "分析中...": {
+    "en": "Analyzing...",
+    "ja": "分析しています...",
+    "de": "Analysiere..."
+  },
+  "分析失败: %1$s": {
+    "en": "Analysis failed: %1$s",
+    "ja": "解析に失敗しました： %1$s",
+    "de": "Analyse fehlgeschlagen: %1$s"
+  },
+  "切换桌面": {
+    "en": "Switch Desktop",
+    "ja": "切换桌面",
+    "de": "Desktop wechseln"
+  },
+  "切换账号": {
+    "en": "Change Account",
+    "ja": "アカウントを切り替える",
+    "de": "Konto wechseln"
+  },
+  "创建 %1$s 钱包": {
+    "en": "Create %1$s wallet",
+    "ja": "%1$s文字ウォレットを作成する",
+    "de": "%1$s-Buchstaben-Wallet erstellen"
+  },
+  "创建新钱包": {
+    "en": "Create new wallet",
+    "ja": "新しいウォレットを作成",
+    "de": "Neues Wallet erstellen"
+  },
+  "创建钱包": {
+    "en": "Create Wallet",
+    "ja": "ウォレットを作成",
+    "de": "Wallet erstellen"
+  },
+  "创立年份": {
+    "en": "Year Founded",
+    "ja": "設立年",
+    "de": "Gründungsjahr"
+  },
+  "删除": {
+    "en": "Delete",
+    "ja": "デリート",
+    "de": "Löschen"
+  },
+  "删除 %1$s 的 API Key 配置？": {
+    "en": "Delete the API Key configuration for %1$s?",
+    "ja": "删除 %1$s 的 API Key 配置？",
+    "de": "删除 %1$s 的 API Key 配置？"
+  },
+  "删除会话": {
+    "en": "Delete Thread",
+    "ja": "セッションを削除",
+    "de": "Sitzungen einrichten ...@title:menu"
+  },
+  "删除联系人": {
+    "en": "Remove a Contact",
+    "ja": "連絡先を削除",
+    "de": "Kontakt lÃ¶schen"
+  },
+  "删除钱包": {
+    "en": "Delete Wallet",
+    "ja": "ウォレットを削除",
+    "de": "Digitale Brieftasche lÃ¶schen"
+  },
+  "到": {
+    "en": "to",
+    "ja": "転送先",
+    "de": "Ziel"
+  },
+  "刷新失败: %1$s": {
+    "en": "Refresh failed: %1$s",
+    "ja": "更新に失敗しました： %1$s",
+    "de": "Fehler beim Aktualisieren: %1$s"
+  },
+  "刷新异常: %1$s": {
+    "en": "Refresh Exception: %1$s",
+    "ja": "リフレッシュ例外: %1$s",
+    "de": "Ausnahme aktualisieren: %1$s"
+  },
+  "前往外部平台": {
+    "en": "Go to external platform",
+    "ja": "外部プラットフォームに移動",
+    "de": "Zur externen Plattform gehen"
+  },
+  "剪贴板内容不是该链的有效地址": {
+    "en": "Clipboard content is not a valid address for the chain",
+    "ja": "クリップボードのコンテンツがチェーンの有効なアドレスではありません",
+    "de": "Der Inhalt der Zwischenablage ist keine gültige Adresse für die Kette"
+  },
+  "剪贴板已自动清除": {
+    "en": "Clipboard cleared automatically",
+    "ja": "クリップボードが自動的にクリアされました",
+    "de": "Zwischenablage automatisch gelöscht"
+  },
+  "加仓": {
+    "en": "Add to Warehouse",
+    "ja": "倉庫に追加",
+    "de": "Zum Lager hinzufügen"
+  },
+  "加载 DeFi 数据中...": {
+    "en": "Loading DeFi data...",
+    "ja": "DeFiデータを読み込んでいます...",
+    "de": "DeFi-Daten werden geladen..."
+  },
+  "加载中...": {
+    "en": "Memuat...",
+    "ja": "読み込み中…",
+    "de": "Laden..."
+  },
+  "加载会话失败": {
+    "en": "Failed to load session",
+    "ja": "セッションの読み込みに失敗しました",
+    "de": "Sitzung konnte nicht geladen werden"
+  },
+  "加载失败: %1$s": {
+    "en": "Failed to load: %1$s",
+    "ja": "読み込みに失敗しました： %1$s",
+    "de": "Laden fehlgeschlagen: %1$s"
+  },
+  "加载失败: %1$s (错误码:%2$s)": {
+    "en": "Failed to load: %1$s (Error code: %2$s)",
+    "ja": "読み込みに失敗しました： %1$s （エラーコード： %2$s ）",
+    "de": "Laden fehlgeschlagen: %1$s (Fehlercode: %2$s)"
+  },
+  "加载失败，点击重试": {
+    "en": "Failed to load, click to try it again",
+    "ja": "読み込みに失敗しました。クリックして再試行してください",
+    "de": "Laden fehlgeschlagen. Klicken Sie hier, um es erneut zu versuchen"
+  },
+  "加载失败，请下拉刷新": {
+    "en": "Loading failed, please pull to refresh",
+    "ja": "読み込みに失敗しました。引っ張って更新してください",
+    "de": "Laden fehlgeschlagen, bitte zum Aktualisieren ziehen"
+  },
+  "加载更多...": {
+    "en": "Load More By",
+    "ja": "もっと読み込む",
+    "de": "Load more"
+  },
+  "助记词 / 私钥": {
+    "en": "Mnemonic/Private Key",
+    "ja": "ニーモニック/秘密鍵",
+    "de": "Mnemonischer/privater Schlüssel"
+  },
+  "助记词生成失败，请重试: %1$s": {
+    "en": "Mnemonic word generation failed, please try again: %1$s",
+    "ja": "ニーモニックワードの生成に失敗しました。もう一度お試しください： %1$s",
+    "de": "Mnemonische Wortgenerierung fehlgeschlagen, bitte versuchen Sie es erneut: %1$s"
+  },
+  "助记词读取失败": {
+    "en": "Failed to read mnemonic",
+    "ja": "ニーモニックの読み取りに失敗しました",
+    "de": "Gedächtnisstütze konnte nicht gelesen werden"
+  },
+  "助记词（请妥善保存）": {
+    "en": "Mnemonic (please keep it safe)",
+    "ja": "ニーモニック（安全に保管してください）",
+    "de": "Gedächtnisstütze (bitte sicher aufbewahren)"
+  },
+  "区块号": {
+    "en": "Number of Testimonials",
+    "ja": "ブロック番号",
+    "de": "Blocknummer"
+  },
+  "区块高度 %1$s": {
+    "en": "Block height: %1$s",
+    "ja": "ブロックの高さ： %1$s",
+    "de": "Blockhöhe: %1$s"
+  },
+  "区块高度 --": {
+    "en": "Section Height",
+    "ja": "ブロックの高さ--",
+    "de": "Blockhöhe -"
+  },
+  "区块高度：高度值越大，代表节点数据同步更完善，其稳定性更好。在节点速度差不多的情况下，选择高度值大的节点，体验更好": {
+    "en": "Block height: The larger the height value, the better the node data synchronization and its stability. When the node speed is similar, choose a node with a large height value, the experience is better",
+    "ja": "ブロック高さ：高さ値が大きいほど、ノードデータの同期と安定性が向上します。ノード速度が似ている場合は、高さ値が大きいノードを選択すると、エクスペリエンスが向上します",
+    "de": "Blockhöhe: Je größer der Höhenwert, desto besser ist die Knotendatensynchronisation und deren Stabilität. Wenn die Knotengeschwindigkeit ähnlich ist, wählen Sie einen Knoten mit einem großen Höhenwert, die Erfahrung ist besser"
+  },
+  "单笔 $10 / 每日 $30": {
+    "en": "Single $10/day $30",
+    "ja": "シングル$ 10/日$ 30",
+    "de": "Single $ 10/Tag $ 30"
+  },
+  "单笔 %1$s%2$s / 每日 %3$s%4$s": {
+    "en": "Single stroke %1$s stroke %2$s stroke/day %3$s stroke %4$s stroke",
+    "ja": "シングルストローク%1$sストローク%2$sストローク/日%3$sストローク%4$sストローク",
+    "de": "Einzelhub %1$s Hub %2$s Hub/Tag %3$s Hub %4$s Hub"
+  },
+  "单笔交易额度上限 (%1$s)": {
+    "en": "Maximum single transaction limit (%1$s)",
+    "ja": "単一トランザクションの上限(%1$s)",
+    "de": "Maximales einzelnes Transaktionslimit (%1$s)"
+  },
+  "单笔跨链限额（%1$s）": {
+    "en": "Single cross-chain limit (%1$s)",
+    "ja": "単一クロスチェーンリミット（ %1$s ）",
+    "de": "Einfache Kreuzkettenbegrenzung (%1$s)"
+  },
+  "单笔限额不能大于每日限额": {
+    "en": "Single limit cannot be greater than daily limit",
+    "ja": "単一の制限は1日の制限を超えることはできません",
+    "de": "Einzellimit darf nicht größer als Tageslimit sein"
+  },
+  "单笔限额（%1$s）": {
+    "en": "Single Limit (%1$s)",
+    "ja": "シングルリミット（ %1$s ）",
+    "de": "Einzel-Limit (%1$s)"
+  },
+  "发现": {
+    "en": "Findings",
+    "ja": "発見",
+    "de": "Discovery"
+  },
+  "发现 %1$s 个代币，正在加载...": {
+    "en": "%1$s token found, loading...",
+    "ja": "%1$sトークンが見つかりました。読み込み中...",
+    "de": "%1$s Token gefunden, wird geladen..."
+  },
+  "发现 %1$s 个代币，正在查询余额...": {
+    "en": "Found %1$s token, checking balance...",
+    "ja": "%1$sトークンを見つけました。残高を確認しています...",
+    "de": "%1$s Token gefunden, Kontostand wird überprüft..."
+  },
+  "发现页": {
+    "en": "Discovery page",
+    "ja": "ディスカバリーページ",
+    "de": "Entdeckungsseite"
+  },
+  "发送": {
+    "en": "Send",
+    "ja": "送信する",
+    "de": "Abschicken"
+  },
+  "发送中...": {
+    "en": " Sending...",
+    "ja": "送信しています...",
+    "de": "Anhängig"
+  },
+  "发送失败: %1$s": {
+    "en": "Failed to send: %1$s",
+    "ja": "送信に失敗しました: %1$s",
+    "de": "Senden fehlgeschlagen: %1$s"
+  },
+  "发送方": {
+    "en": "Sender",
+    "ja": "送信側",
+    "de": "Absender"
+  },
+  "取消": {
+    "en": "’s decline",
+    "ja": "キャンセル",
+    "de": "Abbrechen"
+  },
+  "只显示AI交易记录": {
+    "en": "Show only AI transactions",
+    "ja": "AIトランザクションのみを表示",
+    "de": "Nur KI-Transaktionen anzeigen"
+  },
+  "可用: %1$s": {
+    "en": "Available: {%1$s}",
+    "ja": "利用可能： %1$s",
+    "de": "Verfügbar: %1$s"
+  },
+  "可用: 0": {
+    "en": "Available: {0}",
+    "ja": "を２つのプレースホルダ付きで挿入するには",
+    "de": "Verfügb."
+  },
+  "合约: 0x...": {
+    "en": "Contract: 0x...",
+    "ja": "コントラクト： 0 x...",
+    "de": "Vertrag: 0x..."
+  },
+  "合约地址 (0x...)": {
+    "en": "Contract Address (0x...)",
+    "ja": "契約アドレス(0 x...)",
+    "de": "Vertragsadresse (0x...)"
+  },
+  "合约地址格式不正确": {
+    "en": "Incorrect contract address format",
+    "ja": "契約書住所の形式が正しくありません",
+    "de": "Falsches Vertragsadressenformat"
+  },
+  "名称": {
+    "en": "Name",
+    "ja": "名称",
+    "de": "Benennung"
+  },
+  "名称不能为空": {
+    "en": "name can not be empty",
+    "ja": "名前は空にできません",
+    "de": "Name darf nicht leer sein."
+  },
+  "名称（如：张三 / 某交易所热钱包）": {
+    "en": "Name (ex: Zhang San/a hot wallet of an exchange)",
+    "ja": "名前（例：張さん/取引所のホットウォレット）",
+    "de": "Name (z. B. Zhang San/ein Hot Wallet einer Börse)"
+  },
+  "启动": {
+    "en": "Start",
+    "ja": "始動",
+    "de": "Ingangsetzen"
+  },
+  "启动 AI 智能体": {
+    "en": "Launch AI agent",
+    "ja": "AIエージェントを起動",
+    "de": "KI-Agent starten"
+  },
+  "启动AI失败: %1$s": {
+    "en": "Failed to start AI: %1$s",
+    "ja": "AIを開始できませんでした： %1$s",
+    "de": "KI konnte nicht gestartet werden: %1$s"
+  },
+  "启动失败: %1$s": {
+    "en": "Startup failed: %1$s",
+    "ja": "起動に失敗しました： %1$s",
+    "de": "Start fehlgeschlagen: %1$s"
+  },
+  "咨询 AI": {
+    "en": "Consult AI",
+    "ja": "AIに相談する",
+    "de": "KI konsultieren"
+  },
+  "在 %1$s 查看 →": {
+    "en": "View in %1$s →",
+    "ja": "%1$sで表示 →",
+    "de": "In %1$s anzeigen →"
+  },
+  "在 BscScan 查看 →": {
+    "en": "View in BscScan →",
+    "ja": "BscScanで表示 →",
+    "de": "In BscScan anzeigen →"
+  },
+  "地址已复制": {
+    "en": "Address copied",
+    "ja": "住所をコピーしました",
+    "de": "Adresse kopiert"
+  },
+  "地址推导失败，请重试": {
+    "en": "Address deduction failed, please try again",
+    "ja": "住所控除に失敗しました。もう一度お試しください",
+    "de": "Adressabzug fehlgeschlagen, bitte versuchen Sie es erneut"
+  },
+  "地址格式不正确（%1$s链）": {
+    "en": "Incorrect address format (%1$s-chain)",
+    "ja": "アドレス形式が正しくありません（ %1$sチェーン）",
+    "de": "Falsches Adressformat (%1$s-kettig)"
+  },
+  "地址格式不正确（%1$s）": {
+    "en": "Incorrect address format (%1$s)",
+    "ja": "住所形式が正しくありません(%1$s)",
+    "de": "Falsches Adressformat (%1$s)"
+  },
+  "地板价": {
+    "en": "Floor price",
+    "ja": "フロア価格",
+    "de": "Grundpreis"
+  },
+  "处理中": {
+    "en": "处理中",
+    "ja": "処理中",
+    "de": "in Bearbeitung"
+  },
+  "备注（可选）": {
+    "en": "Comments (optional)",
+    "ja": "コメント (オプション):",
+    "de": "Kommentar (optional):"
+  },
+  "复制": {
+    "en": "Copy",
+    "ja": "複製",
+    "de": "Übernehmen"
+  },
+  "复制URL": {
+    "en": "Copy URL",
+    "ja": "URLをコピー",
+    "de": "URL kopieren"
+  },
+  "复制地址": {
+    "en": "Copy address",
+    "ja": "アドレスをコピー",
+    "de": "Adresse kopieren"
+  },
+  "复制报告": {
+    "en": "Copy for Support",
+    "ja": "レポートをコピー",
+    "de": "Bericht kopieren"
+  },
+  "多链极速兑换": {
+    "en": "Multi-Chain Speed Redemption",
+    "ja": "マルチチェーンスピード交換",
+    "de": "Multiketten-Geschwindigkeitsrücknahme"
+  },
+  "失败": {
+    "en": "Kalah",
+    "ja": "失敗した",
+    "de": "Fehlgeschlagen"
+  },
+  "如何获取 API Key？": {
+    "en": "How do I get an API Key?",
+    "ja": "APIキーを取得するにはどうすればよいですか？",
+    "de": "Wie erhalte ich einen API-Schlüssel?"
+  },
+  "存币生息": {
+    "en": "\t\t\t<x id=\"1\"/><x id=\"2\"/>Deposit Program",
+    "ja": "預金は利息を稼ぎます",
+    "de": "<x id=\"1\"/><x id=\"2\"/>Deposit Program"
+  },
+  "安全 · 智能 · 多链": {
+    "en": "Secure · Smart · Multi-chain",
+    "ja": "セキュア・スマート・マルチチェーン",
+    "de": "Secure · Smart · Multi-Chain"
+  },
+  "安全中心": {
+    "en": "Security",
+    "ja": "セーフティセンター",
+    "de": "Security Center"
+  },
+  "安全提醒": {
+    "en": "Safety reminder",
+    "ja": "安全に関するお知らせ",
+    "de": "Sicherheitshinweis"
+  },
+  "安全验证": {
+    "en": "Security verification",
+    "ja": "セキュリティ検証",
+    "de": "Sicherheitsüberprüfung"
+  },
+  "完整闪退堆栈": {
+    "en": "Full Flashback Stack",
+    "ja": "フルフラッシュバックスタック",
+    "de": "Vollständiger Flashback-Stack"
+  },
+  "实用、快速赚币工具集合，最大化闲置资金收益！": {
+    "en": "A collection of useful, fast coin-earning tools to maximize your idle funds!",
+    "ja": "アイドル資金を最大限に活用するための便利で高速なコイン稼ぎツールのコレクション！",
+    "de": "Eine Sammlung nützlicher, schneller Tools zum Münzverdienen, um Ihr ungenutztes Geld zu maximieren!"
+  },
+  "密码": {
+    "en": "Password",
+    "ja": "パスワード",
+    "de": "Passwort"
+  },
+  "密码至少6位": {
+    "en": "The password is at least 6 letters.",
+    "ja": "パスワードは6桁以上である必要があります",
+    "de": "Das Passwort muss mindestens 6 Ziffern lang sein"
+  },
+  "密码错误": {
+    "en": "Wrong password",
+    "ja": "不正なパスワード",
+    "de": "Passwort falsch"
+  },
+  "密码错误，转账已取消": {
+    "en": "Incorrect password, transfer canceled",
+    "ja": "パスワードが正しくありません。転送がキャンセルされました",
+    "de": "Falsches Passwort, Übertragung abgebrochen"
+  },
+  "密码验证失败: %1$s": {
+    "en": "Password verification failed: %1$s",
+    "ja": "パスワードの確認に失敗しました： %1$s",
+    "de": "Passwortüberprüfung fehlgeschlagen: %1$s"
+  },
+  "对话记录已清空": {
+    "en": "Conversation history cleared",
+    "ja": "会話履歴がクリアされました",
+    "de": "Gesprächsverlauf gelöscht"
+  },
+  "导入已有钱包": {
+    "en": "Import an existing wallet",
+    "ja": "既存のウォレットをインポートする",
+    "de": "Importieren Sie ein vorhandenes Wallet"
+  },
+  "导入钱包": {
+    "en": "IMPORT WALLET",
+    "ja": "ウォレットをインポート",
+    "de": "Brieftasche importieren"
+  },
+  "导出": {
+    "en": "Exporting",
+    "ja": "エクスポート",
+    "de": "Exportieren"
+  },
+  "导出 AI 操作记录到...": {
+    "en": "Export AI Actions Recorded To...",
+    "ja": "記録されたAIアクションをエクスポート...",
+    "de": "Aufgezeichnete KI-Aktionen exportieren nach..."
+  },
+  "导出为本地文件": {
+    "en": "Export as local file",
+    "ja": "ローカルファイルとしてエクスポート",
+    "de": "Als lokale Datei exportieren"
+  },
+  "导出助记词": {
+    "en": "Export Mnemonic Words",
+    "ja": "ニーモニックワードをエクスポート",
+    "de": "Mnemonische Wörter exportieren"
+  },
+  "导出失败: %1$s": {
+    "en": "Export failed: %1$s",
+    "ja": "エクスポートに失敗しました： %1$s",
+    "de": "Export fehlgeschlagen: %1$s"
+  },
+  "导出对话记录到...": {
+    "en": "Export conversation logs to...",
+    "ja": "会話ログのエクスポート先...",
+    "de": "Konversationsprotokolle exportieren nach..."
+  },
+  "导出日志": {
+    "en": "Export As JSON",
+    "ja": "ログのエクスポート",
+    "de": "Protokolle exportieren"
+  },
+  "导出风险日志": {
+    "en": "Export Risk Logs",
+    "ja": "リスクログのエクスポート",
+    "de": "Risikoprotokolle exportieren"
+  },
+  "将收款地址二维码对准框内": {
+    "en": "Align the payout address QR code in the box",
+    "ja": "受取住所のQRコードをボックスに揃えます",
+    "de": "Richten Sie den QR-Code der Auszahlungsadresse im Feld aus"
+  },
+  "展开": {
+    "en": "Expand",
+    "ja": "ã·ã§ã¼ãè§£é¤",
+    "de": "Öffnen"
+  },
+  "展开小额资产": {
+    "en": "Expand Small Assets",
+    "ja": "小規模アセットを展開",
+    "de": "Kleine Assets erweitern"
+  },
+  "已保存到相册": {
+    "en": "Saved to album",
+    "ja": "アルバムに保存しました",
+    "de": "Im Album gespeichert"
+  },
+  "已切换到 %1$s": {
+    "en": "Switched to %1$s",
+    "ja": "%1$sに切り替えました",
+    "de": "Zu %1$s gewechselt"
+  },
+  "已切换到: %1$s": {
+    "en": "Switched to: %1$s",
+    "ja": "次のものに切り替えました: %1$s",
+    "de": "Gewechselt zu: %1$s"
+  },
+  "已切换至 %1$s": {
+    "en": "Switched to %1$s",
+    "ja": "%1$sに切り替えました",
+    "de": "Zu %1$s gewechselt"
+  },
+  "已删除": {
+    "en": "Deleted",
+    "ja": "削除",
+    "de": "Bereits gelöscht"
+  },
+  "已删除 %1$s 配置": {
+    "en": "Deleted configurations for %1$s",
+    "ja": "%1$sの構成を削除しました",
+    "de": "Gelöschte Konfigurationen für %1$s"
+  },
+  "已取消扫码": {
+    "en": "Code scan canceled",
+    "ja": "コードスキャンがキャンセルされました",
+    "de": "Code-Scan abgebrochen"
+  },
+  "已取消收藏": {
+    "en": "The collection has been canceled",
+    "ja": "お気に入り取消",
+    "de": "Nicht favorisiert"
+  },
+  "已在白名单": {
+    "en": "Whitelisted",
+    "ja": "ホワイトリスト登録済み",
+    "de": "Whitelisted"
+  },
+  "已填入地址%1$s": {
+    "en": "Filled in address %1$s",
+    "ja": "住所「%1$s」を記入",
+    "de": "Anschrift %1$s ausgefüllt"
+  },
+  "已复制": {
+    "en": "Duplicated",
+    "ja": "コピーしました",
+    "de": "Kopiert"
+  },
+  "已复制到剪贴板": {
+    "en": "Copied to clipboard",
+    "ja": "クリップボードにコピーしました",
+    "de": "In die Zwischenablage kopiert"
+  },
+  "已复制合约地址": {
+    "en": "Contract address copied",
+    "ja": "契約先住所をコピーしました",
+    "de": "Vertragsadresse kopiert"
+  },
+  "已复制地址": {
+    "en": "Address copied",
+    "ja": "住所をコピーしました",
+    "de": "Adresse kopiert"
+  },
+  "已复制，30 秒后自动清除": {
+    "en": "Copied, automatically cleared after 30 seconds",
+    "ja": "コピーされ、30秒後に自動的にクリアされました",
+    "de": "Kopiert, nach 30 Sekunden automatisch gelöscht"
+  },
+  "已导出到：Downloads/%1$s": {
+    "en": "已导出到：Downloads/%1$s",
+    "ja": "已导出到：Downloads/%1$s",
+    "de": "已导出到：Downloads/%1$s"
+  },
+  "已归档旧会话并开启新会话": {
+    "en": "Old session archived and new session started",
+    "ja": "古いセッションがアーカイブされ、新しいセッションが開始されました",
+    "de": "Alte Sitzung archiviert und neue Sitzung gestartet"
+  },
+  "已恢复显示": {
+    "en": "Display resumed",
+    "ja": "表示を再開しました",
+    "de": "Anzeige fortgesetzt"
+  },
+  "已授权: %1$s": {
+    "en": "Authorized: %1$s",
+    "ja": "Authorized: %1$s",
+    "de": "Autorisiert: %1$s"
+  },
+  "已收藏": {
+    "en": "Dikoleksi",
+    "ja": "お気に入り",
+    "de": "Gespeichert"
+  },
+  "已显示所有代币": {
+    "en": "All tokens shown",
+    "ja": "すべてのトークンが表示されました",
+    "de": "Alle angezeigten Token"
+  },
+  "已添加": {
+    "en": "Was added",
+    "ja": "追加済",
+    "de": "Hinzugefügt"
+  },
+  "已添加 %1$s": {
+    "en": "Added %1$s",
+    "ja": "鍋を追加しました%1$s鍋",
+    "de": "%1$shinzugefügt"
+  },
+  "已激活": {
+    "en": "Activated",
+    "ja": "有効",
+    "de": "aktiviert"
+  },
+  "已激活 %1$s": {
+    "en": "%1$s activated",
+    "ja": "%1$s個が有効化されました",
+    "de": "%1$s aktiviert"
+  },
+  "已熔断 (剩 %1$s 分钟)": {
+    "en": "Blown (%1$s min remaining)",
+    "ja": "ブロー（残り%1$s分）",
+    "de": "Geblasen (%1$s Minute verbleibend)"
+  },
+  "已禁止 %1$s 的交易": {
+    "en": "已禁止 %1$s 的交易",
+    "ja": "已禁止 %1$s 的交易",
+    "de": "已禁止 %1$s 的交易"
+  },
+  "已禁止交易": {
+    "en": "Transaction banned",
+    "ja": "取引が禁止されました",
+    "de": "Transaktion gesperrt"
+  },
+  "已粘贴地址": {
+    "en": "Pasted address",
+    "ja": "貼り付けられた住所",
+    "de": "Eingefügte Adresse"
+  },
+  "已选择最快节点": {
+    "en": "Fastest node selected",
+    "ja": "最速ノードが選択されました",
+    "de": "Schnellster Knoten ausgewählt"
+  },
+  "已选择联系人地址": {
+    "en": "Selected contact address",
+    "ja": "選択した連絡先住所",
+    "de": "Ausgewählte Kontaktadresse"
+  },
+  "已配置": {
+    "en": "Configured",
+    "ja": "構成済み",
+    "de": "Konfiguriert"
+  },
+  "已配置（留空则保持不变）": {
+    "en": "Configured (leave blank to leave unchanged)",
+    "ja": "設定済み（変更しない場合は空白のまま）",
+    "de": "Konfiguriert (leer lassen, um unverändert zu bleiben)"
+  },
+  "已重命名": {
+    "en": "Renamed",
+    "ja": "名前を変更",
+    "de": "Umbenannt"
+  },
+  "已隐藏": {
+    "en": "Hidden",
+    "ja": "非表示",
+    "de": "(Versteckt)"
+  },
+  "已隐藏 %1$s": {
+    "en": "Hidden bibliography %1$s bibliography",
+    "ja": "非表示の参考文献%1$sの参考文献",
+    "de": "Versteckte Bibliographie %1$s Bibliographie"
+  },
+  "已隐藏的代币 - %1$s": {
+    "en": "Hidden tokens - %1$s",
+    "ja": "隠されたトークン- %1$s",
+    "de": "Versteckte Token - %1$s"
+  },
+  "已隐藏的代币（点击恢复显示）": {
+    "en": "Hidden tokens (click to resume display)",
+    "ja": "非表示トークン（クリックして表示を再開）",
+    "de": "Ausgeblendete Token (klicken, um die Anzeige fortzusetzen)"
+  },
+  "币安智能链": {
+    "en": "Binance Smart Chain",
+    "ja": "バイナンススマートチェーン",
+    "de": "Binance Smart Chain"
+  },
+  "币种": {
+    "en": "<g id=\"Bold\">Currency Type<g id=\"Bold\">:</g></g>",
+    "ja": "通貨",
+    "de": "Währungstyp"
+  },
+  "币种参数缺失": {
+    "en": "Missing currency parameter",
+    "ja": "币种参数缺失",
+    "de": "Fehlender Währungsparameter"
+  },
+  "币种详情": {
+    "en": "Currency Details",
+    "ja": "通貨の詳細",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Währungsdetails"
+  },
+  "开发团队": {
+    "en": "Team Dev",
+    "ja": "開発チーム",
+    "de": "Entwicklungsteam"
+  },
+  "强制加入白名单": {
+    "en": "Force whitelist",
+    "ja": "ホワイトリストを強制",
+    "de": "Weiße Liste erzwingen"
+  },
+  "归档会话（点击继续聊，左滑或长按删除）": {
+    "en": "Archive session (click to continue chat, left swipe or long press to delete)",
+    "ja": "セッションをアーカイブ（クリックしてチャットを続行、左スワイプまたは長押しで削除）",
+    "de": "Sitzung archivieren (klicken, um den Chat fortzusetzen, nach links wischen oder lange drücken, um zu löschen)"
+  },
+  "当前会话": {
+    "en": "Current session",
+    "ja": "現在のセッション",
+    "de": "Aktuelle Sitzung"
+  },
+  "当前已在进行此会话": {
+    "en": "This session is already in progress",
+    "ja": "このセッションはすでに進行中です",
+    "de": "Diese Sitzung ist bereits im Gange"
+  },
+  "当前没有进行中的会话，已处于新会话": {
+    "en": "There are currently no active sessions, already in a new session",
+    "ja": "現在アクティブなセッションはありません。すでに新しいセッションにあります",
+    "de": "Es gibt derzeit keine aktiven Sitzungen, bereits in einer neuen Sitzung"
+  },
+  "当前钱包无可用助记词": {
+    "en": "No mnemonic words available for current wallet",
+    "ja": "現在のウォレットに使用できるニーモニックワードはありません",
+    "de": "Keine mnemonischen Wörter für das aktuelle Wallet verfügbar"
+  },
+  "当前钱包没有可用代币": {
+    "en": "No tokens available in current wallet",
+    "ja": "現在のウォレットで利用可能なトークンはありません",
+    "de": "Keine Token im aktuellen Wallet verfügbar"
+  },
+  "当前链: ": {
+    "en": "Current Chain:",
+    "ja": "現在のチェーン：",
+    "de": "Aktuelle Kette:"
+  },
+  "当前链不支持代币自动发现": {
+    "en": "The current chain does not support token auto-discovery",
+    "ja": "現在のチェーンはトークンの自動検出をサポートしていません",
+    "de": "Die aktuelle Kette unterstützt keine automatische Token-Erkennung"
+  },
+  "当前链暂不支持手动添加代币（仅EVM链）": {
+    "en": "The current chain does not support adding tokens manually (EVM chain only)",
+    "ja": "現在のチェーンは、手動でのトークンの追加をサポートしていません（ EVMチェーンのみ）",
+    "de": "Die aktuelle Kette unterstützt das manuelle Hinzufügen von Token nicht (nur EVM-Kette)"
+  },
+  "快": {
+    "en": "Faster",
+    "ja": "速く",
+    "de": "Schnell"
+  },
+  "总计": {
+    "en": "GRAND TOTAL",
+    "ja": "合計",
+    "de": "Gesamt"
+  },
+  "恢复显示": {
+    "en": "Resume display",
+    "ja": "表示を再開",
+    "de": "Anzeige fortsetzen"
+  },
+  "恢复显示 %1$s 吗？": {
+    "en": "Do you want to resume displaying %1$s?",
+    "ja": "%1$sの表示を再開しますか？",
+    "de": "Möchten Sie die Anzeige von %1$s fortsetzen?"
+  },
+  "慢": {
+    "en": "Slower",
+    "ja": "低速",
+    "de": "Langsam"
+  },
+  "成功": {
+    "en": "Berhasil",
+    "ja": "成功",
+    "de": "Erfolgreich!"
+  },
+  "我已了解风险并继续": {
+    "en": "I understand the risks and continue",
+    "ja": "私はリスクを理解し、継続します",
+    "de": "Ich verstehe die Risiken und fahre fort"
+  },
+  "我的": {
+    "en": "Punyaku",
+    "ja": "わたしの",
+    "de": "Ein Mein"
+  },
+  "我的 API": {
+    "en": "My APIs",
+    "ja": "マイAPI",
+    "de": "Meine APIs"
+  },
+  "我的钱包": {
+    "en": "Wallet",
+    "ja": "ウォレット",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Meine Geldbörse"
+  },
+  "所有钱包": {
+    "en": "All Wallet",
+    "ja": "すべてのウォレット",
+    "de": "Alle Wallets"
+  },
+  "手动添加代币": {
+    "en": "Add tokens manually",
+    "ja": "トークンを手動で追加する",
+    "de": "Token manuell hinzufügen"
+  },
+  "手动记录": {
+    "en": "Manual Recording",
+    "ja": "手動録画",
+    "de": "Manuelle Aufzeichnung"
+  },
+  "打开 AI 失败: %1$s": {
+    "en": "Failed to open AI: %1$s",
+    "ja": "AIを開けませんでした： %1$s",
+    "de": "KI konnte nicht geöffnet werden: %1$s"
+  },
+  "打开AI助手失败": {
+    "en": "Failed to open AI assistant",
+    "ja": "AIアシスタントを開けませんでした",
+    "de": "KI-Assistent konnte nicht geöffnet werden"
+  },
+  "打开DApp失败": {
+    "en": "Failed to open DApp",
+    "ja": "DAppを開けませんでした",
+    "de": "DApp konnte nicht geöffnet werden"
+  },
+  "打开兑换失败": {
+    "en": "Failed to open redemption",
+    "ja": "引き換えを開けませんでした",
+    "de": "Einlösung konnte nicht geöffnet werden"
+  },
+  "打开失败: %1$s": {
+    "en": "Failed to open: %1$s",
+    "ja": "開けませんでした： %1$s",
+    "de": "Fehler beim Öffnen: %1$s"
+  },
+  "打开收款页失败": {
+    "en": "Failed to open payout page",
+    "ja": "受取金ページを開けませんでした",
+    "de": "Auszahlungsseite konnte nicht geöffnet werden"
+  },
+  "打开链接失败: %1$s": {
+    "en": "Failed to open link: %1$s",
+    "ja": "リンクを開けませんでした： %1$s",
+    "de": "Link konnte nicht geöffnet werden: %1$s"
+  },
+  "扫描授权中...": {
+    "en": "Scanning for authorizations...",
+    "ja": "認証をスキャンしています...",
+    "de": "Suche nach Berechtigungen..."
+  },
+  "扫描结果不是 %1$s 链的有效地址": {
+    "en": "The scanning result is not a valid address for the %1$s chain",
+    "ja": "スキャン結果は「%1$s」チェーンの有効なアドレスではありません",
+    "de": "Das Scan-Ergebnis ist keine gültige Adresse für die %1$s -Kette"
+  },
+  "扫码功能开发中": {
+    "en": "Scanning function under development",
+    "ja": "開発中のスキャン機能",
+    "de": "Scanfunktion in Entwicklung"
+  },
+  "扫码启动失败: %1$s": {
+    "en": "Scanning code failed to start: %1$s",
+    "ja": "コードのスキャンを開始できませんでした: %1$s",
+    "de": "Scancode konnte nicht gestartet werden: %1$s"
+  },
+  "扫码结果解析失败: %1$s": {
+    "en": "Failed to parse scan code result: %1$s",
+    "ja": "スキャンコード結果の解析に失敗しました： %1$s",
+    "de": "Fehler beim Analysieren des Scan-Code-Ergebnisses: %1$s"
+  },
+  "技术指标": {
+    "en": "Technical Specification",
+    "ja": "技術指標",
+    "de": "Spezifikationen"
+  },
+  "报告已复制": {
+    "en": "Report Copied!",
+    "ja": "レポートをコピーしました",
+    "de": "Bericht kopiert"
+  },
+  "拒绝": {
+    "en": "Reject",
+    "ja": "却下",
+    "de": "Ablehnen"
+  },
+  "授权": {
+    "en": "licensing",
+    "ja": "授権",
+    "de": "Autorisierung"
+  },
+  "授权已撤销: %1$s...": {
+    "en": "授权已撤销: %1$s...",
+    "ja": "授权已撤销: %1$s...",
+    "de": "授权已撤销: %1$s..."
+  },
+  "授权扫描失败: %1$s": {
+    "en": "Authorization scan failed: %1$s",
+    "ja": "認証スキャンに失敗しました： %1$s",
+    "de": "Autorisierungsscan fehlgeschlagen: %1$s"
+  },
+  "接口格式": {
+    "en": "Interface Format",
+    "ja": "インターフェースフォーマット",
+    "de": "Schnittstellenformat"
+  },
+  "接收": {
+    "en": "Receive",
+    "ja": "受領",
+    "de": "Eingehend"
+  },
+  "接收方": {
+    "en": "To",
+    "ja": "受信側",
+    "de": "Empfänger"
+  },
+  "推荐节点": {
+    "en": "Recommended Node",
+    "ja": "推奨ノード",
+    "de": "Empfohlener Knoten"
+  },
+  "提示：留空 Symbol/Name/Decimals 时，会从合约自动读取": {
+    "en": "Tip: When you leave the Symbol/Name/Decimals blank, it will be automatically read from the contract",
+    "ja": "ヒント：シンボル/名前/小数点以下を空白のままにすると、契約から自動的に読み取られます",
+    "de": "Tipp: Wenn Sie das Symbol/den Namen/die Dezimalstellen leer lassen, wird es automatisch aus dem Vertrag gelesen"
+  },
+  "搜索或输入网址（如 baidu.com）": {
+    "en": "Search or enter a URL (e.g. baidu.com)",
+    "ja": "URLを検索または入力します（例： baidu.com ）",
+    "de": "Suchen oder geben Sie eine URL ein (z. B. baidu.com)"
+  },
+  "撤销": {
+    "en": "Undo",
+    "ja": "元に戻す",
+    "de": "Widerruf"
+  },
+  "撤销失败: %1$s": {
+    "en": "Undo failed: %1$s",
+    "ja": "元に戻せませんでした： %1$s",
+    "de": "Rückgängigmachen fehlgeschlagen: %1$s"
+  },
+  "撤销授权": {
+    "en": "Revoke authorisation",
+    "ja": "承認を取り消す",
+    "de": "Autorisierung widerrufen"
+  },
+  "操作日志": {
+    "en": "Operation Log",
+    "ja": "操作ログ",
+    "de": "Betriebsprotokoll"
+  },
+  "操作日志已清空": {
+    "en": "Operation log cleared",
+    "ja": "オペレーションログをクリアしました",
+    "de": "Operationsprotokoll gelöscht"
+  },
+  "支付密码": {
+    "en": "PayPal Password",
+    "ja": "支払いパスワード",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Zahlungspasswort"
+  },
+  "收款": {
+    "en": "Collections",
+    "ja": "資金回収",
+    "de": "zum Inkasso"
+  },
+  "收款地址": {
+    "en": "Remit To",
+    "ja": "支払先住所",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Empfangsadresse"
+  },
+  "收益专区": {
+    "en": "Income area",
+    "ja": "収入エリア",
+    "de": "Einkommensbereich"
+  },
+  "收藏": {
+    "en": "Favorites",
+    "ja": "コレクション",
+    "de": "Favoriten"
+  },
+  "数据源: %1$s": {
+    "en": "Data Source: |0 (|%1$s)",
+    "ja": "データソース： %1$s",
+    "de": "Datenquelle: %1$s"
+  },
+  "新币发现与监控": {
+    "en": "SGD Discovery and Monitoring",
+    "ja": "SGDの検出と監視",
+    "de": "SGD-Erkennung und -Überwachung"
+  },
+  "无法打开外部浏览器": {
+    "en": "Unable to open external browser",
+    "ja": "外部ブラウザを開けません",
+    "de": "Externer Browser kann nicht geöffnet werden"
+  },
+  "无法获取代币价格": {
+    "en": "Unable to fetch token price",
+    "ja": "トークン価格を取得できません",
+    "de": "Token-Preis kann nicht abgerufen werden"
+  },
+  "无法获取市场数据": {
+    "en": "Unable to get market data",
+    "ja": "市場データを取得できません",
+    "de": "Marktdaten können nicht abgerufen werden"
+  },
+  "无法获取私钥（观察钱包不支持此操作）": {
+    "en": "Unable to get private key (observation wallet does not support this operation)",
+    "ja": "秘密鍵を取得できません（観察ウォレットはこの操作をサポートしていません）",
+    "de": "Der private Schlüssel kann nicht abgerufen werden (die Beobachtungsmappe unterstützt diesen Vorgang nicht)"
+  },
+  "无法读取合约信息，请手动填写": {
+    "en": "Unable to read contract information, please fill in manually",
+    "ja": "契約情報を読み取れません。手動で記入してください",
+    "de": "Vertragsinformationen können nicht gelesen werden, bitte manuell ausfüllen"
+  },
+  "日亏损限额": {
+    "en": "Daily Loss Limit",
+    "ja": "1日の損失限度額",
+    "de": "Tägliches Verlustlimit"
+  },
+  "日亏损限额已保存": {
+    "en": "Daily Loss Limit Saved",
+    "ja": "1日の損失限度額を保存しました",
+    "de": "Tägliches Verlustlimit gespeichert"
+  },
+  "日亏损限额设置": {
+    "en": "Daily Loss Limit Settings",
+    "ja": "1日あたりの損失限度額の設定",
+    "de": "Tägliche Verlustlimit-Einstellungen"
+  },
+  "日志管理": {
+    "en": "Log Management",
+    "ja": "ログ管理",
+    "de": "Protokollverwaltung"
+  },
+  "时间": {
+    "en": "Time",
+    "ja": "日時",
+    "de": "Zeit"
+  },
+  "智能路径最优兑换": {
+    "en": "Smart Path Optimal Redemption",
+    "ja": "スマートパス最適償還",
+    "de": "Intelligenter Pfad Optimale Einlösung"
+  },
+  "暂无 %1$s 的详细介绍。": {
+    "en": "There is no detailed introduction of %1$s.",
+    "ja": "「%1$s」の詳細な紹介はありません。",
+    "de": "Eine detaillierte Einführung von „%1$s“ gibt es nicht."
+  },
+  "暂无 AI 操作记录可导出": {
+    "en": "No AI action records to export",
+    "ja": "エクスポートするAIアクションレコードがありません",
+    "de": "Keine KI-Aktionsdatensätze zum Exportieren"
+  },
+  "暂无 DeFi 仓位数据": {
+    "en": "No DeFi position data",
+    "ja": "DeFi位置データなし",
+    "de": "Keine DeFi-Positionsdaten"
+  },
+  "暂无 NFT": {
+    "en": "No NFTs",
+    "ja": "NFTなし",
+    "de": "Keine NFTs"
+  },
+  "暂无AI操作记录": {
+    "en": "No record of AI operation",
+    "ja": "AI操作の記録がありません",
+    "de": "Keine Aufzeichnung des KI-Betriebs"
+  },
+  "暂无交易记录": {
+    "en": "No transaction history...",
+    "ja": "まだトランザクションはありません",
+    "de": "Noch keine Transaktionen"
+  },
+  "暂无介绍": {
+    "en": "No introductions yet",
+    "ja": "紹介はまだありません",
+    "de": "Noch keine Einführungen"
+  },
+  "暂无使用记录\\n打开DApp后会自动记录在这里": {
+    "en": "There are no usage records yet\\ nIt will be automatically recorded here when you open the DApp",
+    "ja": "使用状況レコードはまだありません\\ nDAppを開くと、ここに自動的に記録されます",
+    "de": "Es gibt noch keine Nutzungsdatensätze\\ nEs wird hier automatisch aufgezeichnet, wenn Sie die DApp öffnen"
+  },
+  "暂无对话记录可导出": {
+    "en": "No conversations to export",
+    "ja": "エクスポートする会話はありません",
+    "de": "Keine Unterhaltungen zum Exportieren"
+  },
+  "暂无对话记录可清空": {
+    "en": "No conversations to clear",
+    "ja": "クリアする会話はありません",
+    "de": "Keine Konversationen zu löschen"
+  },
+  "暂无归档会话": {
+    "en": "No archive sessions yet",
+    "ja": "アーカイブセッションはまだありません",
+    "de": "Noch keine Archivsitzungen"
+  },
+  "暂无手动交易记录": {
+    "en": "No manual transactions yet",
+    "ja": "手動トランザクションはまだありません",
+    "de": "Noch keine manuellen Transaktionen"
+  },
+  "暂无报告可分享": {
+    "en": "No reports to share yet",
+    "ja": "共有するレポートはまだありません",
+    "de": "Noch keine Berichte zum Teilen"
+  },
+  "暂无数据": {
+    "en": "No data",
+    "ja": "暂无数据",
+    "de": "keine Daten vorhanden"
+  },
+  "暂无日志可分享": {
+    "en": "No blog posts to share yet",
+    "ja": "共有するブログ投稿はまだありません",
+    "de": "Noch keine Blogbeiträge zum Teilen"
+  },
+  "暂无日志可导出": {
+    "en": "No logs to export",
+    "ja": "エクスポートするログがありません",
+    "de": "Keine Protokolle zum Exportieren"
+  },
+  "暂无钱包": {
+    "en": "No wallet",
+    "ja": "ウォレットがありません",
+    "de": "Keine Geldbörse"
+  },
+  "暂无隐藏的代币": {
+    "en": "No hidden tokens",
+    "ja": "隠されたトークンはありません",
+    "de": "Keine versteckten Token"
+  },
+  "更多": {
+    "en": "更多/More info",
+    "ja": "より多く",
+    "de": "Weitere "
+  },
+  "更多 >": {
+    "en": "More",
+    "ja": "より多く",
+    "de": "Weitere "
+  },
+  "最低价": {
+    "en": "Set Minimum Price",
+    "ja": "最安値",
+    "de": "<x id=\"1\"/><x id=\"2\"/><g id=\"3\">Geringster Preis<x id=\"4\"/></g>"
+  },
+  "最后更新：%1$s": {
+    "en": "Last updated: %1$s.",
+    "ja": "最終更新: %1$s",
+    "de": "Zuletzt aktualisiert: %1$s."
+  },
+  "最后更新：--": {
+    "en": "Last Update",
+    "ja": "最終更新日時",
+    "de": "Letzte Aktualisierung"
+  },
+  "最大供应量": {
+    "en": "Max Supply",
+    "ja": "最大供給量",
+    "de": "Max. Versorgung"
+  },
+  "最小获得": {
+    "en": "Minimum Earned",
+    "ja": "最低獲得額",
+    "de": "Mindesteinkommen"
+  },
+  "最高价": {
+    "en": "Maximal Price",
+    "ja": "最高価格",
+    "de": "<x id=\"1\"/><x id=\"2\"/><g id=\"3\">Höchster Preis<x id=\"4\"/></g>"
+  },
+  "未启动": {
+    "en": "Unstart",
+    "ja": "未開始",
+    "de": "nicht aktiv"
+  },
+  "未启动%1$s": {
+    "en": "Not started? %1$s?",
+    "ja": "まだ始まっていませんか？ %1$s ？",
+    "de": "Nicht begonnen? %1$s?"
+  },
+  "未找到该合约地址的代币信息": {
+    "en": "No token information found for this contract address",
+    "ja": "この契約アドレスのトークン情報は見つかりませんでした",
+    "de": "Keine Token-Informationen für diese Vertragsadresse gefunden"
+  },
+  "未检测到代币授权": {
+    "en": "Token Authorization Not Detected",
+    "ja": "トークン認証が検出されませんでした",
+    "de": "Token-Autorisierung nicht erkannt"
+  },
+  "未配置": {
+    "en": "Not configured",
+    "ja": "[未設定]",
+    "de": "[nicht eingerichtet]"
+  },
+  "本软件为开源工具，不持有用户资产，不提供投资建议。加密货币交易存在高风险，过往业绩不预示未来表现。用户需自行承担所有交易风险，请审慎决策。": {
+    "en": "This software is an open source tool, does not hold user assets, and does not provide investment advice. Cryptocurrency trading is high risk and past performance does not predict future performance. All trading risks are at the user's own risk, please make a careful decision.",
+    "ja": "このソフトウェアはオープンソースツールであり、ユーザー資産を保持せず、投資アドバイスを提供しません。暗号通貨取引はリスクが高く、過去の業績は将来の業績を予測するものではありません。すべての取引リスクはユーザー自身の責任となりますので、慎重に判断してください。",
+    "de": "Diese Software ist ein Open-Source-Tool, verfügt nicht über Benutzervermögen und bietet keine Anlageberatung. Der Handel mit Kryptowährungen birgt ein hohes Risiko, und die Wertentwicklung in der Vergangenheit sagt keine zukünftige Wertentwicklung voraus. Alle Handelsrisiken gehen auf eigenes Risiko des Benutzers, bitte treffen Sie eine sorgfältige Entscheidung."
+  },
+  "来源：%1$s\\n\\n地址：%2$s\\n\\n钱包：%3$s": {
+    "en": "来源：%1$s\\n\\n地址：%2$s\\n\\n钱包：%3$s",
+    "ja": "来源：%1$s\\n\\n地址：%2$s\\n\\n钱包：%3$s",
+    "de": "来源：%1$s\\n\\n地址：%2$s\\n\\n钱包：%3$s"
+  },
+  "查看助记词需要密码验证。\\n\\n⚠ 警告：助记词等同私钥，任何掌握它的人都能转走你的资产。请确保周围无人偷看。": {
+    "en": "Password verification is required to view mnemonic words.\\ n\\⚠ nWarning: Mnemonic words are private keys and anyone who has them can transfer your assets. Please make sure no one is peeking around.",
+    "ja": "ニーモニックワードを表示するにはパスワードの確認が必要です。\\ n\\ n⚠警告：ニーモニックワードは秘密鍵であり、それらを持っている人は誰でもあなたの資産を転送することができます。周りを覗いている人がいないことを確認してください。",
+    "de": "Die Passwortüberprüfung ist erforderlich, um mnemonische Wörter anzuzeigen.\\ n\\⚠ nWarnung: Mnemonische Wörter sind private Schlüssel und jeder, der sie besitzt, kann Ihre Assets übertragen. Bitte achte darauf, dass sich niemand umschaut."
+  },
+  "查询失败": {
+    "en": "Query failed",
+    "ja": "クエリに失敗しました",
+    "de": "Abfrage fehlgeschlagen"
+  },
+  "查询失败: %1$s": {
+    "en": "Query failed: %1$s",
+    "ja": "クエリに失敗しました: %1$s",
+    "de": "Abfrage fehlgeschlagen: %1$s"
+  },
+  "标准": {
+    "en": "Standard",
+    "ja": "標準",
+    "de": "Standard"
+  },
+  "检测到当前网络环境极不稳定，将大幅影响 AI 决策和数据更新。建议切换到稳定的海外网络环境后使用。": {
+    "en": "Detecting that the current network environment is extremely unstable will greatly affect AI decisions and data updates. It is recommended to use it after switching to a stable overseas network environment.",
+    "ja": "現在のネットワーク環境が非常に不安定であることを検出すると、AIの意思決定やデータの更新に大きく影響します。安定した海外ネットワーク環境に切り替えた後に使用することをお勧めします。",
+    "de": "Die Erkennung, dass die aktuelle Netzwerkumgebung extrem instabil ist, wirkt sich stark auf KI-Entscheidungen und Datenaktualisierungen aus. Es wird empfohlen, es nach dem Wechsel zu einer stabilen ausländischen Netzwerkumgebung zu verwenden."
+  },
+  "模型名称": {
+    "en": "Model Name",
+    "ja": "モデル名",
+    "de": "Modellname"
+  },
+  "正在从区块浏览器加载 %1$s 代币列表...\\nURL: %2$s": {
+    "en": "Loading token list %1$s from block explorer...\\ nURL: %2$s",
+    "ja": "ブロックエクスプローラからトークンリスト%1$sを読み込んでいます...\\ nURL: %2$s",
+    "de": "Token-Liste %1$s wird aus dem Block-Explorer geladen...\\ nURL: %2$s"
+  },
+  "正在加载...": {
+    "en": "Loading...",
+    "ja": "アップデート中",
+    "de": "Laden"
+  },
+  "正在加载代币列表...": {
+    "en": "Loading token list...",
+    "ja": "トークンリストを読み込んでいます...",
+    "de": "Token-Liste wird geladen..."
+  },
+  "正在撤销...": {
+    "en": "Undoing...",
+    "ja": "元に戻しています...",
+    "de": "Rückgängig machen..."
+  },
+  "正在查询代币信息...": {
+    "en": "Querying token information...",
+    "ja": "トークン情報をクエリしています...",
+    "de": "Token-Informationen werden abgefragt..."
+  },
+  "正在检查资产...": {
+    "en": "Checking assets...",
+    "ja": "アセットを確認しています...",
+    "de": "Anlagen werden überprüft..."
+  },
+  "正在测速...": {
+    "en": "Testing speed...",
+    "ja": "速度をテストしています...",
+    "de": "Geschwindigkeit wird getestet..."
+  },
+  "正在统计……": {
+    "en": "Counting...",
+    "ja": "数えています...",
+    "de": "Zählung läuft..."
+  },
+  "正在重新测速...": {
+    "en": "Retesting speed...",
+    "ja": "速度を再テストしています...",
+    "de": "Geschwindigkeit wird erneut getestet..."
+  },
+  "每日最大亏损限额 (%1$s)": {
+    "en": "Maximum Daily Loss Limit (%1$s)",
+    "ja": "%1$s日あたりの最大損失限度額（ 1 ）",
+    "de": "Maximales Tagesverlustlimit (%1$s)"
+  },
+  "每日最大亏损限额（%1$s）": {
+    "en": "Maximum Daily Loss Limit (%1$s)",
+    "ja": "%1$s日あたりの最大損失限度額（ 1 ）",
+    "de": "Maximales Tagesverlustlimit (%1$s)"
+  },
+  "每日跨链限额（%1$s）": {
+    "en": "Daily cross-chain limit (%1$s)",
+    "ja": "%1$s日のクロスチェーン上限(1)",
+    "de": "Tägliches Cross-Chain-Limit (%1$s)"
+  },
+  "每日限额（%1$s）": {
+    "en": "Daily Limit (x%1$s)",
+    "ja": "%1$s日あたりの上限(x 1)",
+    "de": "Tageslimit (x%1$s)"
+  },
+  "每日额度上限 (%1$s)": {
+    "en": "Daily quota limit (%1$s)",
+    "ja": "%1$s日のクォータ制限(1)",
+    "de": "Tägliches Kontingentlimit (%1$s)"
+  },
+  "汇率": {
+    "en": "Exchange Rate",
+    "ja": "為替レート",
+    "de": "Kurs"
+  },
+  "没有更多了": {
+    "en": "No more information",
+    "ja": "これ以上の情報はありません",
+    "de": "\tNo more information"
+  },
+  "派生 HD 账户": {
+    "en": "Derived HD Accounts",
+    "ja": "派生したHDアカウント",
+    "de": "Abgeleitete HD-Konten"
+  },
+  "派生地址失败，请重试": {
+    "en": "Failed to derive address, please try again",
+    "ja": "住所を取得できませんでした。もう一度お試しください",
+    "de": "Adresse konnte nicht abgeleitet werden, bitte versuchen Sie es erneut"
+  },
+  "流动性挖矿": {
+    "en": "Yield Farming ",
+    "ja": "流動性マイニング",
+    "de": "Liquiditätsabbau"
+  },
+  "测速中...": {
+    "en": "Measuring velocity...",
+    "ja": "速度を測定しています...",
+    "de": "Geschwindigkeit wird gemessen..."
+  },
+  "浏览器": {
+    "en": "Browser",
+    "ja": "ブラウザ",
+    "de": "Webbrowser"
+  },
+  "浏览器打开": {
+    "en": "Browser Open",
+    "ja": "ブラウザが開いています",
+    "de": "Browser öffnen"
+  },
+  "涨幅榜": {
+    "en": "Top risers",
+    "ja": "成長ランキング",
+    "de": "Wachstumsrangliste"
+  },
+  "添加代币 - %1$s": {
+    "en": "Add tokens - %1$s pound",
+    "ja": "トークンを追加- %1$sポンド",
+    "de": "Token hinzufügen - %1$s Pfund"
+  },
+  "添加失败: %1$s": {
+    "en": "Failed to add: %1$s",
+    "ja": "追加に失敗しました: %1$s",
+    "de": "Hinzufügen fehlgeschlagen: %1$s"
+  },
+  "添加联系人": {
+    "en": "Add Contact",
+    "ja": "アドレスを追加",
+    "de": "Ins Adressbuch"
+  },
+  "添加自定义代币": {
+    "en": "Adding a custom token",
+    "ja": "カスタムトークンを追加",
+    "de": "Benutzerdefiniertes Token hinzufügen"
+  },
+  "添加自定义节点": {
+    "en": "Add Custom Node",
+    "ja": "カスタムノードを追加",
+    "de": "Benutzerdefinierten Knoten hinzufügen"
+  },
+  "添加观察钱包": {
+    "en": "Add observation wallet",
+    "ja": "観察ウォレットを追加",
+    "de": "Beobachtungs-Wallet hinzufügen"
+  },
+  "清空": {
+    "en": "Empty",
+    "ja": "リセット",
+    "de": "Emptying"
+  },
+  "清空日志": {
+    "en": "Clear log",
+    "ja": "ログを消去",
+    "de": "Protokoll löschen"
+  },
+  "清除缓存": {
+    "en": "Clearing Cache",
+    "ja": "キャッシュをクリア",
+    "de": "Cache löschen"
+  },
+  "滑点": {
+    "en": "a bit slippery",
+    "ja": "スリッページ",
+    "de": "Schlupf"
+  },
+  "激活": {
+    "en": "Aktivasi",
+    "ja": "有効化",
+    "de": "Aktivieren"
+  },
+  "点击返回刷新资产页": {
+    "en": "Click to return to the Refresh Assets page",
+    "ja": "クリックしてリフレッシュアセットページに戻ります",
+    "de": "Klicken Sie hier, um zur Seite Vermögenswerte aktualisieren zurückzukehren"
+  },
+  "热门": {
+    "en": "Populer",
+    "ja": "人気",
+    "de": "Beliebte Fotos"
+  },
+  "热门 DApp": {
+    "en": "Popular DApps",
+    "ja": "人気のDApps",
+    "de": "Beliebte DApps"
+  },
+  "玩转 AI/AI Agent 工具，即时获取行业动态，锁定增长新机会！": {
+    "en": "Play the AI/AI Agent tool to get instant industry updates and lock in new opportunities for growth!",
+    "ja": "AI/AIエージェントツールをプレイして、業界の最新情報を即座に入手し、新たな成長の機会を確保しましょう！",
+    "de": "Spielen Sie das AI/AI Agent-Tool, um sofortige Branchen-Updates zu erhalten und neue Wachstumschancen zu erschließen!"
+  },
+  "生成分享图失败": {
+    "en": "Failed to generate share diagram",
+    "ja": "共有ダイアグラムの生成に失敗しました",
+    "de": "Fehler beim Generieren des Freigabediagramms"
+  },
+  "生成分享图片失败": {
+    "en": "Failed to generate share image",
+    "ja": "共有画像の生成に失敗しました",
+    "de": "Fehler beim Generieren des Freigabebilds"
+  },
+  "畅享": {
+    "en": "Enjoy",
+    "ja": "お楽しみください",
+    "de": "Viel Spaß"
+  },
+  "真去中心化 AI 驱动的智能钱包": {
+    "en": "A truly decentralized AI-powered smart wallet",
+    "ja": "真に分散型のAI搭載スマートウォレット",
+    "de": "Eine wirklich dezentrale, KI-gestützte Smart Wallet"
+  },
+  "知道了": {
+    "en": "Got it.",
+    "ja": "わかった",
+    "de": "Alles klar"
+  },
+  "矿工费": {
+    "en": "Miner Fee",
+    "ja": "採鉱者手数料",
+    "de": "Bergarbeitergebühr"
+  },
+  "确定删除「%1$s」？": {
+    "en": "确定删除「%1$s」？",
+    "ja": "确定删除「%1$s」？",
+    "de": "确定删除「%1$s」？"
+  },
+  "确定在资产列表中隐藏 %1$s 吗？\\n（不会影响链上资产，仅本地不显示）": {
+    "en": "确定在资产列表中隐藏 %1$s 吗？\\n（不会影响链上资产，仅本地不显示）",
+    "ja": "确定在资产列表中隐藏 %1$s 吗？\\n（不会影响链上资产，仅本地不显示）",
+    "de": "确定在资产列表中隐藏 %1$s 吗？\\n（不会影响链上资产，仅本地不显示）"
+  },
+  "确定撤销 %1$s 对 %2$s... 的授权吗？": {
+    "en": "确定撤销 %1$s 对 %2$s... 的授权吗？",
+    "ja": "确定撤销 %1$s 对 %2$s... 的授权吗？",
+    "de": "确定撤销 %1$s 对 %2$s... 的授权吗？"
+  },
+  "确定要删除这个会话吗？删除后无法恢复。": {
+    "en": "Are you sure you want to delete this session? Deletion cannot be undone.",
+    "ja": "このセッションを削除してもよろしいですか？削除は元に戻せません。",
+    "de": "Sind Sie sicher, dass Sie diese Sitzung löschen möchten? Das Löschen kann nicht rückgängig gemacht werden."
+  },
+  "确定要删除钱包吗？此操作不可恢复！": {
+    "en": "Are you sure you want to delete the wallet? This action cannot be undone!",
+    "ja": "ウォレットを削除してもよろしいですか？この操作は元に戻せません！",
+    "de": "Sind Sie sicher, dass Sie das Wallet löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!"
+  },
+  "确定要清空所有日志吗？此操作不可恢复。": {
+    "en": "Are you sure you want to clear all logs? This action cannot be undone.",
+    "ja": "すべてのログを消去してもよろしいですか？この操作は元に戻せません。",
+    "de": "Sind Sie sicher, dass Sie alle Protokolle löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+  },
+  "确定要隐藏 %1$s 吗？\\n可以在设置中恢复显示。": {
+    "en": "确定要隐藏 %1$s 吗？\\n可以在设置中恢复显示。",
+    "ja": "确定要隐藏 %1$s 吗？\\n可以在设置中恢复显示。",
+    "de": "确定要隐藏 %1$s 吗？\\n可以在设置中恢复显示。"
+  },
+  "确认兑换": {
+    "en": "Confirm exchange",
+    "ja": "引き換えを確認する",
+    "de": "Einlösen bestätigen"
+  },
+  "确认删除": {
+    "en": "Confirm Deletion",
+    "ja": "削除の確認",
+    "de": "Löschen bestätigen"
+  },
+  "确认发送": {
+    "en": "Confirm send",
+    "ja": "送信を確認",
+    "de": "Senden bestätigen"
+  },
+  "确认密码": {
+    "en": "Confirm Password",
+    "ja": "パスワード確認",
+    "de": "Passwort bestätigen"
+  },
+  "确认转账": {
+    "en": "Proceed to transfer",
+    "ja": "送金を確認する",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Überweisung bestätigen"
+  },
+  "私钥无效，地址推导失败": {
+    "en": "Invalid private key, address deduction failed",
+    "ja": "無効な秘密鍵、アドレスの差し引きに失敗しました",
+    "de": "Ungültiger privater Schlüssel, Adressabzug fehlgeschlagen"
+  },
+  "私钥钱包导入成功": {
+    "en": "Private key wallet imported successfully",
+    "ja": "プライベートキーウォレットが正常にインポートされました",
+    "de": "Private Key Wallet erfolgreich importiert"
+  },
+  "签名": {
+    "en": "SIGNATURE ",
+    "ja": "サイン",
+    "de": "Signatur "
+  },
+  "签名请求": {
+    "en": "signature request",
+    "ja": "署名要求",
+    "de": "Signaturanfrage"
+  },
+  "简体中文": {
+    "en": "zh_CN",
+    "ja": "英語",
+    "de": "Deutsch"
+  },
+  "粘贴": {
+    "en": "Paste",
+    "ja": "挿入",
+    "de": "Einfügen"
+  },
+  "精度: %1$s 位小数": {
+    "en": "Accuracy: %1$s decimal place",
+    "ja": "精度：小数点第%1$s位",
+    "de": "Genauigkeit: %1$s Dezimalstelle"
+  },
+  "红魔团队 魅力敬献": {
+    "en": "Red Devils Team Charm Dedication",
+    "ja": "レッドデビルズ・チーム・チャーム・ディディフィケーション",
+    "de": "Red Devils Team Charm Dedication"
+  },
+  "结构化签名请求": {
+    "en": "Structured Signature Request",
+    "ja": "構造化された署名要求",
+    "de": "Strukturierte Signaturanfrage"
+  },
+  "缓存已清除": {
+    "en": "Feed cache cleared",
+    "ja": "キャッシュをクリアしました",
+    "de": "Cache geleert"
+  },
+  "网络": {
+    "en": "NET",
+    "ja": "ネットワーク.\t32",
+    "de": "Networks"
+  },
+  "网络环境提醒": {
+    "en": "Network environment reminder",
+    "ja": "ネットワーク環境のリマインダー",
+    "de": "Erinnerung an die Netzwerkumgebung"
+  },
+  "网络请求失败: %1$s": {
+    "en": "Network request failed: < %1$s >",
+    "ja": "ネットワークリクエストに失敗しました: < %1$s >",
+    "de": "Netzwerkanforderung fehlgeschlagen: < %1$s >"
+  },
+  "胜率": {
+    "en": "Win Rate",
+    "ja": "勝率",
+    "de": "Sieg"
+  },
+  "自动交易暂不支持 %1$s 链（仅 EVM）": {
+    "en": "Automated trading temporarily does not support %1$s chain (EVM only)",
+    "ja": "自動取引は一時的に「%1$s」チェーンをサポートしていません（ EVMのみ）",
+    "de": "Automatisierter Handel unterstützt vorübergehend keine %1$s -Kette (nur EVM)"
+  },
+  "自动计算": {
+    "en": "Automatically calculate",
+    "ja": "セルの内容 → 自動計算",
+    "de": "Automatisch berechnen"
+  },
+  "自定义 API 必须填写 API 地址": {
+    "en": "Custom API must have an API address",
+    "ja": "カスタムAPIにはAPIアドレスが必要です",
+    "de": "Benutzerdefinierte API muss eine API-Adresse haben"
+  },
+  "自定义节点已保存": {
+    "en": "Custom node saved",
+    "ja": "カスタムノードが保存されました",
+    "de": "Benutzerdefinierter Knoten gespeichert"
+  },
+  "自述声明": {
+    "en": "Readme",
+    "ja": "Readme",
+    "de": "Readme"
+  },
+  "节点速度": {
+    "en": "Node Speed",
+    "ja": "ノード速度",
+    "de": "Knotengeschwindigkeit"
+  },
+  "获取 Key": {
+    "en": "Get Key",
+    "ja": "鍵を手に入れる",
+    "de": "Schlüssel abrufen"
+  },
+  "获取失败": {
+    "en": "Loading Failed",
+    "ja": "取得に失敗しました",
+    "de": "Abrufen fehlgeschlagen"
+  },
+  "获取报价中...": {
+    "en": "Fetching a quote...",
+    "ja": "見積もりを取得しています...",
+    "de": "Angebot wird abgerufen..."
+  },
+  "蜡烛图": {
+    "en": "Write Candlestick File",
+    "ja": "キャンドルチャート",
+    "de": "Kerzendiagramm"
+  },
+  "行情": {
+    "en": "quotation",
+    "ja": "見積もり",
+    "de": "Angebote"
+  },
+  "行情数据已复制到剪贴板，正在跳转到 AI...": {
+    "en": "Quote data copied to clipboard, jumping to AI...",
+    "ja": "引用データがクリップボードにコピーされ、AIにジャンプします...",
+    "de": "Angebotsdaten in die Zwischenablage kopiert, Sprung zur KI..."
+  },
+  "观察钱包": {
+    "en": "Observation wallet",
+    "ja": "観察財布",
+    "de": "Beobachtungsgeldbörse"
+  },
+  "观察钱包 %1$s": {
+    "en": "Observe the wallet %1$s",
+    "ja": "財布を観察する%1$s",
+    "de": "Beobachten Sie die Brieftasche %1$s"
+  },
+  "观察钱包已添加": {
+    "en": "Observation wallet added",
+    "ja": "観察ウォレットが追加されました",
+    "de": "Beobachtungs-Wallet hinzugefügt"
+  },
+  "视图初始化错误: %1$s": {
+    "en": "View initialization error: %1$s",
+    "ja": "初期化エラーを表示： %1$s",
+    "de": "Initialisierungsfehler anzeigen: %1$s"
+  },
+  "解析失败: %1$s": {
+    "en": "Parsing failed: %1$s",
+    "ja": "解析に失敗しました： %1$s",
+    "de": "Parsing fehlgeschlagen: %1$s"
+  },
+  "让 AI 分析该币种": {
+    "en": "Let AI analyze the currency",
+    "ja": "AIに通貨を分析させましょう",
+    "de": "Lassen Sie KI die Währung analysieren"
+  },
+  "记录": {
+    "en": "Record",
+    "ja": "記録",
+    "de": "Dokumentation springt"
+  },
+  "设备安全警告": {
+    "en": "Device Security Warning",
+    "ja": "デバイスセキュリティの警告",
+    "de": "Gerätesicherheitswarnung"
+  },
+  "设置密码": {
+    "en": "SetSimplePassword",
+    "ja": "パスワードを設定する",
+    "de": "Passwort setzen"
+  },
+  "设置额度": {
+    "en": "Set Limit",
+    "ja": "制限を設定",
+    "de": "Limit festlegen"
+  },
+  "该 DApp 违背去中心化思想，禁止使用\\n\\n来源：%1$s": {
+    "en": "This DApp violates the idea of decentralization and is forbidden to use\\ n\\ nSource: %1$s",
+    "ja": "このDAppは分散化の考えに違反しており、使用することは禁止されています\\ n\\ nソース： %1$s",
+    "de": "Diese DApp verstößt gegen die Idee der Dezentralisierung und darf nicht verwendet werden\\ n\\ nQuelle: %1$s"
+  },
+  "该地址已存在": {
+    "en": "This address already exists",
+    "ja": "この住所は既に存在します",
+    "de": "Diese Adresse existiert bereits"
+  },
+  "请先创建或导入钱包": {
+    "en": "Please create or import a wallet first",
+    "ja": "まずウォレットを作成またはインポートしてください",
+    "de": "Bitte erstellen oder importieren Sie zuerst ein Wallet"
+  },
+  "请先在系统设置中配置并启用 AI 助手。": {
+    "en": "Please configure and enable the AI assistant in the system settings first.",
+    "ja": "まず、システム設定でAIアシスタントを設定して有効にしてください。",
+    "de": "Bitte konfigurieren und aktivieren Sie zuerst den KI-Assistenten in den Systemeinstellungen."
+  },
+  "请先完成 AI 分析": {
+    "en": "Please complete the AI analysis first",
+    "ja": "まずAI解析を完了してください",
+    "de": "Bitte schließen Sie zuerst die KI-Analyse ab"
+  },
+  "请在浏览器中注册并获取 API Key，然后复制回来": {
+    "en": "Please register in your browser and get your API Key, then copy back",
+    "ja": "ブラウザに登録してAPIキーを取得し、コピーしてください",
+    "de": "Bitte registrieren Sie sich in Ihrem Browser und holen Sie sich Ihren API-Schlüssel, kopieren Sie ihn dann zurück"
+  },
+  "请填写 API Key": {
+    "en": "Please fill in the API Key",
+    "ja": "APIキーを入力してください",
+    "de": "Bitte geben Sie den API-Schlüssel ein"
+  },
+  "请填写模型名称": {
+    "en": "Please fill in the model name",
+    "ja": "モデル名を入力してください",
+    "de": "Bitte geben Sie den Modellnamen ein"
+  },
+  "请妥善保存您的助记词：\\n\\n%1$s\\n\\n丢失助记词将无法恢复钱包！\\n\\n复制后将在 30 秒后自动清除剪贴板。": {
+    "en": "请妥善保存您的助记词：\\n\\n%1$s\\n\\n丢失助记词将无法恢复钱包！\\n\\n复制后将在 30 秒后自动清除剪贴板。",
+    "ja": "请妥善保存您的助记词：\\n\\n%1$s\\n\\n丢失助记词将无法恢复钱包！\\n\\n复制后将在 30 秒后自动清除剪贴板。",
+    "de": "请妥善保存您的助记词：\\n\\n%1$s\\n\\n丢失助记词将无法恢复钱包！\\n\\n复制后将在 30 秒后自动清除剪贴板。"
+  },
+  "请确认接收网络一致，避免资产丢失": {
+    "en": "Please confirm that the receiving network is consistent to avoid asset loss",
+    "ja": "資産の損失を避けるために、受信ネットワークが一貫していることを確認してください",
+    "de": "Bitte bestätigen Sie, dass das empfangende Netzwerk konsistent ist, um Vermögensverluste zu vermeiden"
+  },
+  "请确认接收网络为%1$s，避免资产丢失": {
+    "en": "Please confirm that the receiving network is %1$s, to avoid asset loss",
+    "ja": "資産の損失を避けるために、受信ネットワークが%1$sであることを確認してください",
+    "de": "Bitte bestätigen Sie, dass das empfangende Netzwerk %1$s ist, um Vermögensverluste zu vermeiden"
+  },
+  "请输入兑换金额": {
+    "en": "Please enter a redemption amount",
+    "ja": "引き換え金額を入力してください",
+    "de": "Bitte geben Sie einen Rückzahlungsbetrag ein"
+  },
+  "请输入助记词或私钥": {
+    "en": "Please enter a mnemonic or private key",
+    "ja": "ニーモニックまたは秘密鍵を入力してください",
+    "de": "Bitte geben Sie einen mnemonischen oder privaten Schlüssel ein"
+  },
+  "请输入合约地址": {
+    "en": "Please enter the contract address",
+    "ja": "契約先住所を入力してください",
+    "de": "Bitte geben Sie die Vertragsadresse ein"
+  },
+  "请输入地址": {
+    "en": "You must enter the address",
+    "ja": "住所を入力してください",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Bitte Adresse eingeben"
+  },
+  "请输入密码": {
+    "en": "Password",
+    "ja": "パスワードを入力してください",
+    "de": "Bitte Passwort eingeben"
+  },
+  "请输入支付密码": {
+    "en": "\t\t\t<x id=\"1\"/><x id=\"2\"/>Enter Payment Password",
+    "ja": "支払いパスワードを入力してください",
+    "de": "<x id=\"1\"/><x id=\"2\"/>Bitte geben Sie das Zahlungspasswort ein"
+  },
+  "请输入支付密码以确认转账": {
+    "en": "Please enter the payment password to confirm the transfer",
+    "ja": "送金を確認するには、支払いパスワードを入力してください",
+    "de": "Bitte geben Sie das Zahlungspasswort ein, um die Überweisung zu bestätigen"
+  },
+  "请输入收款地址": {
+    "en": "Please enter a payout address",
+    "ja": "受取住所を入力してください",
+    "de": "Bitte geben Sie eine Auszahlungsadresse ein"
+  },
+  "请输入有效数字": {
+    "en": "Please enter a valid number",
+    "ja": "有効な数字を入力してください",
+    "de": "Bitte geben Sie eine gültige Zahl ein"
+  },
+  "请输入网址或搜索关键词": {
+    "en": "Please enter a URL or search term",
+    "ja": "URLまたは検索語を入力してください",
+    "de": "Bitte geben Sie eine URL oder einen Suchbegriff ein"
+  },
+  "请输入转账金额": {
+    "en": "Please enter the transfer amount",
+    "ja": "振込金額を入力してください",
+    "de": "<x id=\"1\"/><x id=\"2\"/><x id=\"3\"/>Bitte geben Sie den Überweisungsbetrag ein"
+  },
+  "请输入钱包名称": {
+    "en": "Please enter a wallet name",
+    "ja": "ウォレット名を入力してください",
+    "de": "Bitte geben Sie einen Wallet-Namen ein"
+  },
+  "请输入钱包地址": {
+    "en": "Please enter a wallet address",
+    "ja": "ウォレットアドレスを入力してください",
+    "de": "Bitte geben Sie eine Wallet-Adresse ein"
+  },
+  "请输入钱包密码": {
+    "en": "Please enter your wallet password",
+    "ja": "ウォレットのパスワードを入力してください",
+    "de": "Bitte geben Sie Ihr Wallet-Passwort ein"
+  },
+  "请选择链": {
+    "en": "Please select a chain",
+    "ja": "チェーンを選択してください",
+    "de": "Bitte wählen Sie eine Kette aus"
+  },
+  "账户保护中": {
+    "en": "Protecting your account",
+    "ja": "アカウントの保護",
+    "de": "Schütze dein Konto"
+  },
+  "资产": {
+    "en": "Assets",
+    "ja": "資産の 部",
+    "de": "Aktiva"
+  },
+  "资产  ▼": {
+    "en": "Assets",
+    "ja": "資産の 部",
+    "de": "Aktiva"
+  },
+  "资产不足 $200 或 R-MAB 不足 20000，AI 无法启动": {
+    "en": "AI cannot start if there are less than $200 in assets or 20,000 in R-MAB",
+    "ja": "R - MABの資産が200ドル未満、または20,000ドル未満の場合、AIは開始できません",
+    "de": "KI kann nicht gestartet werden, wenn weniger als 200 $ an Vermögenswerten oder weniger als 20.000 in R-MAB vorhanden sind"
+  },
+  "资产已刷新": {
+    "en": "Asset has been refreshed",
+    "ja": "アセットが更新されました",
+    "de": "Anlage wurde aktualisiert"
+  },
+  "资产总览": {
+    "en": "Asset Overview",
+    "ja": "アセットの概要",
+    "de": "Anlagenübersicht"
+  },
+  "超时": {
+    "en": "Timed out",
+    "ja": "タイムアウト",
+    "de": "Zeit überschritten"
+  },
+  "超过限额的跨链操作将提示你手动处理": {
+    "en": "Cross-chain operations that exceed the quota will prompt you to manually process",
+    "ja": "クォータを超えるクロスチェーンオペレーションは、手動で処理するよう促します",
+    "de": "Kettenübergreifende Operationen, die das Kontingent überschreiten, werden Sie auffordern, manuell zu verarbeiten"
+  },
+  "跌幅榜": {
+    "en": "Top fallers",
+    "ja": "ランキングを辞退する",
+    "de": "Rangliste ablehnen"
+  },
+  "跟随系统": {
+    "en": "Follow system",
+    "ja": "システムに従う",
+    "de": "System folgen"
+  },
+  "跨链": {
+    "en": "Cross-chain",
+    "ja": "クロスチェーン",
+    "de": "Kreuzkette"
+  },
+  "跨链限额": {
+    "en": "Cross-Chain Limit",
+    "ja": "クロスチェーン制限",
+    "de": "Kettenübergreifendes Limit"
+  },
+  "跨链限额已保存": {
+    "en": "Cross-chain quota saved",
+    "ja": "クロスチェーンクォータが保存されました",
+    "de": "Kettenübergreifendes Kontingent gespeichert"
+  },
+  "跨链限额设置": {
+    "en": "Cross-Chain Limit Settings",
+    "ja": "クロスチェーン制限設定",
+    "de": "Cross-Chain-Limit-Einstellungen"
+  },
+  "转账": {
+    "en": "Transfer",
+    "ja": "振替",
+    "de": "Überweisung"
+  },
+  "转账金额": {
+    "en": "Transfer Amount",
+    "ja": "送金額",
+    "de": "Überweisungsbetrag"
+  },
+  "输入 DApp 地址": {
+    "en": "Enter DApp Address",
+    "ja": "DAppアドレスを入力してください",
+    "de": "DApp-Adresse eingeben"
+  },
+  "输入 RPC URL，例如 https://...": {
+    "en": "Enter the RPC URL, e.g. https://...",
+    "ja": "RPC URLを入力します（例： https ://... ）",
+    "de": "Geben Sie die RPC-URL ein, z. B. https://..."
+  },
+  "输入代币合约地址 (0x...)": {
+    "en": "Enter Token Contract Address (0x...)",
+    "ja": "トークンコントラクトアドレスを入力してください（ 0 x... ）",
+    "de": "Token-Vertragsadresse eingeben (0x...)"
+  },
+  "输入代币合约地址（ETH链为ERC-20，BNB链为BEP-20），将自动获取代币信息并添加到列表": {
+    "en": "Enter the token contract address (ETH chain is ERC-20, BnB chain is BEP-20), the token information will be automatically obtained and added to the list",
+    "ja": "トークン契約アドレス（ ETHチェーンはERC -20、BNBチェーンはBEP -20 ）を入力すると、トークン情報が自動的に取得され、リストに追加されます",
+    "de": "Geben Sie die Token-Vertragsadresse ein (ETH-Kette ist ERC-20, BnB-Kette ist BEP-20), die Token-Informationen werden automatisch abgerufen und der Liste hinzugefügt"
+  },
+  "输入助记词或私钥": {
+    "en": "Enter mnemonic or private key",
+    "ja": "ニーモニックまたは秘密鍵を入力してください",
+    "de": "Mnemonischen oder privaten Schlüssel eingeben"
+  },
+  "输入地址即可查看资产，无需私钥": {
+    "en": "Enter an address to view assets without a private key",
+    "ja": "秘密鍵なしでアセットを表示するアドレスを入力してください",
+    "de": "Geben Sie eine Adresse ein, um Assets ohne privaten Schlüssel anzuzeigen"
+  },
+  "输入收款地址": {
+    "en": "Enter your payout address",
+    "ja": "受取住所を入力してください",
+    "de": "Gib deine Auszahlungsadresse ein"
+  },
+  "输入金额": {
+    "en": "Enter Amount (",
+    "ja": "金額を入力してください",
+    "de": "Betrag eingeben"
+  },
+  "运行中": {
+    "en": "In operation",
+    "ja": "実行中",
+    "de": "Ausgeführt"
+  },
+  "运行中%1$s": {
+    "en": "Running %1$s",
+    "ja": "ランニング%1$s",
+    "de": "Running %1$s"
+  },
+  "连接已阻止": {
+    "en": "Connection blocked",
+    "ja": "接続がブロックされました",
+    "de": "Verbindung gesperrt"
+  },
+  "连接钱包": {
+    "en": "Connect a Wallet",
+    "ja": "ウォレットを接続",
+    "de": "Brieftasche verbinden"
+  },
+  "连钱包": {
+    "en": "with wallet",
+    "ja": "財布付き",
+    "de": "mit Wallet"
+  },
+  "选择主链": {
+    "en": "Select Main Chain",
+    "ja": "メインチェーンを選択",
+    "de": "Hauptkette auswählen"
+  },
+  "选择代币": {
+    "en": "Select Token",
+    "ja": "トークンを選択",
+    "de": "Token auswählen"
+  },
+  "选择导出类型：": {
+    "en": "Choose export type:",
+    "ja": "エクスポートタイプを選択します。",
+    "de": "Art des Exports wählen:"
+  },
+  "选择链": {
+    "en": "Select Chain",
+    "ja": "チェーンを選択",
+    "de": "Kette auswählen"
+  },
+  "通讯录": {
+    "en": "Address Book",
+    "ja": "アドレス帳",
+    "de": "Kontakte"
+  },
+  "通讯录为空\\n\\n点击右上角 + 添加联系人": {
+    "en": "Address book is empty\\ n\\ nClick on the top right corner + Add contact",
+    "ja": "アドレス帳が空です\\ n\\ n右上隅をクリックして連絡先を追加してください",
+    "de": "Adressbuch ist leer\\ n\\ nKlicken Sie auf die obere rechte Ecke + Kontakt hinzufügen"
+  },
+  "通讯录打开失败: %1$s": {
+    "en": "Failed to open address book: %1$s",
+    "ja": "アドレス帳を開けませんでした: %1$s",
+    "de": "Adressbuch konnte nicht geöffnet werden: %1$s"
+  },
+  "配置": {
+    "en": "Configure",
+    "ja": "構成",
+    "de": "Konfiguration"
+  },
+  "配置 %1$s": {
+    "en": "Configuration %1$s:",
+    "ja": "%1$sを設定",
+    "de": "%1$seinrichten"
+  },
+  "配置已更新": {
+    "en": "Configuration updated",
+    "ja": "設定が更新されました",
+    "de": "Konfiguration aktualisiert"
+  },
+  "重命名钱包": {
+    "en": "Rename wallet",
+    "ja": "ウォレットの名前を変更",
+    "de": "Wallet umbenennen"
+  },
+  "金额必须大于 0": {
+    "en": "Amount must be greater than 0",
+    "ja": "金額は0より大きくなければなりません",
+    "de": "Betrag muss größer als 0 sein"
+  },
+  "金额格式不正确": {
+    "en": "Incorrect amount format",
+    "ja": "金額形式が正しくありません",
+    "de": "Falsches Betragsformat"
+  },
+  "金额需大于 0": {
+    "en": "Amount must be greater than 0",
+    "ja": "金額は0より大きくなければなりません",
+    "de": "Betrag muss größer als 0 sein"
+  },
+  "钱包 provider 未注入，请刷新页面": {
+    "en": "Wallet provider not injected, please refresh the page",
+    "ja": "ウォレットプロバイダーが挿入されていません。ページを更新してください",
+    "de": "Wallet-Anbieter nicht injiziert, bitte aktualisieren Sie die Seite"
+  },
+  "钱包列表": {
+    "en": "Wallet List",
+    "ja": "ウォレットリスト",
+    "de": "Wallet-Liste"
+  },
+  "钱包创建成功": {
+    "en": "Wallet created successfully",
+    "ja": "ウォレットが正常に作成されました",
+    "de": "Wallet erfolgreich erstellt"
+  },
+  "钱包名称": {
+    "en": "wallet name",
+    "ja": "ウォレット名",
+    "de": "Ein Name fÃ¼r die digitale Brieftasche"
+  },
+  "钱包地址": {
+    "en": "Wallet Address",
+    "ja": "ウォレットアドレス",
+    "de": "Wallet-Adresse"
+  },
+  "钱包地址 (0x... / T... / 自适应当前链)": {
+    "en": "Wallet address (0x.../T.../adaptive current chain)",
+    "ja": "ウォレットアドレス（ 0 x.../T.../アダプティブカレントチェーン）",
+    "de": "Wallet-Adresse (0x.../T.../adaptive Stromkette)"
+  },
+  "钱包导入成功": {
+    "en": "Wallet imported successfully",
+    "ja": "ウォレットが正常にインポートされました",
+    "de": "Wallet erfolgreich importiert"
+  },
+  "钱包已连接": {
+    "en": "Wallet connected",
+    "ja": "ウォレットが接続されました",
+    "de": "Geldbörse verbunden"
+  },
+  "钱包管理": {
+    "en": "Wallet Management",
+    "ja": "ウォレット管理",
+    "de": "Wallet-Management"
+  },
+  "链上情报": {
+    "en": "On-chain intelligence",
+    "ja": "オンチェーンインテリジェンス",
+    "de": "On-Chain-Intelligenz"
+  },
+  "链上情报功能开发中": {
+    "en": "On-chain intelligence in development",
+    "ja": "開発中のオンチェーンインテリジェンス",
+    "de": "On-Chain-Intelligenz in der Entwicklung"
+  },
+  "链上报价获取失败，以上为价格估算": {
+    "en": "Failed to get on-chain quote, above is price estimation",
+    "ja": "オンチェーン見積もりの取得に失敗しました。上記は価格見積もりです",
+    "de": "Angebot in der Kette konnte nicht abgerufen werden, oben ist die Preisschätzung"
+  },
+  "闪兑": {
+    "en": "Quicksilver",
+    "ja": "クイックシルバー",
+    "de": "Quicksilver"
+  },
+  "闪退记录": {
+    "en": "Flashback Record",
+    "ja": "フラッシュバック録音",
+    "de": "Flashback-Aufzeichnung"
+  },
+  "闪退记录已清空": {
+    "en": "Flashback record cleared",
+    "ja": "フラッシュバック記録が消去されました",
+    "de": "Flashback-Datensatz gelöscht"
+  },
+  "问 AI 任何问题...": {
+    "en": "Ask the AI any questions...",
+    "ja": "AIに質問してください...",
+    "de": "Stellen Sie der KI alle Fragen..."
+  },
+  "限额必须大于 0": {
+    "en": "Limit must be greater than 0",
+    "ja": "制限は0より大きくなければなりません",
+    "de": "Limit muss größer als 0 sein"
+  },
+  "限额设置": {
+    "en": "Limit settings",
+    "ja": "制限設定",
+    "de": "Grenzwerteinstellungen"
+  },
+  "隐藏代币": {
+    "en": "Hide tokens",
+    "ja": "トークンを非表示にする",
+    "de": "Token ausblenden"
+  },
+  "隐藏失败: %1$s": {
+    "en": "Concealment failure: %1$s",
+    "ja": "隠蔽失敗： %1$s",
+    "de": "Verdeckungsfehler: %1$s"
+  },
+  "零手续费转账": {
+    "en": "Zero fee transfers",
+    "ja": "手数料なしの送金",
+    "de": "Keine Gebührenübertragungen"
+  },
+  "页面加载完成，正在解析代币列表...": {
+    "en": "Page loaded, parsing token list...",
+    "ja": "ページが読み込まれました。トークンリストを解析しています...",
+    "de": "Seite geladen, Token-Liste wird analysiert..."
+  },
+  "项目介绍": {
+    "en": "Project Overview",
+    "ja": "プロジェクト概要",
+    "de": "Projektbeschreibung"
+  },
+  "预估总资产": {
+    "en": "Estimated total assets",
+    "ja": "推定総資産",
+    "de": "Geschätzte Bilanzsumme"
+  },
+  "额度格式错误": {
+    "en": "Wrong credit format",
+    "ja": "クレジット形式が正しくありません",
+    "de": "Falsches Kreditformat"
+  },
+  "风险操作日志": {
+    "en": "Risk Action Log",
+    "ja": "リスクアクションログ",
+    "de": "Risikoaktionsprotokoll"
+  },
+  "风险操作记录": {
+    "en": "Risk Action Record",
+    "ja": "リスクアクションレコード",
+    "de": "Risikomaßnahmenaufzeichnung"
+  },
+  "风险日志已保存到: %1$s": {
+    "en": "Risk log saved to: %1$s",
+    "ja": "リスクログの保存先： %1$s",
+    "de": "Risikoprotokoll gespeichert unter: %1$s"
+  },
+  "风险日志已复制到剪贴板": {
+    "en": "Risk log copied to clipboard",
+    "ja": "リスクログをクリップボードにコピーしました",
+    "de": "Risikoprotokoll in Zwischenablage kopiert"
+  },
+  "🌐 官方网站": {
+    "en": "Official Website",
+    "ja": "🌐 公式ウェブサイト",
+    "de": "🌐 Offizielle Website"
+  },
+  "💬 聊天": {
+    "en": "Chat",
+    "ja": "チャット",
+    "de": "Chat"
+  },
+  "💰 收益专区": {
+    "en": "💰 Income area",
+    "ja": "💰 収入エリア",
+    "de": "💰 Einkommensbereich"
+  },
+  "📄 白皮书": {
+    "en": "White paper",
+    "ja": "📄 ホワイトペーパー",
+    "de": "Weißbuch"
+  },
+  "📊 详情": {
+    "en": "Details",
+    "ja": "詳細",
+    "de": "Detail"
+  },
+  "📋 粘贴地址": {
+    "en": "coller l'adresse",
+    "ja": "住所📋 を貼り付ける",
+    "de": "Adresse 📋 einfügen"
+  },
+  "📝 操作日志": {
+    "en": "Operation Log",
+    "ja": "📝 操作ログ",
+    "de": "📝 Betriebsprotokoll"
+  },
+  "🔍 代币自动发现": {
+    "en": "🔍 Token auto-discovery",
+    "ja": "🔍 トークンの自動検出",
+    "de": "Automatische Erkennung von 🔍 Token"
+  },
+  "🔍 区块浏览器": {
+    "en": "Open Insight",
+    "ja": "🔍 ブロックエクスプローラー",
+    "de": "🔍 Block-Explorer"
+  },
+  "🔒 交易白名单确认": {
+    "en": "🔒 Transaction whitelist confirmation",
+    "ja": "🔒 トランザクションホワイトリストの確認",
+    "de": "🔒 Transaktions-Whitelist-Bestätigung"
+  },
+  "🤖 AI 热门工具": {
+    "en": "🤖 AI Popular Tools",
+    "ja": "🤖 AI人気ツール",
+    "de": "Beliebte 🤖 KI-Tools"
+  }
+}

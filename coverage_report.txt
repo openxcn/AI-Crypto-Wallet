@@ -1,0 +1,87 @@
+Invalid names:
+
+Java occurrences:
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\AddressBookActivity.java:104 [.setPositiveButton(] 删除
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\AddressBookActivity.java:174 [.setPositiveButton(] 保存
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\AIAgentActivity.java:1234 [Toast.makeText(] 已切换到会话：%1$s
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\AIAgentActivity.java:2093 [.setPositiveButton(] 保存
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\crosschain\CrossChainRiskDialog.java:179 [.setPositiveButton(] 我已了解风险并继续
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\crosschain\CrossChainRiskDialog.java:182 [.setNegativeButton(] 取消
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\crosschain\CrossChainRiskDialog.java:201 [.setPositiveButton(] 知道了
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1173 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1204 [.setPositiveButton(] 知道了
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1912 [.setPositiveButton(] 连接
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1921 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1947 [.setPositiveButton(] 确认
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1964 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:1979 [.setPositiveButton(] 签名
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2007 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2332 [.setPositiveButton(] 授权并设置额度
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2335 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2378 [.setPositiveButton(] 确认授权
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2404 [.setNegativeButton(] 取消
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2461 [.setPositiveButton(] 同意授权
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2465 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2501 [.setPositiveButton(] 同意授权
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\DAppBrowserActivity.java:2505 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:491 [.setPositiveButton(] 去设置
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:911 [.setPositiveButton(] 确定
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:1638 [.setPositiveButton(] 去设置
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2009 [.setPositiveButton(] 保存
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2043 [.setPositiveButton(] 确定
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2127 [.setPositiveButton(] 添加
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2559 [.setPositiveButton(] 删除
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2633 [.setPositiveButton(] 创建
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2672 [.setPositiveButton(] 确定
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2717 [.setPositiveButton(] 添加
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:2841 [.setPositiveButton(] 隐藏
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:3085 [.setPositiveButton(] 隐藏
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\HomeActivity.java:4087 [.setPositiveButton(] 恢复
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\LogViewerActivity.java:338 [.setPositiveButton(] 清空操作日志
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\LogViewerActivity.java:343 [.setNeutralButton(] 清空闪退记录
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\ModelConfigActivity.java:324 [.setNeutralButton(] 删除配置
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\ModelConfigActivity.java:328 [.setPositiveButton(] 删除
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\ModelConfigActivity.java:338 [.setPositiveButton(] 保存
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\NodeSelectorActivity.java:201 [.setPositiveButton(] 保存
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SafetyGate.java:265 [.setPositiveButton(] 加入白名单并继续
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SafetyGate.java:269 [.setNeutralButton(] 仅本次允许
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SafetyGate.java:273 [.setNegativeButton(] 拒绝
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SendActivity.java:728 [.setPositiveButton(] 确认
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SplashActivity.java:108 [.setPositiveButton(] 退出
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SplashActivity.java:112 [.setNegativeButton(] 继续使用（风险自担）
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SplashActivity.java:128 [.setPositiveButton(] 退出
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SplashActivity.java:132 [.setNegativeButton(] 继续使用
+c:\Users\Administrator\Documents\trae work\ai_crypto_wallet_android\app\src\main\java\com\aicryptowallet\app\SwapActivity.java:289 [.setText(] %1$s %2$s (估算)
+
+XML occurrences:
+
+Missing translations:
+
+en:
+  %1$s %2$s (估算)%3$s
+  %1$s 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。\n\n
+  AI 将禁止 %1$s 的所有交易和授权操作。\n\n
+  发现完成：共扫描 %1$s 个代币合约\n
+  您正在将高风险代币 %1$s 加入白名单。\n\n
+  本次将通过【%1$s】完成 %2$s
+
+ja:
+  %1$s %2$s (估算)%3$s
+  %1$s 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。\n\n
+  AI 将禁止 %1$s 的所有交易和授权操作。\n\n
+  中
+  保存
+  发现完成：共扫描 %1$s 个代币合约\n
+  名称
+  您正在将高风险代币 %1$s 加入白名单。\n\n
+  成功
+  暂无数据
+  本次将通过【%1$s】完成 %2$s
+
+de:
+  %1$s %2$s (估算)%3$s
+  %1$s 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。\n\n
+  AI 将禁止 %1$s 的所有交易和授权操作。\n\n
+  发现完成：共扫描 %1$s 个代币合约\n
+  您正在将高风险代币 %1$s 加入白名单。\n\n
+  本次将通过【%1$s】完成 %2$s

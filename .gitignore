@@ -1,0 +1,48 @@
+# Android / Gradle
+.gradle
+build/
+*/build/
+.idea/
+*.iml
+local.properties
+.DS_Store
+captures/
+
+# 敏感文件 - 密钥库,绝不能上传
+*.jks
+*.keystore
+
+# 构建产物
+*.apk
+*.aab
+*.aar
+
+# SDK 大文件
+sdk/
+
+# Python 本地依赖库(非项目代码)
+.local_pylibs/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 临时测试目录
+temp_test/
+
+# 日志和扫描输出文件
+*.log
+app_logs_*.txt
+build_err.txt
+build_log.txt
+latest_log.txt
+scan_*.txt
+scan_*.json
+chinese_*.txt
+all_java_chinese.txt
+untranslated_*.txt
+write_test_output.txt
+
+# 生成的 Logo 图片(保留源码中的)
+logo_generated.png
+logo_processed.png

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/str_add"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/str_enter_dapp_address"
+        android:textColor="#6E6E7A"
+        android:textSize="12sp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/str_wallet_name"
+        android:textColor="#6E6E7A"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etWatchName"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="@string/text_observation_wallet"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#4A4A55"
+        android:background="@drawable/card_background"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/str_wallet_address"
+        android:textColor="#6E6E7A"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etWatchAddress"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="0x..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#4A4A55"
+        android:background="@drawable/card_background"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:singleLine="true"
+        android:inputType="text"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/str_select_chain"
+        android:textColor="#6E6E7A"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/spWatchChain"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/card_background"
+        android:layout_marginBottom="4dp" />
+</LinearLayout>

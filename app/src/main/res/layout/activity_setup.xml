@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0a0a1a"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:id="@+id/btnBack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="←"
+                android:textColor="#ffffff"
+                android:textSize="24sp"
+                android:padding="8dp" />
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_create_wallet_2"
+                android:textColor="#ffffff"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginStart="16dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/labelMnemonic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_mnemonic_private_key"
+            android:textColor="#8892b0"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etMnemonic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/str_enter_mnemonic_or_private"
+            android:textColor="#ffffff"
+            android:textColorHint="#4a4a6a"
+            android:textSize="14sp"
+            android:background="@drawable/input_background"
+            android:padding="16dp"
+            android:minLines="3"
+            android:gravity="top"
+            android:visibility="gone"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_wallet_name"
+            android:textColor="#8892b0"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etWalletName"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="@string/str_punyaku_2"
+            android:textColor="#ffffff"
+            android:textColorHint="#4a4a6a"
+            android:textSize="14sp"
+            android:background="@drawable/input_background"
+            android:padding="12dp"
+            android:singleLine="true"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_password"
+            android:textColor="#8892b0"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="@string/str_setsimplepassword"
+            android:textColor="#ffffff"
+            android:textColorHint="#4a4a6a"
+            android:textSize="14sp"
+            android:background="@drawable/input_background"
+            android:padding="12dp"
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:layout_marginBottom="20dp" />
+
+        <TextView
+            android:id="@+id/labelConfirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_confirm_password"
+            android:textColor="#8892b0"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etConfirmPassword"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="@string/str_input_your_password_again"
+            android:textColor="#ffffff"
+            android:textColorHint="#4a4a6a"
+            android:textSize="14sp"
+            android:background="@drawable/input_background"
+            android:padding="12dp"
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btnConfirm"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="@string/text_create_wallet_2"
+            android:textColor="#ffffff"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/button_primary_background" />
+
+        <TextView
+            android:id="@+id/tvMnemonicDisplay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="24dp" />
+
+    </LinearLayout>
+</ScrollView>
