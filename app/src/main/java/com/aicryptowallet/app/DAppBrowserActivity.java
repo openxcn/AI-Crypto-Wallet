@@ -2536,7 +2536,8 @@ public class DAppBrowserActivity extends BaseActivity {
         uiHandler.post(() -> {
             new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                 .setTitle(getString(R.string.title_dapp_whitelist_authorization))
-                .setMessage(getString(R.string.msg_dapp_whitelist_prompt, domain))
+                .setMessage(getString(R.string.msg_dapp_whitelist_prompt, domain,
+                    getString(R.string.disclaimer_whitelist_risk)))
                 .setPositiveButton(getString(R.string.label_authorize_and_set_limits), (d, w) -> {
                     showDAppWhitelistConfigDialog(domain, callback);
                 })
@@ -2579,6 +2580,15 @@ public class DAppBrowserActivity extends BaseActivity {
             etPerTx.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
             etPerTx.setText("10");
             layout.addView(etPerTx);
+
+            // 免责声明提示
+            android.widget.TextView tvDisclaimer = new android.widget.TextView(this);
+            tvDisclaimer.setText(getString(R.string.disclaimer_whitelist_risk));
+            tvDisclaimer.setTextSize(12);
+            tvDisclaimer.setTextColor(0xFFEF4444);
+            tvDisclaimer.setLineSpacing(0, 1.2f);
+            tvDisclaimer.setPadding(0, 16, 0, 0);
+            layout.addView(tvDisclaimer);
 
             new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                 .setTitle(getString(R.string.title_set_limit))

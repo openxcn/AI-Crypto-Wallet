@@ -815,7 +815,9 @@ Nach dem Hinzufügen kann die AI:
 - In-Page-JavaScript ausführen
 - Transaktionen innerhalb des Limits automatisch bestätigen
 
-【Wichtig】Bitte stellen Sie sicher, dass Sie dieser DApp vertrauen, und setzen Sie ein angemessenes Limit.</string>
+【Wichtig】Bitte stellen Sie sicher, dass Sie dieser DApp vertrauen, und setzen Sie ein angemessenes Limit.
+%2$s</string>
+    <string name="disclaimer_whitelist_risk">【Haftungsausschluss】Das Hinzufügen eines Links zur Whitelist bedeutet, dass Sie alle Risiken auf eigenes Ermessen übernehmen. Die AI kann die Sicherheit dieses Links, der DApp oder ihrer Smart Contracts nicht garantieren. Das Red Devil Team haftet nicht für jegliche Vermögensverluste, die dadurch entstehen, dass Sie den Link aktiv zur Whitelist hinzufügen und die AI-Sicherheitsprüfungen umgehen.</string>
     <string name="msg_token_blacklisted_send">%1$s wurde von der AI als Hochrisiko-Token eingestuft; alle Transaktionen und Genehmigungen sind blockiert.
 
 Um fortzufahren, fügen Sie den Token bitte zuerst auf der Token-Detailseite zur Whitelist hinzu.

@@ -1975,7 +1975,8 @@ public class AgentToolRegistry {
                 (allowTransaction ? "、自动交易" : "") + "\n" +
                 "每日额度上限：$" + dailyCap + "\n" +
                 "单笔交易额度上限：$" + perTxCap + "\n\n" +
-                "确认后，AI 可在该 DApp 内自动执行上述操作（交易受额度限制）。是否同意？";
+                "确认后，AI 可在该 DApp 内自动执行上述操作（交易受额度限制）。是否同意？\n\n" +
+                "【免责声明】将链接加入白名单即视为您自主承担全部风险。AI 无法保证该链接、DApp 或其智能合约的安全性，因您主动将该链接加入白名单、绕过 AI 安全检测而导致的任何资产损失，红魔团队概不负责。";
 
             // 优先尝试在 DApp 浏览器页面弹出授权按钮（已授权悬浮窗时后台也能弹）
             DAppBrowserActivity.WhitelistDialogResult uiResult =

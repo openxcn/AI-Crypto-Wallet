@@ -819,7 +819,9 @@
 - 执行页面内 JavaScript
 - 在设定额度内自动确认交易
 
-【重要】请确保你信任该 DApp，并设置合理的额度上限。</string>
+【重要】请确保你信任该 DApp，并设置合理的额度上限。
+%2$s</string>
+    <string name="disclaimer_whitelist_risk">【免责声明】将链接加入白名单即视为您自主承担全部风险。AI 无法保证该链接、DApp 或其智能合约的安全性，因您主动将该链接加入白名单、绕过 AI 安全检测而导致的任何资产损失，红魔团队概不负责。</string>
     <string name="msg_token_blacklisted_send">%1$s 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。
 
 如需继续操作，请先在代币详情页将该代币加入白名单。

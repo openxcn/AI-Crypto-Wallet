@@ -815,7 +815,9 @@ After adding, AI will be able to:
 - Execute in-page JavaScript
 - Auto-confirm transactions within the set limit
 
-【Important】Please make sure you trust this DApp and set a reasonable limit.</string>
+【Important】Please make sure you trust this DApp and set a reasonable limit.
+%2$s</string>
+    <string name="disclaimer_whitelist_risk">【Disclaimer】Adding a link to the whitelist means you accept all risks at your own discretion. AI cannot guarantee the security of this link, DApp, or its smart contracts. The Red Devil Team shall not be liable for any asset loss caused by you actively whitelisting the link and bypassing AI security checks.</string>
     <string name="msg_token_blacklisted_send">%1$s has been flagged as a high-risk token by AI; all transactions and approvals are blocked.
 
 To continue, please whitelist this token on the token details page first.
