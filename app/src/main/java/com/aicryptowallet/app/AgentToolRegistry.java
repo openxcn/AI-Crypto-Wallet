@@ -260,7 +260,7 @@ public class AgentToolRegistry {
         ),
         new ToolDefinition(
             TOOL_BROWSER_GET_STATE,
-            "获取当前 DApp 浏览器页面的结构化状态，包括 URL、标题、可交互按钮、输入框、链接、页面文本摘要。AI 应根据返回的元素信息决定下一步点击或输入操作。",
+            "获取当前 DApp 浏览器页面的结构化状态（精简格式节省 Token）：url、title、text（页面文本前300字）、inputs（输入框，含 type/ph/id/name）、buttons（可点击按钮，含文本 t/id）、links（链接，含文本 t/href）。AI 应根据返回的元素信息决定下一步点击或输入操作。",
             "{\"type\":\"object\",\"properties\":{},\"required\":[]}"
         ),
         new ToolDefinition(

@@ -23,12 +23,21 @@ import java.util.concurrent.TimeUnit;
  *   2. AI 决定调用工具（如 get_market_data、swap_tokens）
  *   3. Runtime 执行工具，返回结果给 AI
  *   4. AI 基于结果继续思考，可能再调用工具
- *   5. 循环直到 AI 给出最终回复，或达到 maxRounds
+ *   5. 循环直到 AI 给出最终回复，或达到轮次上限
  *
  * 同时支持 OpenAI function calling 和 Claude tool use 两种协议。
  *
+ * 轮次机制（动态自适应）：
+ * - maxRounds 作为"基础轮次"：分析类任务给 6，对话类任务给 12
+ * - 基础轮次用完后，只要 AI 持续产出"有进展"的工具调用（无死循环重复），
+ *   系统自动扩展轮次，最多到 hardLimit = maxRounds + 30
+ * - 死循环检测：若最近的工具调用（工具名+参数）出现重复模式，判定陷入死循环并强制停止
+ * - 这样 AI 可以根据任务复杂度（如复杂链游/DApp 操作）自行决定实际使用多少轮，
+ *   同时避免无限循环浪费 Token
+ *
  * 安全设计：
- * - maxRounds 上限防止无限循环（默认 8 轮，足够分析+1-2笔交易）
+ * - 硬上限 hardLimit 兜底防止无限循环
+ * - 死循环检测提前终止无效重复操作
  * - 每轮工具调用都通过 AgentToolRegistry，自动经 SafetyGate 校验
  * - 完整审计日志，所有工具调用记录可查
  * - 不缓存敏感数据，所有变量在方法结束即释放
@@ -37,7 +46,9 @@ public class AgentRuntime {
 
     private static final MediaType JSON_TYPE = MediaType.parse("application/json");
     private static final String CLAUDE_URL = "https://api.anthropic.com/v1/messages";
-    private static final int DEFAULT_MAX_ROUNDS = 8;
+    private static final int DEFAULT_MAX_ROUNDS = 12;
+    /** 基础轮次之上额外扩展的轮次数（动态自适应） */
+    private static final int EXTRA_ROUNDS = 30;
 
     private final OkHttpClient client;
     private final Context ctx;
@@ -104,7 +115,10 @@ public class AgentRuntime {
 
         Logger.info(ctx, "AgentRuntime", "启动 Agent 循环，模型=" + model + " 链=" + chain + " maxRounds=" + maxRounds);
 
-        for (int round = 0; round < maxRounds; round++) {
+        // 硬上限：基础轮次 + 额外扩展，兜底防止无限循环
+        int hardLimit = maxRounds + EXTRA_ROUNDS;
+
+        for (int round = 0; round < hardLimit; round++) {
             // 调用 LLM
             JSONObject llmResponse;
             try {
@@ -167,13 +181,43 @@ public class AgentRuntime {
                 JSONObject toolResultMsg = buildToolResultMessage(toolName, toolCallId, result, isClaude);
                 messages.put(toolResultMsg);
             }
+
+            // 已超过基础轮次后，检测是否陷入死循环（重复的无进展工具调用）
+            if (round + 1 >= maxRounds && isDeadLoop(callHistory)) {
+                Logger.warning(ctx, "AgentRuntime", "检测到死循环（重复工具调用），提前终止，已用 " + (round + 1) + " 轮");
+                break;
+            }
         }
 
-        // 达到 maxRounds 仍未结束
-        Logger.warning(ctx, "AgentRuntime", "Agent 达到 maxRounds=" + maxRounds + "，强制停止");
-        String finalText = "Agent 已达到最大轮次限制 (" + maxRounds + ")，最后回复: " + extractLastAssistantText(messages);
+        // 达到硬上限仍未结束
+        Logger.warning(ctx, "AgentRuntime", "Agent 达到硬上限=" + hardLimit + "，强制停止");
+        String finalText = "Agent 已达到最大轮次限制 (" + hardLimit + ")，最后回复: " + extractLastAssistantText(messages);
         AINotificationHelper.notifyChatReply(ctx, "AI 助手", finalText);
         return new AgentResult(finalText, callHistory, true);
+    }
+
+    /**
+     * 死循环检测：检查最近的工具调用是否出现重复模式（工具名+参数完全相同的连续序列）。
+     * 若最近 3 次调用与之前间隔 1~3 次的调用完全重复，判定陷入死循环。
+     */
+    private boolean isDeadLoop(List<AgentToolRegistry.ToolCallRecord> history) {
+        int n = history.size();
+        if (n < 6) return false;
+        for (int gap = 1; gap <= 3; gap++) {
+            boolean repeat = true;
+            for (int i = 0; i < 3; i++) {
+                AgentToolRegistry.ToolCallRecord cur = history.get(n - 1 - i);
+                AgentToolRegistry.ToolCallRecord prev = history.get(n - 1 - i - gap);
+                if (cur == null || prev == null
+                        || !cur.toolName.equals(prev.toolName)
+                        || !cur.arguments.equals(prev.arguments)) {
+                    repeat = false;
+                    break;
+                }
+            }
+            if (repeat) return true;
+        }
+        return false;
     }
 
     public AgentResult run(String userPrompt, String systemPrompt) throws Exception {

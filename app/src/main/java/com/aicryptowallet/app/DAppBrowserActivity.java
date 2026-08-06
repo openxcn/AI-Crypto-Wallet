@@ -2928,26 +2928,35 @@ public class DAppBrowserActivity extends BaseActivity {
 
     /**
      * 获取页面结构化状态：URL、标题、可交互元素、输入框、文本摘要
+     * 返回值已精简以节省 Token：文本摘要截断、元素去重、限制数量
      */
     public static String getPageState() {
         String script =
             "(function(){" +
+            "  var seen = {};" +
             "  var inputs = []; var buttons = []; var links = [];" +
-            "  document.querySelectorAll('input, textarea').forEach(function(el){" +
-            "    inputs.push({tag: el.tagName.toLowerCase(), type: el.type||'', placeholder: el.placeholder||'', id: el.id||'', class: el.className||'', name: el.name||''});" +
+            "  document.querySelectorAll('input, textarea, select').forEach(function(el){" +
+            "    var key = (el.type||'') + '|' + (el.placeholder||'') + '|' + (el.id||'') + '|' + (el.name||'');" +
+            "    if (seen['i'+key]) return; seen['i'+key]=1;" +
+            "    inputs.push({tag: el.tagName.toLowerCase(), type: el.type||'', ph: (el.placeholder||'').substring(0,30), id: el.id||'', name: el.name||''});" +
             "  });" +
-            "  document.querySelectorAll('button, [role=button], a').forEach(function(el){" +
-            "    var item = {tag: el.tagName.toLowerCase(), text: (el.innerText||'').trim().substring(0,80), id: el.id||'', class: el.className||''};" +
-            "    if (el.tagName.toLowerCase()==='a') links.push(item); else buttons.push(item);" +
+            "  document.querySelectorAll('button, [role=button], a, [onclick]').forEach(function(el){" +
+            "    var txt = (el.innerText||'').trim().substring(0,40); if (!txt) return;" +
+            "    var key = (el.tagName.toLowerCase()) + '|' + txt + '|' + (el.id||'');" +
+            "    if (seen['b'+key]) return; seen['b'+key]=1;" +
+            "    var item = {tag: el.tagName.toLowerCase(), t: txt, id: el.id||''};" +
+            "    var href = el.getAttribute('href'); " +
+            "    if (el.tagName.toLowerCase()==='a' && href) { item.h = href.substring(0,60); links.push(item); }" +
+            "    else buttons.push(item);" +
             "  });" +
+            "  var bodyText = document.body ? (document.body.innerText||'').replace(/\\s+/g,' ').trim() : '';" +
             "  return JSON.stringify({" +
             "    url: location.href," +
             "    title: document.title," +
-            "    readyState: document.readyState," +
-            "    textPreview: (document.body ? document.body.innerText : '').substring(0,500)," +
-            "    inputs: inputs.slice(0,20)," +
-            "    buttons: buttons.slice(0,30)," +
-            "    links: links.slice(0,20)" +
+            "    text: bodyText.substring(0,300)," +
+            "    inputs: inputs.slice(0,12)," +
+            "    buttons: buttons.slice(0,20)," +
+            "    links: links.slice(0,12)" +
             "  });" +
             "})();";
         return parseJsonResult(evaluateJs(script));

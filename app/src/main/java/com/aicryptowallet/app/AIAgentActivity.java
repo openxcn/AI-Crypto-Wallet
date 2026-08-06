@@ -1535,7 +1535,7 @@ public class AIAgentActivity extends BaseActivity {
 
         // 使用 AgentRuntime 执行（支持工具调用）
         AgentRuntime runtime = new AgentRuntime(this, selectedChain, safetyGate);
-        AgentRuntime.AgentResult result = runtime.run(userPrompt.toString(), systemPrompt, 8);
+        AgentRuntime.AgentResult result = runtime.run(userPrompt.toString(), systemPrompt, 12);
 
         // 记录工具调用历史（用于审计）
         if (result.toolCallHistory != null && !result.toolCallHistory.isEmpty()) {
