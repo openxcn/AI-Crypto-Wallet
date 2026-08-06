@@ -46,3 +46,6 @@ write_test_output.txt
 # 生成的 Logo 图片(保留源码中的)
 logo_generated.png
 logo_processed.png
+
+# 安全审计报告(含真实 keystore 密码, 禁止上传)
+security_best_practices_report.md
