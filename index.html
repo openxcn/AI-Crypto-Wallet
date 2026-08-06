@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Crypto Wallet — Self-Custodial Wallet with an On-Device AI Trading Agent</title>
+<meta name="description" content="AI Crypto Wallet is a self-custodial crypto wallet with an on-device AI self-trading agent. Private keys stay on your device. Supports 10 chains, Web3 DApp browser, a multi-check safety gate, and the R-MAB platform token. Source-available under BSL-1.1. Not financial advice.">
+<meta name="keywords" content="AI Crypto Wallet, self-custodial wallet, AI trading agent, crypto wallet, DeFi, Web3, DApp browser, multi-chain, BSL-1.1, R-MAB, non-custodial, on-device AI, Android wallet">
+<meta name="author" content="Red Devil Team (红魔团队)">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://openxcn.github.io/AI-Crypto-Wallet/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI Crypto Wallet — Self-Custodial Wallet with an On-Device AI Trading Agent">
+<meta property="og:description" content="A self-custodial crypto wallet with an on-device AI self-trading agent. Private keys stay on your device. 10 chains, Web3 DApp browser, safety gate, R-MAB token. Source-available (BSL-1.1).">
+<meta property="og:url" content="https://openxcn.github.io/AI-Crypto-Wallet/">
+<meta property="og:site_name" content="AI Crypto Wallet">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AI Crypto Wallet — Self-Custodial Wallet with an On-Device AI Trading Agent">
+<meta name="twitter:description" content="A self-custodial crypto wallet with an on-device AI self-trading agent. Private keys stay on your device.">
+
+<!-- JSON-LD: SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "AI Crypto Wallet",
+  "alternateName": "AI 炒币助手",
+  "applicationCategory": "BlockchainApplication",
+  "operatingSystem": "Android",
+  "description": "AI Crypto Wallet is a self-custodial crypto wallet with an on-device AI self-trading agent. Private keys stay on your device and are never exposed to the AI. It supports 10 chains (BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX), a built-in Web3 DApp browser, a multi-check safety gate (circuit breaker, daily and per-trade limits, token whitelist, full audit logs), and a platform token R-MAB. Source is publicly auditable under BSL-1.1 (not OSI open source).",
+  "url": "https://github.com/openxcn/AI-Crypto-Wallet",
+  "downloadUrl": "https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk",
+  "license": "https://github.com/openxcn/AI-Crypto-Wallet/blob/main/LICENSE",
+  "inLanguage": ["en", "zh", "ja", "de"],
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "Red Devil Team (红魔团队)", "email": "aibgsps@gmail.com" },
+  "publisher": { "@type": "Organization", "name": "Red Devil Team (红魔团队)", "email": "aibgsps@gmail.com" },
+  "keywords": "self-custodial wallet, AI trading agent, crypto wallet, decentralized finance, DeFi, Web3, DApp browser, multi-chain, BSL-1.1, R-MAB, non-custodial, on-device AI"
+}
+</script>
+
+<!-- JSON-LD: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is AI Crypto Wallet?",
+      "acceptedAnswer": { "@type": "Answer", "text": "AI Crypto Wallet is a self-custodial crypto wallet with an on-device AI self-trading agent. It keeps your private keys on your device and supports 10 chains (BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX), a Web3 DApp browser, and a platform token R-MAB." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is AI Crypto Wallet open source?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. The source code is source-available and publicly auditable under the Business Source License 1.1 (BSL-1.1), but it is not OSI-certified open source. It converts to the Apache License 2.0 after the Change Date of 2031-08-06." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does the AI have access to my private keys?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Private keys are generated and stored on the device and are never exposed to the AI or transmitted anywhere. The AI expresses intent only; every write operation passes through a mandatory safety gate." }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the safety gate protect users?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Every write operation passes through a five-step safety gate: a circuit breaker, daily and per-trade limits, a token whitelist, and a full audit log. Cross-chain trades default to a $100 per-trade and $500 daily cap." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is AI Crypto Wallet financial advice?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. The AI provides analysis only and is not financial advice. Cryptocurrency trading is highly risky; use at your own risk." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root{
+    --bg:#070B14; --bg2:#0D1322; --bg3:#141B30; --ink:#F8FAFC; --muted:#94A3B8;
+    --rule:#1E2940; --accent:#F5B841; --accent2:#8B5CF6; --cyan:#2DD4BF; --green:#34D399; --red:#F87171;
+    --font-title:"Work Sans","Microsoft YaHei","PingFang SC",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-title);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px;}
+  a{color:var(--accent);text-decoration:none;}
+  /* ambient */
+  body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(130px);opacity:.5;}
+  body::before{width:540px;height:540px;background:var(--accent2);top:-180px;right:-140px;opacity:.15;}
+  body::after{width:480px;height:480px;background:var(--cyan);bottom:-160px;left:-140px;opacity:.11;}
+  /* header */
+  header{padding:64px 0 40px;text-align:center;}
+  .kicker{display:inline-block;font-size:12px;letter-spacing:4px;color:var(--accent);border:1px solid var(--rule);background:var(--bg2);padding:6px 16px;border-radius:999px;margin-bottom:22px;}
+  header h1{font-size:46px;font-weight:800;letter-spacing:.5px;line-height:1.15;}
+  header h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  header .sub{color:var(--muted);font-size:17px;max-width:660px;margin:18px auto 0;}
+  .badges{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px;}
+  .badge{font-size:13px;padding:7px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--bg2);}
+  .badge b{color:var(--accent);}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px;}
+  .btn{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:700;font-size:15px;transition:.2s;}
+  .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0A0E1A;}
+  .btn-ghost{border:1px solid var(--rule);background:var(--bg2);color:var(--ink);}
+  .btn:hover{transform:translateY(-2px);opacity:.92;}
+  /* sections */
+  section{padding:48px 0;border-top:1px solid var(--rule);}
+  .sec-head{display:flex;align-items:center;gap:16px;margin-bottom:26px;}
+  .sec-num{font-size:32px;font-weight:800;color:var(--accent);opacity:.9;flex-shrink:0;line-height:1;}
+  .sec-head h2{font-size:26px;font-weight:700;}
+  .sec-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--rule),transparent);}
+  .grid{display:grid;gap:16px;}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .card{background:var(--bg2);border:1px solid var(--rule);border-radius:14px;padding:20px;}
+  .card h4{font-size:15px;margin-bottom:8px;color:var(--ink);}
+  .card p{color:var(--muted);font-size:13.5px;}
+  .card .hl{color:var(--accent);font-weight:700;}
+  ul.feats{list-style:none;}
+  ul.feats li{padding:8px 0;border-bottom:1px solid var(--rule);color:var(--muted);font-size:15px;}
+  ul.feats li b{color:var(--ink);}
+  ul.feats li:last-child{border-bottom:0;}
+  .faq details{background:var(--bg2);border:1px solid var(--rule);border-radius:12px;padding:16px 20px;margin-bottom:12px;}
+  .faq summary{cursor:pointer;font-weight:700;font-size:15.5px;color:var(--ink);}
+  .faq .ans{color:var(--muted);font-size:14px;margin-top:10px;line-height:1.7;}
+  footer{padding:40px 0;text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--rule);}
+  footer a{color:var(--accent);}
+  /* machine-readable summary panel */
+  .ai-note{background:var(--bg3);border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:10px;padding:18px 22px;margin:24px 0;font-size:13.5px;color:var(--muted);}
+  .ai-note b{color:var(--ink);}
+  @media(max-width:720px){.g2,.g3{grid-template-columns:1fr;} header h1{font-size:34px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="kicker">RED DEVIL TEAM</span>
+    <h1>AI Crypto Wallet<br><span>让你的最强 AI 守护数字资产</span></h1>
+    <p class="sub">A self-custodial crypto wallet with an on-device AI self-trading agent. Private keys stay on your device — the AI never touches them.</p>
+    <div class="badges">
+      <span class="badge">Non-custodial</span>
+      <span class="badge">10 Chains</span>
+      <span class="badge">Web3 DApp Browser</span>
+      <span class="badge">Safety Gate</span>
+      <span class="badge"><b>R-MAB</b> Token</span>
+      <span class="badge">Source-available <b>BSL-1.1</b></span>
+    </div>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk">Download APK</a>
+      <a class="btn btn-ghost" href="https://github.com/openxcn/AI-Crypto-Wallet">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom">Read Whitepaper</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="ai-note">
+    <b>About this project (machine-readable summary).</b> AI Crypto Wallet is a self-custodial cryptocurrency wallet for Android with an on-device AI self-trading agent. The AI reads market data (RSI, MACD, moving averages, Bollinger Bands), monitors positions, and executes trades within a hard safety gate. Private keys are generated and stored locally and are never exposed to the AI. Supports 10 chains: BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX. Includes a built-in Web3 DApp browser, three defense lines (TradeAuthManager, SafetyGate, RiskManager), conservative cross-chain defaults ($100 per-trade, $500 daily cap), and the R-MAB platform token. Source-available under BSL-1.1 (not OSI open source); converts to Apache 2.0 after 2031-08-06. <b>Not financial advice.</b>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Core Features</h2><div class="rule"></div></div>
+    <div class="grid g3">
+      <div class="card"><h4>🔑 Non-Custodial</h4><p>Private keys are generated and stored on-device. They never leave the device and are never exposed to the AI.</p></div>
+      <div class="card"><h4>🤖 On-Device AI Agent</h4><p>Reads RSI / MACD / MA / Bollinger Bands, watches positions, executes stop-loss / take-profit within a safety gate.</p></div>
+      <div class="card"><h4>🌐 10 Chains</h4><p>BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX — each EVM chain with its correct DEX router.</p></div>
+      <div class="card"><h4>🛡️ Safety Gate</h4><p>Circuit breaker, daily &amp; per-trade limits, token whitelist, full audit logs on every write.</p></div>
+      <div class="card"><h4>🧭 DApp Browser</h4><p>Built-in Web3 browsing with wallet signing and anti-phishing whitelist.</p></div>
+      <div class="card"><h4>🪙 R-MAB Token</h4><p>Platform token granting ecosystem participant privileges.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Three Lines of Defense</h2><div class="rule"></div></div>
+    <div class="grid g3">
+      <div class="card"><h4>1 · TradeAuthManager</h4><p>AI trading only enables after an eligibility threshold (≥$200 in major assets, or ≥20,000 R-MAB).</p></div>
+      <div class="card"><h4>2 · SafetyGate</h4><p>Circuit breaker, daily &amp; per-trade limits, whitelist, audit — enforced on every write, unbypassable.</p></div>
+      <div class="card"><h4>3 · RiskManager</h4><p>Max 10% position per token, stop-loss -5% / take-profit +15%, 3% slippage, 20 trades/day cap.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Documentation</h2><div class="rule"></div></div>
+    <div class="grid g2">
+      <div class="card"><h4>User Guide</h4><p>Step-by-step usage: wallet setup, assets, send/receive, swap, AI agent, DApp browser, security, FAQ.</p><p><a href="aicw-user-guide.html">Open User Guide →</a></p></div>
+      <div class="card"><h4>Technical Whitepaper</h4><p>Architecture, agent runtime, safety &amp; risk framework, multi-chain data layer, governance model.</p><p><a href="https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom">Read Whitepaper →</a></p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-num">04</span><h2>FAQ</h2><div class="rule"></div></div>
+    <div class="faq">
+      <details><summary>What is AI Crypto Wallet?</summary><div class="ans">A self-custodial crypto wallet with an on-device AI self-trading agent. It keeps your private keys on your device and supports 10 chains, a Web3 DApp browser, and the R-MAB platform token.</div></details>
+      <details><summary>Is AI Crypto Wallet open source?</summary><div class="ans">No. The source is source-available and publicly auditable under BSL-1.1, but it is not OSI-certified open source. It converts to the Apache License 2.0 after 2031-08-06.</div></details>
+      <details><summary>Does the AI have access to my private keys?</summary><div class="ans">No. Private keys never leave the device and are never exposed to the AI. The AI expresses intent only; every write passes a mandatory safety gate.</div></details>
+      <details><summary>How does the safety gate protect users?</summary><div class="ans">Every write passes a five-step gate: circuit breaker, daily &amp; per-trade limits, token whitelist, and full audit log. Cross-chain trades default to $100 per-trade and $500 daily cap.</div></details>
+      <details><summary>Is this financial advice?</summary><div class="ans">No. The AI provides analysis only and is not financial advice. Cryptocurrency trading is highly risky; use at your own risk.</div></details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 红魔团队 (Red Devil Team). All rights reserved.</p>
+    <p>Source-available under <b>BSL-1.1</b>. Commercial license: <a href="mailto:aibgsps@gmail.com">aibgsps@gmail.com</a></p>
+    <p style="margin-top:8px;color:var(--muted);opacity:.8;">Not financial advice. Cryptocurrency trading is highly risky. Use at your own risk.</p>
+  </div>
+</footer>
+</body>
+</html>

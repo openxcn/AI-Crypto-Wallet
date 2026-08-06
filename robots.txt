@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://openxcn.github.io/AI-Crypto-Wallet/sitemap.xml
