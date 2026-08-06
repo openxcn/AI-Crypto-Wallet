@@ -1,10 +1,9 @@
 package com.aicryptowallet.app;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.text.TextUtils;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -129,8 +128,8 @@ public class CoinDetailActivity extends BaseActivity {
             }
         });
 
-        // AI 分析按钮
-        findViewById(R.id.btnAskAI).setOnClickListener(v -> askAI());
+        // AI 分析按钮：进入行情页直接展示分析结果和分享图
+        findViewById(R.id.btnAskAI).setOnClickListener(v -> openMarketAnalyze());
 
         // 官网/白皮书/区块浏览器点击事件（在 loadCoinInfo 中动态绑定 URL）
     }
@@ -271,71 +270,26 @@ public class CoinDetailActivity extends BaseActivity {
         });
     }
 
-    /** 让 AI 分析：构造提示词，复制到剪贴板 + 跳转到 AI 页面 */
-    private void askAI() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("请分析 ").append(symbol.toUpperCase()).append(" 当前行情：\n");
-
-        if (currentTicker != null && currentTicker.success) {
-            sb.append("- 当前价格: ").append(formatPrice(currentTicker.lastPrice)).append("\n");
-            sb.append("- 24h 涨跌: ").append(String.format("%.2f", currentTicker.changePercent)).append("%\n");
-            sb.append("- 24h 最高: ").append(formatPrice(currentTicker.highPrice)).append("\n");
-            sb.append("- 24h 最低: ").append(formatPrice(currentTicker.lowPrice)).append("\n");
-            sb.append("- 24h 成交额: ").append(formatVolume(currentTicker.volumeQuote)).append("\n");
-        } else {
-            sb.append("- 实时行情数据加载中...\n");
-        }
-
-        if (currentKlines != null && !currentKlines.isEmpty()) {
-            SimpleKlineView.Kline last = currentKlines.get(currentKlines.size() - 1);
-            SimpleKlineView.Kline first = currentKlines.get(0);
-            double periodChange = (last.close - first.close) / first.close * 100;
-            sb.append("- ").append(CoinDetailAPI.intervalLabel(currentInterval))
-              .append(" 走势: 起 ").append(formatPrice(first.close))
-              .append(" → 末 ").append(formatPrice(last.close))
-              .append(" (").append(String.format("%.2f", periodChange)).append("%)\n");
-
-            // 计算简单移动平均
-            if (currentKlines.size() >= 7) {
-                double ma7 = 0;
-                int start = currentKlines.size() - 7;
-                for (int i = start; i < currentKlines.size(); i++) {
-                    ma7 += currentKlines.get(i).close;
-                }
-                ma7 /= 7;
-                sb.append("- MA7: ").append(formatPrice(ma7)).append("\n");
-            }
-            if (currentKlines.size() >= 25) {
-                double ma25 = 0;
-                int start = currentKlines.size() - 25;
-                for (int i = start; i < currentKlines.size(); i++) {
-                    ma25 += currentKlines.get(i).close;
-                }
-                ma25 /= 25;
-                sb.append("- MA25: ").append(formatPrice(ma25)).append("\n");
-            }
-        }
-
-        if (currentInfo != null) {
-            sb.append("\n项目背景: ").append(currentInfo.description).append("\n");
-        }
-
-        sb.append("\n请基于以上数据给出：1) 短期趋势判断 2) 关键支撑/阻力位 3) 是否建议买入/卖出/持有 4) 风险提示");
-
-        String prompt = sb.toString();
-
-        // 复制到剪贴板
-        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-        cm.setPrimaryClip(ClipData.newPlainText("AI 分析提示词", prompt));
-        Toast.makeText(this, getString(R.string.toast_quote_data_copied_to), Toast.LENGTH_LONG).show();
-
-        // 跳转到 AI 页面
-        try {
-            Intent intent = new Intent(this, AIAgentActivity.class);
-            startActivity(intent);
-        } catch (Exception e) {
-            Toast.makeText(this, getString(R.string.toast_failed_to_open_ai, e.getMessage()), Toast.LENGTH_SHORT).show();
-        }
+    /** 打开行情分析页，直接展示 AI 分析结果和分享图 */
+    private void openMarketAnalyze() {
+        double p = currentTicker != null ? currentTicker.lastPrice : 0.0;
+        double c = currentTicker != null ? currentTicker.changePercent : 0.0;
+        double h = currentTicker != null ? currentTicker.highPrice : 0.0;
+        double l = currentTicker != null ? currentTicker.lowPrice : 0.0;
+        double v = currentTicker != null ? currentTicker.volumeQuote : 0.0;
+        String coinName = currentInfo != null && !TextUtils.isEmpty(currentInfo.fullName)
+            ? currentInfo.fullName : symbol;
+        String bg = currentInfo != null ? currentInfo.description : "";
+        Intent intent = new Intent(this, MarketCoinAnalyzeActivity.class);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_SYMBOL, symbol);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_NAME, coinName);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_PRICE, p);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_CHANGE, c);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_HIGH, h);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_LOW, l);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_VOLUME, v);
+        intent.putExtra(MarketCoinAnalyzeActivity.EXTRA_BACKGROUND, bg);
+        startActivity(intent);
     }
 
     private void openUrl(String url) {

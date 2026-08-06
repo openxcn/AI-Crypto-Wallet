@@ -252,6 +252,10 @@
     <string name="text_single_limit">单笔限额（%1$s）</string>
     <string name="str_findings_2">发现</string>
     <string name="toast_token_found_loading">发现 %1$s 个代币，正在加载...</string>
+    <string name="title_asset_change_reminder">资产变动提醒</string>
+    <string name="msg_asset_changed">检测到资产变动：%1$s</string>
+    <string name="msg_new_asset_arrived">新入账资产：%1$s %2$s</string>
+    <string name="msg_asset_changed_bg">您的钱包资产发生变化，点击查看最新交易</string>
     <string name="text_found_token_checking_balance">发现 %1$s 个代币，正在查询余额...</string>
     <string name="str_discovery_page">发现页</string>
     <string name="str_send">发送</string>
@@ -466,7 +470,7 @@
     <string name="text_query_failed">查询失败</string>
     <string name="toast_query_failed">查询失败: %1$s</string>
     <string name="str_standard">标准</string>
-    <string name="msg_detecting_that_the_current">检测到当前网络环境极不稳定，将大幅影响 AI 决策和数据更新。建议切换到稳定的海外网络环境后使用。</string>
+    <string name="msg_detecting_that_the_current">检测到当前网络环境极不稳定，将大幅影响 AI 决策和数据更新。建议切换到稳定的网络环境后使用。作为去中心化应用，我们无法中转任何法律不允许的网络信息，请务必遵守当地法律法规。</string>
     <string name="text_model_name">模型名称</string>
     <string name="text_loading_token_list_from">正在从区块浏览器加载 %1$s 代币列表...\nURL: %2$s</string>
     <string name="str_loading">正在加载...</string>
@@ -840,4 +844,25 @@
 %3$s
 提示：返回资产页面下拉刷新即可看到新代币</string>
     <string name="text_no_tokens_with_balance">（未发现任何有余额的代币）</string>
+
+    <!-- 助记词备份与验证 -->
+    <string name="text_backup_mnemonic">备份助记词</string>
+    <string name="text_verify_mnemonic">验证助记词</string>
+    <string name="text_mnemonic_words">助记词（12 个单词）</string>
+    <string name="text_copy_mnemonic">复制助记词</string>
+    <string name="text_backup_done_verify">备份完成，进行验证</string>
+    <string name="text_verify_confirm">验证完成</string>
+    <string name="text_important_notice">切记：</string>
+    <string name="msg_backup_mnemonic_warning">请务必准确抄写您的助记词，并妥善保存在安全地点。切勿截屏或通过网络存储和传输，以免造成泄露。</string>
+    <string name="msg_verify_mnemonic_instruction">点击输入框，按顺序输入正确的助记词，或在下方选择助记词填入，以便验证您备份的助记词是否正确。</string>
+    <string name="msg_mnemonic_important_notice">· 请勿将助记词透露给任何人\n· 助记词一旦丢失，资产将无法恢复\n· 请勿通过截屏、网络传输的方式进行备份保存\n· 遇到任何情况，请不要轻易卸载钱包 App</string>
+    <string name="toast_mnemonic_data_missing">助记词数据丢失，请重新创建</string>
+    <string name="toast_please_complete_mnemonic">请按顺序填完所有助记词</string>
+    <string name="toast_mnemonic_verified_success">验证通过！</string>
+    <string name="toast_mnemonic_verify_failed">助记词顺序不正确，请重新验证</string>
+
+    <!-- 钱包备份状态 -->
+    <string name="text_backed_up">✓ 已备份</string>
+    <string name="text_not_backed_up">⚠ 未备份</string>
+    <string name="text_no_backup_needed">无需备份</string>
 </resources>

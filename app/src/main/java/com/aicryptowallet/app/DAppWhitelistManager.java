@@ -150,6 +150,15 @@ public class DAppWhitelistManager {
         }
     }
 
+    /**
+     * 从 SharedPreferences 重新加载白名单缓存。
+     * AI 工具（request_dapp_whitelist）会创建新的 manager 实例写入 prefs，
+     * 而 DApp 浏览器的 manager 实例缓存是旧数据，必须 reload 才能读到新加入的域名。
+     */
+    public void reload() {
+        loadFromPrefs();
+    }
+
     /** 添加/更新白名单条目 */
     public void putEntry(Entry entry) {
         if (entry == null || entry.domain == null || entry.domain.isEmpty()) return;

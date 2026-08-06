@@ -69,6 +69,84 @@ public class DAppBrowserActivity extends BaseActivity {
     private static volatile DAppBrowserActivity sInstance;
     private static volatile Context sAppContext;
 
+    /**
+     * 最后一次成功解析的页面域名（静态缓存）。
+     * 作用：白名单校验在后台线程进行，不能依赖实例字段 currentOrigin——当 Activity 被
+     * 重建/后台化、或页面导航到 about:blank/重定向等无法解析的 URL 时，currentOrigin
+     * 会为空或失效，导致"旧标签页"被误判为未授权。此字段只在解析到有效域名时更新，
+     * 永不因导航清空，保证校验始终使用最近一次的有效域名。
+     */
+    private static volatile String sCurrentDomain = "";
+
+    // ============================================================
+    // 标签页管理：记录 AI/用户打开过的网页（单 Activity 单 WebView 架构，
+    // 同一时刻只加载一个页面到 WebView，但保留历史标签信息供 AI 查询/关闭）
+    // ============================================================
+    /** 标签页信息 */
+    public static class TabInfo {
+        public final String url;
+        public String title;
+        public final long openedAt;
+        public volatile boolean isCurrent;
+
+        TabInfo(String url, long openedAt) {
+            this.url = url;
+            this.title = "";
+            this.openedAt = openedAt;
+            this.isCurrent = true;
+        }
+    }
+
+    /** 所有已记录的标签页（线程安全，最近打开的排最后） */
+    private static final java.util.List<TabInfo> sTabs =
+        java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+    /** 记录一个新标签页，并取消其他标签页的激活状态 */
+    private static void addTab(String url, DAppBrowserActivity owner) {
+        if (url == null || url.isEmpty()) return;
+        synchronized (sTabs) {
+            for (TabInfo t : sTabs) t.isCurrent = false;
+            sTabs.add(new TabInfo(url, System.currentTimeMillis()));
+        }
+        // 清理已销毁 Activity 对应的标签（保留最新记录）
+        if (owner == null) {
+            pruneTabs();
+        }
+    }
+
+    /** 更新当前标签页的标题（按 URL 匹配最新一条） */
+    private static void updateTabTitle(String url, String title) {
+        if (url == null || title == null) return;
+        synchronized (sTabs) {
+            for (int i = sTabs.size() - 1; i >= 0; i--) {
+                TabInfo t = sTabs.get(i);
+                if (t.url.equals(url)) {
+                    t.title = title;
+                    break;
+                }
+            }
+        }
+    }
+
+    /** 移除已销毁 Activity 对应的标签页记录（保留仍活跃/最新的） */
+    private static void pruneTabs() {
+        synchronized (sTabs) {
+            if (sInstance == null) { sTabs.clear(); return; }
+            // 只保留当前 Activity 的 URL 记录，其余清空
+            String currentUrl = null;
+            try {
+                WebView wv = sInstance.webView;
+                if (wv != null && wv.getUrl() != null) currentUrl = wv.getUrl();
+            } catch (Exception ignore) {}
+            sTabs.clear();
+            if (currentUrl != null) {
+                TabInfo t = new TabInfo(currentUrl, System.currentTimeMillis());
+                t.isCurrent = true;
+                sTabs.add(t);
+            }
+        }
+    }
+
     // 钱包切换检测
     private String currentWalletAddress;
     private final java.util.concurrent.atomic.AtomicReference<WhitelistDialogLatch> whitelistLatchRef =
@@ -251,6 +329,11 @@ public class DAppBrowserActivity extends BaseActivity {
                 Logger.info(DAppBrowserActivity.this, "DApp浏览器", "onPageStarted: " + url);
                 // 提取 origin（协议+域名+端口），用于 DApp 授权管理
                 currentOrigin = extractOrigin(url);
+                // 同步更新静态域名缓存（仅当解析到有效域名时，避免导航到无法解析的 URL 时清空）
+                String parsedDomain = DAppWhitelistManager.normalizeDomain(currentOrigin);
+                if (parsedDomain != null && !parsedDomain.isEmpty()) {
+                    sCurrentDomain = parsedDomain;
+                }
                 Logger.info(DAppBrowserActivity.this, "DApp浏览器", "currentOrigin=" + currentOrigin);
                 // 在页面加载开始时就注入反检测脚本，尽量在其他 JS 读取之前生效
                 injectAntiDetectionScripts(view);
@@ -286,6 +369,11 @@ public class DAppBrowserActivity extends BaseActivity {
                 lastPageFinishTime = now;
                 
                 Logger.info(DAppBrowserActivity.this, "DApp浏览器", "onPageFinished: " + url);
+                // 更新标签页标题（供 browser_list_tabs 返回）
+                String pageTitle = view.getTitle();
+                if (pageTitle != null && !pageTitle.isEmpty()) {
+                    updateTabTitle(url, pageTitle);
+                }
                 // 页面加载完成后再注入一次反检测脚本，防止 SPA 动态加载后重新检测环境
                 injectAntiDetectionScripts(view);
                 // 页面加载完成后再注入一次，确保 DApp 的检测脚本能拿到 provider
@@ -768,6 +856,7 @@ public class DAppBrowserActivity extends BaseActivity {
         url = url.trim();
         // 已带协议头
         if (url.startsWith("http://") || url.startsWith("https://")) {
+            addTab(url, this);
             webView.loadUrl(url);
             return;
         }
@@ -775,14 +864,18 @@ public class DAppBrowserActivity extends BaseActivity {
         boolean looksLikeUrl = url.contains(".") && !url.contains(" ")
             && !url.startsWith(".") && !url.endsWith(".");
         if (looksLikeUrl) {
-            webView.loadUrl("https://" + url);
+            String resolved = "https://" + url;
+            addTab(resolved, this);
+            webView.loadUrl(resolved);
             return;
         }
         // 关键词搜索（百度，国内可用）
         try {
             String searchUrl = "https://www.baidu.com/s?wd=" + java.net.URLEncoder.encode(url, "UTF-8");
+            addTab(searchUrl, this);
             webView.loadUrl(searchUrl);
         } catch (Exception e) {
+            addTab("https://www.baidu.com/s?wd=" + url, this);
             webView.loadUrl("https://www.baidu.com/s?wd=" + url);
         }
     }
@@ -2400,9 +2493,17 @@ public class DAppBrowserActivity extends BaseActivity {
     /** 获取当前页面域名 */
     private String getCurrentDomain() {
         try {
-            if (webView == null) return "";
-            String url = webView.getUrl();
-            return DAppWhitelistManager.normalizeDomain(url);
+            // 1) 优先使用静态缓存域名（UI 线程更新，后台线程可安全读取，且不受导航/重建影响）
+            if (sCurrentDomain != null && !sCurrentDomain.isEmpty()) {
+                return sCurrentDomain;
+            }
+            // 2) 回退到 UI 线程捕获的 currentOrigin。
+            //    注意：不能在后台线程调用 webView.getUrl()——WebView 方法必须在 UI 线程调用，
+            //    后台线程调用会返回 null/抛出异常，导致域名恒为空、白名单校验永远失败。
+            if (currentOrigin != null && !currentOrigin.isEmpty()) {
+                return DAppWhitelistManager.normalizeDomain(currentOrigin);
+            }
+            return "";
         } catch (Exception e) {
             return "";
         }
@@ -2411,13 +2512,19 @@ public class DAppBrowserActivity extends BaseActivity {
     /** 判断当前 DApp 是否在白名单 */
     private boolean isCurrentDAppWhitelisted() {
         String domain = getCurrentDomain();
-        return whitelistManager != null && whitelistManager.isWhitelisted(domain);
+        if (whitelistManager == null) return false;
+        // 先刷新缓存，确保 AI 工具新加入的域名能被读到
+        whitelistManager.reload();
+        return whitelistManager.isWhitelisted(domain);
     }
 
     /** 检查当前 DApp 是否允许指定 AI 操作 */
     private boolean isCurrentOperationAllowed(String operation) {
         String domain = getCurrentDomain();
-        return whitelistManager != null && whitelistManager.isOperationAllowed(domain, operation);
+        if (whitelistManager == null) return false;
+        // 先刷新缓存，确保 AI 工具新加入的域名能被读到
+        whitelistManager.reload();
+        return whitelistManager.isOperationAllowed(domain, operation);
     }
 
     /** 显示 DApp 白名单授权弹窗（用户主动添加） */
@@ -2671,6 +2778,89 @@ public class DAppBrowserActivity extends BaseActivity {
             ctx.startActivity(intent);
         } catch (Exception e) {
             Logger.error(ctx, "DApp浏览器", "打开 URL 失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 关闭 DApp 浏览器页面（AI 主动关闭）。
+     * 关闭浏览器是安全操作，不受白名单校验限制，任何已打开的页面都能被关闭。
+     * @param url 可选。指定后仅关闭匹配该 URL 的标签页；为空则关闭当前浏览器页面。
+     * 若当前没有打开的 DApp 浏览器 Activity，则什么都不做。
+     */
+    public static String closePage(String url) {
+        try {
+            boolean hasTarget = url != null && !url.trim().isEmpty();
+            if (hasTarget) {
+                // 指定了 URL：先清理记录，再判断是否为当前页
+                String target = url.trim();
+                boolean removed = false;
+                synchronized (sTabs) {
+                    removed = sTabs.removeIf(t -> t.url.equals(target));
+                }
+                DAppBrowserActivity act = sInstance;
+                if (act != null) {
+                    String cur = null;
+                    try {
+                        WebView wv = act.webView;
+                        if (wv != null && wv.getUrl() != null) cur = wv.getUrl();
+                    } catch (Exception ignore) {}
+                    if (cur != null && cur.equals(target)) {
+                        act.runOnUiThread(act::finish);
+                        return "{\"success\":true,\"message\":\"已关闭 DApp 标签页: " + target + "\"}";
+                    }
+                }
+                if (removed) {
+                    return "{\"success\":true,\"message\":\"已关闭标签页记录: " + target + "\"}";
+                }
+                return "{\"success\":false,\"message\":\"未找到匹配的标签页: " + target + "\"}";
+            }
+
+            // 未指定 URL：关闭当前浏览器
+            DAppBrowserActivity act = sInstance;
+            if (act == null) {
+                return jsonError("当前没有打开的 DApp 浏览器页面");
+            }
+            String closingUrl = null;
+            try {
+                WebView wv = act.webView;
+                if (wv != null && wv.getUrl() != null) closingUrl = wv.getUrl();
+            } catch (Exception ignore) {}
+            if (closingUrl != null) {
+                final String cu = closingUrl;
+                synchronized (sTabs) { sTabs.removeIf(t -> t.url.equals(cu)); }
+            }
+            act.runOnUiThread(act::finish);
+            return "{\"success\":true,\"message\":\"已关闭 DApp 浏览器页面\"}";
+        } catch (Exception e) {
+            Logger.error(sAppContext, "DApp浏览器", "关闭页面失败: " + e.getMessage(), e);
+            return jsonError("关闭 DApp 浏览器页面失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 列出当前 DApp 浏览器中所有已记录的标签页（供 browser_list_tabs 工具调用）。
+     */
+    public static String listTabs() {
+        try {
+            JSONArray arr = new JSONArray();
+            synchronized (sTabs) {
+                for (TabInfo t : sTabs) {
+                    JSONObject o = new JSONObject();
+                    o.put("url", t.url);
+                    o.put("title", t.title);
+                    o.put("opened_at", t.openedAt);
+                    o.put("is_current", t.isCurrent);
+                    arr.put(o);
+                }
+            }
+            JSONObject out = new JSONObject();
+            out.put("success", true);
+            out.put("count", arr.length());
+            out.put("tabs", arr);
+            return out.toString();
+        } catch (Exception e) {
+            Logger.error(sAppContext, "DApp浏览器", "列出标签页失败: " + e.getMessage(), e);
+            return jsonError("列出标签页失败: " + e.getMessage());
         }
     }
 

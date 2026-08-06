@@ -98,6 +98,22 @@ public class WalletListActivity extends BaseActivity {
         type.setPadding(0, dpToPx(4), 0, 0);
         info.addView(type);
 
+        // 备份状态标签
+        TextView backupStatus = new TextView(this);
+        if ("watch_only".equals(wallet.type) || "imported".equals(wallet.type)) {
+            backupStatus.setText(getString(R.string.text_no_backup_needed));
+            backupStatus.setTextColor(0xFF6E6E7A);
+        } else if (wallet.backedUp) {
+            backupStatus.setText(getString(R.string.text_backed_up));
+            backupStatus.setTextColor(0xFF22C55E);
+        } else {
+            backupStatus.setText(getString(R.string.text_not_backed_up));
+            backupStatus.setTextColor(0xFFEF4444);
+        }
+        backupStatus.setTextSize(11);
+        backupStatus.setPadding(0, dpToPx(2), 0, 0);
+        info.addView(backupStatus);
+
         item.addView(info);
 
         // 右侧箭头/选中标记

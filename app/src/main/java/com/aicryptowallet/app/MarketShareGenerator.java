@@ -1,207 +1,90 @@
 package com.aicryptowallet.app;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
+/**
+ * AI 行情分析分享图生成器（高端版）
+ * 设计语言：深空黑底、霓虹渐变、玻璃态卡片、精致排版
+ */
 public class MarketShareGenerator {
 
-    private static final int WIDTH_PX = 1080;
-    private static final int PADDING = 60;
+    private static int WIDTH_PX = 1440;
+    private static final int PADDING_DP = 36;
+    private static int PADDING = 54;
+    private static final int QR_SIZE_DP = 110;
+    private static int QR_SIZE = 165;
+    private static final String DEFAULT_DOWNLOAD_URL = "https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk";
 
-    private static final int COLOR_BG = 0xFF0D0D0F;
-    private static final int COLOR_CARD = 0xFF1A1A2E;
-    private static final int COLOR_TEXT_PRIMARY = 0xFFFFFFFF;
-    private static final int COLOR_TEXT_SECONDARY = 0xFF9B9BA7;
-    private static final int COLOR_ACCENT = 0xFF667eea;
-    private static final int COLOR_GREEN = 0xFF34C759;
-    private static final int COLOR_RED = 0xFFFF453A;
-    private static final int COLOR_GOLD = 0xFFF5A623;
+    // 高端深色配色
+    private static final int COLOR_BG_TOP = 0xFF0B0E14;
+    private static final int COLOR_BG_BOTTOM = 0xFF111827;
+    private static final int COLOR_CARD_BG = 0xFF151B26;
+    private static final int COLOR_CARD_BG_LIGHT = 0xFF1C2333;
+    private static final int COLOR_BORDER = 0xFF2D3548;
+    private static final int COLOR_TEXT_PRIMARY = 0xFFF8FAFC;
+    private static final int COLOR_TEXT_SECONDARY = 0xFF94A3B8;
+    private static final int COLOR_TEXT_MUTED = 0xFF64748B;
+    private static final int COLOR_ACCENT = 0xFF8B5CF6;
+    private static final int COLOR_ACCENT_2 = 0xFF06B6D4;
+    private static final int COLOR_GREEN = 0xFF22C55E;
+    private static final int COLOR_RED = 0xFFEF4444;
+    private static final int COLOR_GOLD = 0xFFF59E0B;
+
+    private static void initWidth(Context ctx) {
+        float density = ctx.getResources().getDisplayMetrics().density;
+        int screenWidth = ctx.getResources().getDisplayMetrics().widthPixels;
+        // 以屏幕像素宽度为画布宽度，最小 1080，避免过小
+        WIDTH_PX = Math.max(screenWidth, 1080);
+        PADDING = (int) (PADDING_DP * density + 0.5f);
+        QR_SIZE = (int) (QR_SIZE_DP * density + 0.5f);
+    }
 
     public static Bitmap generate(Context ctx, String symbol, String name,
                                    double price, double changePercent, String report) {
         try {
+            initWidth(ctx);
             int height = measureHeight(ctx, report);
             Bitmap bitmap = Bitmap.createBitmap(WIDTH_PX, height, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
 
-            // 背景
-            Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
-            bg.setColor(COLOR_BG);
-            canvas.drawRect(0, 0, WIDTH_PX, height, bg);
+            // 背景渐变
+            drawBackground(canvas, height);
 
             int y = PADDING;
 
-            // 顶部装饰线
-            Paint accentLine = new Paint(Paint.ANTI_ALIAS_FLAG);
-            accentLine.setStrokeWidth(dpToPx(ctx, 4));
-            accentLine.setStrokeCap(Paint.Cap.ROUND);
-            accentLine.setColor(COLOR_ACCENT);
-            canvas.drawLine(PADDING, y, WIDTH_PX - PADDING, y, accentLine);
-            y += dpToPx(ctx, 50);
+            // === 顶部品牌区 ===
+            y = drawBrandHeader(canvas, ctx, y);
+            y += dpToPx(ctx, 28);
 
-            // Logo 区域：红色 AI 圆形
-            int logoSize = dpToPx(ctx, 80);
-            Paint logoBg = new Paint(Paint.ANTI_ALIAS_FLAG);
-            logoBg.setColor(0xFFdc2626);
-            int logoCx = PADDING + logoSize / 2;
-            int logoCy = y + logoSize / 2;
-            canvas.drawCircle(logoCx, logoCy, logoSize / 2, logoBg);
+            // === 币种信息卡片 ===
+            y = drawTokenCard(canvas, ctx, symbol, name, price, changePercent, y);
+            y += dpToPx(ctx, 28);
 
-            Paint logoText = new Paint(Paint.ANTI_ALIAS_FLAG);
-            logoText.setColor(COLOR_TEXT_PRIMARY);
-            logoText.setTextSize(dpToPx(ctx, 32));
-            logoText.setTypeface(Typeface.DEFAULT_BOLD);
-            logoText.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("AI", logoCx, logoCy + dpToPx(ctx, 12), logoText);
+            // === AI 分析结论卡片 ===
+            y = drawReportCard(canvas, ctx, report, y);
+            y += dpToPx(ctx, 28);
 
-            // 标题
-            Paint title = new Paint(Paint.ANTI_ALIAS_FLAG);
-            title.setColor(COLOR_TEXT_PRIMARY);
-            title.setTextSize(dpToPx(ctx, 40));
-            title.setTypeface(Typeface.DEFAULT_BOLD);
-            canvas.drawText("AI Crypto Wallet", PADDING + logoSize + dpToPx(ctx, 24), y + dpToPx(ctx, 36), title);
-
-            Paint subtitle = new Paint(Paint.ANTI_ALIAS_FLAG);
-            subtitle.setColor(COLOR_TEXT_SECONDARY);
-            subtitle.setTextSize(dpToPx(ctx, 22));
-            canvas.drawText("智能行情分析", PADDING + logoSize + dpToPx(ctx, 24), y + dpToPx(ctx, 64), subtitle);
-
-            y += logoSize + dpToPx(ctx, 50);
-
-            // 币种信息卡片
-            int cardTop = y;
-            int cardBottom = y + dpToPx(ctx, 220);
-            Paint cardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            cardPaint.setColor(COLOR_CARD);
-            RectF cardRect = new RectF(PADDING, cardTop, WIDTH_PX - PADDING, cardBottom);
-            canvas.drawRoundRect(cardRect, dpToPx(ctx, 24), dpToPx(ctx, 24), cardPaint);
-
-            // 卡片顶部渐变条
-            Paint topBar = new Paint(Paint.ANTI_ALIAS_FLAG);
-            LinearGradient barGradient = new LinearGradient(
-                PADDING, cardTop, WIDTH_PX - PADDING, cardTop,
-                COLOR_ACCENT, 0xFF8B5CF6, Shader.TileMode.CLAMP);
-            topBar.setShader(barGradient);
-            canvas.drawRoundRect(cardRect, dpToPx(ctx, 24), dpToPx(ctx, 24), topBar);
-            // 修正为顶部一小条
-            Paint cardBg2 = new Paint(Paint.ANTI_ALIAS_FLAG);
-            cardBg2.setColor(COLOR_CARD);
-            RectF innerRect = new RectF(PADDING, cardTop + dpToPx(ctx, 6), WIDTH_PX - PADDING, cardBottom);
-            canvas.drawRoundRect(innerRect, dpToPx(ctx, 20), dpToPx(ctx, 20), cardBg2);
-
-            int cy = cardTop + dpToPx(ctx, 60);
-            Paint symbolPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            symbolPaint.setColor(COLOR_TEXT_PRIMARY);
-            symbolPaint.setTextSize(dpToPx(ctx, 52));
-            symbolPaint.setTypeface(Typeface.DEFAULT_BOLD);
-            canvas.drawText(symbol, PADDING + dpToPx(ctx, 32), cy, symbolPaint);
-
-            Paint namePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            namePaint.setColor(COLOR_TEXT_SECONDARY);
-            namePaint.setTextSize(dpToPx(ctx, 24));
-            canvas.drawText(name, PADDING + dpToPx(ctx, 32), cy + dpToPx(ctx, 38), namePaint);
-
-            String priceStr = formatPrice(ctx, price);
-            Paint pricePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            pricePaint.setColor(COLOR_TEXT_PRIMARY);
-            pricePaint.setTextSize(dpToPx(ctx, 44));
-            pricePaint.setTypeface(Typeface.DEFAULT_BOLD);
-            pricePaint.setTextAlign(Paint.Align.RIGHT);
-            canvas.drawText(priceStr, WIDTH_PX - PADDING - dpToPx(ctx, 32), cy, pricePaint);
-
-            String changeStr = (changePercent >= 0 ? "+" : "") + String.format(Locale.getDefault(), "%.2f", changePercent) + "%";
-            Paint changePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            changePaint.setColor(changePercent >= 0 ? COLOR_GREEN : COLOR_RED);
-            changePaint.setTextSize(dpToPx(ctx, 28));
-            changePaint.setTypeface(Typeface.DEFAULT_BOLD);
-            changePaint.setTextAlign(Paint.Align.RIGHT);
-            canvas.drawText(changeStr, WIDTH_PX - PADDING - dpToPx(ctx, 32), cy + dpToPx(ctx, 42), changePaint);
-
-            y = cardBottom + dpToPx(ctx, 40);
-
-            // 报告内容卡片
-            int reportCardTop = y;
-            Paint reportCardPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            reportCardPaint.setColor(COLOR_CARD);
-            int reportCardBottom = y + measureReportHeight(ctx, report) + dpToPx(ctx, 60);
-            RectF reportRect = new RectF(PADDING, reportCardTop, WIDTH_PX - PADDING, reportCardBottom);
-            canvas.drawRoundRect(reportRect, dpToPx(ctx, 24), dpToPx(ctx, 24), reportCardPaint);
-
-            int ry = reportCardTop + dpToPx(ctx, 36);
-            Paint sectionTitle = new Paint(Paint.ANTI_ALIAS_FLAG);
-            sectionTitle.setColor(COLOR_ACCENT);
-            sectionTitle.setTextSize(dpToPx(ctx, 28));
-            sectionTitle.setTypeface(Typeface.DEFAULT_BOLD);
-            canvas.drawText("AI 分析结论", PADDING + dpToPx(ctx, 32), ry, sectionTitle);
-
-            ry += dpToPx(ctx, 20);
-
-            Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            linePaint.setColor(COLOR_ACCENT);
-            linePaint.setStrokeWidth(dpToPx(ctx, 3));
-            linePaint.setStrokeCap(Paint.Cap.ROUND);
-            canvas.drawLine(PADDING + dpToPx(ctx, 32), ry, PADDING + dpToPx(ctx, 120), ry, linePaint);
-            ry += dpToPx(ctx, 36);
-
-            Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            textPaint.setTextSize(dpToPx(ctx, 24));
-            textPaint.setColor(COLOR_TEXT_PRIMARY);
-            int maxWidth = WIDTH_PX - PADDING * 2 - dpToPx(ctx, 64);
-            int lineHeight = dpToPx(ctx, 42);
-
-            String[] lines = report.split("\n");
-            for (String rawLine : lines) {
-                String line = rawLine.trim();
-                if (line.isEmpty()) {
-                    ry += dpToPx(ctx, 16);
-                    continue;
-                }
-                if (line.startsWith("【")) {
-                    textPaint.setColor(COLOR_GOLD);
-                    textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-                    textPaint.setTextSize(dpToPx(ctx, 26));
-                } else if (line.startsWith("──")) {
-                    textPaint.setColor(COLOR_ACCENT);
-                    textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-                    textPaint.setTextSize(dpToPx(ctx, 24));
-                } else {
-                    textPaint.setColor(COLOR_TEXT_PRIMARY);
-                    textPaint.setTypeface(Typeface.DEFAULT);
-                    textPaint.setTextSize(dpToPx(ctx, 24));
-                }
-
-                // 绘制并自动换行
-                while (line.length() > 0) {
-                    int cut = line.length();
-                    while (cut > 0 && textPaint.measureText(line.substring(0, cut)) > maxWidth) {
-                        cut--;
-                    }
-                    if (cut <= 0) cut = 1;
-                    canvas.drawText(line.substring(0, cut), PADDING + dpToPx(ctx, 32), ry, textPaint);
-                    ry += lineHeight;
-                    line = line.substring(cut).trim();
-                }
-            }
-
-            // 底部品牌条
-            Paint bottomBar = new Paint(Paint.ANTI_ALIAS_FLAG);
-            bottomBar.setColor(COLOR_ACCENT);
-            canvas.drawRect(0, height - dpToPx(ctx, 80), WIDTH_PX, height, bottomBar);
-
-            Paint brand = new Paint(Paint.ANTI_ALIAS_FLAG);
-            brand.setColor(COLOR_TEXT_PRIMARY);
-            brand.setTextSize(dpToPx(ctx, 28));
-            brand.setTypeface(Typeface.DEFAULT_BOLD);
-            brand.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("AI Crypto Wallet · 让 AI 帮你做决策", WIDTH_PX / 2, height - dpToPx(ctx, 32), brand);
+            // === 底部品牌条 ===
+            drawFooter(canvas, ctx, height);
 
             return bitmap;
         } catch (Exception e) {
@@ -210,33 +93,385 @@ public class MarketShareGenerator {
         }
     }
 
-    private static int measureHeight(Context ctx, String report) {
-        int h = PADDING;
-        h += dpToPx(ctx, 4);
-        h += dpToPx(ctx, 50);
-        h += dpToPx(ctx, 80);
-        h += dpToPx(ctx, 50);
-        h += dpToPx(ctx, 220);
-        h += dpToPx(ctx, 40);
-        h += measureReportHeight(ctx, report) + dpToPx(ctx, 60);
-        h += dpToPx(ctx, 80);
-        return h;
+    /** 绘制高端渐变背景 + 光晕装饰 */
+    private static void drawBackground(Canvas canvas, int height) {
+        Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        LinearGradient gradient = new LinearGradient(
+            0, 0, 0, height, COLOR_BG_TOP, COLOR_BG_BOTTOM, Shader.TileMode.CLAMP);
+        bg.setShader(gradient);
+        canvas.drawRect(0, 0, WIDTH_PX, height, bg);
+
+        // 顶部紫色光晕
+        Paint glowTop = new Paint(Paint.ANTI_ALIAS_FLAG);
+        RadialGradient rgTop = new RadialGradient(
+            WIDTH_PX * 0.8f, dpToPx(null, 120), dpToPx(null, 320),
+            new int[]{0x448B5CF6, 0x008B5CF6}, null, Shader.TileMode.CLAMP);
+        glowTop.setShader(rgTop);
+        canvas.drawRect(0, 0, WIDTH_PX, height, glowTop);
+
+        // 底部青色光晕
+        Paint glowBottom = new Paint(Paint.ANTI_ALIAS_FLAG);
+        RadialGradient rgBottom = new RadialGradient(
+            WIDTH_PX * 0.2f, height - dpToPx(null, 200), dpToPx(null, 360),
+            new int[]{0x3306B6D4, 0x0006B6D4}, null, Shader.TileMode.CLAMP);
+        glowBottom.setShader(rgBottom);
+        canvas.drawRect(0, 0, WIDTH_PX, height, glowBottom);
+
+        // 细网格纹理
+        Paint gridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        gridPaint.setColor(0x08FFFFFF);
+        gridPaint.setStrokeWidth(1);
+        int step = dpToPx(null, 40);
+        for (int x = 0; x < WIDTH_PX; x += step) {
+            canvas.drawLine(x, 0, x, height, gridPaint);
+        }
+        for (int y = 0; y < height; y += step) {
+            canvas.drawLine(0, y, WIDTH_PX, y, gridPaint);
+        }
     }
 
-    private static int measureReportHeight(Context ctx, String report) {
-        Paint p = new Paint();
-        p.setTextSize(dpToPx(ctx, 24));
-        int maxWidth = WIDTH_PX - PADDING * 2 - dpToPx(ctx, 64);
-        int lineHeight = dpToPx(ctx, 42);
-        int h = dpToPx(ctx, 36);
-        h += dpToPx(ctx, 20);
-        h += dpToPx(ctx, 36);
+    /** 顶部品牌区 */
+    private static int drawBrandHeader(Canvas canvas, Context ctx, int startY) {
+        int y = startY;
+
+        // Logo 圆形渐变
+        int logoSize = dpToPx(ctx, 52);
+        Paint logoBg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        LinearGradient logoGradient = new LinearGradient(
+            PADDING, y, PADDING + logoSize, y + logoSize,
+            0xFF8B5CF6, 0xFF06B6D4, Shader.TileMode.CLAMP);
+        logoBg.setShader(logoGradient);
+        canvas.drawCircle(PADDING + logoSize / 2, y + logoSize / 2, logoSize / 2, logoBg);
+
+        Paint logoText = new Paint(Paint.ANTI_ALIAS_FLAG);
+        logoText.setColor(COLOR_TEXT_PRIMARY);
+        logoText.setTextSize(dpToPx(ctx, 22));
+        logoText.setTypeface(Typeface.DEFAULT_BOLD);
+        logoText.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("AI", PADDING + logoSize / 2, y + logoSize / 2 + dpToPx(ctx, 8), logoText);
+
+        // 标题
+        Paint title = new Paint(Paint.ANTI_ALIAS_FLAG);
+        title.setColor(COLOR_TEXT_PRIMARY);
+        title.setTextSize(dpToPx(ctx, 28));
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setFakeBoldText(true);
+        canvas.drawText("AI Crypto Wallet", PADDING + logoSize + dpToPx(ctx, 18), y + dpToPx(ctx, 24), title);
+
+        // 副标题
+        Paint subtitle = new Paint(Paint.ANTI_ALIAS_FLAG);
+        subtitle.setColor(COLOR_TEXT_SECONDARY);
+        subtitle.setTextSize(dpToPx(ctx, 16));
+        canvas.drawText("智能行情分析", PADDING + logoSize + dpToPx(ctx, 18), y + dpToPx(ctx, 44), subtitle);
+
+        return startY + logoSize;
+    }
+
+    /** 币种信息卡片（紧凑版） */
+    private static int drawTokenCard(Canvas canvas, Context ctx, String symbol, String name,
+                                      double price, double changePercent, int startY) {
+        int cardHeight = dpToPx(ctx, 170);
+        int cardTop = startY;
+        int cardBottom = cardTop + cardHeight;
+        float corner = dpToPx(ctx, 20);
+        RectF cardRect = new RectF(PADDING, cardTop, WIDTH_PX - PADDING, cardBottom);
+
+        // 卡片背景
+        Paint cardBg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        cardBg.setColor(COLOR_CARD_BG);
+        canvas.drawRoundRect(cardRect, corner, corner, cardBg);
+
+        // 渐变边框
+        Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(dpToPx(ctx, 2));
+        LinearGradient borderGradient = new LinearGradient(
+            PADDING, cardTop, WIDTH_PX - PADDING, cardBottom,
+            new int[]{0xFF8B5CF6, 0xFF06B6D4, 0xFF8B5CF6},
+            new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
+        borderPaint.setShader(borderGradient);
+        canvas.drawRoundRect(
+            new RectF(PADDING + dpToPx(ctx, 1), cardTop + dpToPx(ctx, 1),
+                WIDTH_PX - PADDING - dpToPx(ctx, 1), cardBottom - dpToPx(ctx, 1)),
+            corner, corner, borderPaint);
+
+        int leftX = PADDING + dpToPx(ctx, 28);
+        int rightX = WIDTH_PX - PADDING - dpToPx(ctx, 28);
+        int topY = cardTop + dpToPx(ctx, 36);
+
+        // 左侧：代币符号
+        Paint symbolPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        symbolPaint.setColor(COLOR_TEXT_PRIMARY);
+        symbolPaint.setTextSize(dpToPx(ctx, 30));
+        symbolPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        symbolPaint.setFakeBoldText(true);
+        canvas.drawText(symbol, leftX, topY + dpToPx(ctx, 10), symbolPaint);
+
+        // 左侧：代币名称
+        Paint namePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        namePaint.setColor(COLOR_TEXT_SECONDARY);
+        namePaint.setTextSize(dpToPx(ctx, 16));
+        canvas.drawText(name, leftX, topY + dpToPx(ctx, 38), namePaint);
+
+        // 右侧：价格
+        String priceStr = formatPrice(ctx, price);
+        Paint pricePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pricePaint.setColor(COLOR_TEXT_PRIMARY);
+        pricePaint.setTextSize(dpToPx(ctx, 28));
+        pricePaint.setTypeface(Typeface.DEFAULT_BOLD);
+        pricePaint.setFakeBoldText(true);
+        pricePaint.setTextAlign(Paint.Align.RIGHT);
+        canvas.drawText(priceStr, rightX, topY + dpToPx(ctx, 10), pricePaint);
+
+        // 右侧：涨跌幅标签
+        String changeStr = (changePercent >= 0 ? "+" : "") + String.format(Locale.getDefault(), "%.2f", changePercent) + "%";
+        boolean isUp = changePercent >= 0;
+        int tagColor = isUp ? COLOR_GREEN : COLOR_RED;
+
+        Paint tagBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tagBgPaint.setColor(isUp ? 0x2622C55E : 0x26EF4444);
+        float tagTextSize = dpToPx(ctx, 18);
+        Paint tagTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tagTextPaint.setColor(tagColor);
+        tagTextPaint.setTextSize(tagTextSize);
+        tagTextPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        tagTextPaint.setTextAlign(Paint.Align.RIGHT);
+
+        float tagW = tagTextPaint.measureText(changeStr) + dpToPx(ctx, 20);
+        float tagH = tagTextSize + dpToPx(ctx, 9);
+        float tagX = rightX - tagW;
+        float tagY = topY + dpToPx(ctx, 26);
+        RectF tagRect = new RectF(tagX, tagY, tagX + tagW, tagY + tagH);
+        canvas.drawRoundRect(tagRect, tagH / 2, tagH / 2, tagBgPaint);
+        canvas.drawText(changeStr, rightX - dpToPx(ctx, 10), tagY + tagH - dpToPx(ctx, 6), tagTextPaint);
+
+        // 底部提示文字
+        Paint hintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        hintPaint.setColor(COLOR_TEXT_MUTED);
+        hintPaint.setTextSize(dpToPx(ctx, 12));
+        hintPaint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("数据由 AI 智能聚合，仅供参考，不构成投资建议",
+            WIDTH_PX / 2f, cardBottom - dpToPx(ctx, 18), hintPaint);
+
+        return cardBottom;
+    }
+
+    /** AI 分析结论卡片（紧凑版） */
+    private static int drawReportCard(Canvas canvas, Context ctx, String report, int startY) {
+        int cardTop = startY;
+        int reportHeight = measureReportHeight(ctx, report);
+        int cardBottom = cardTop + reportHeight + dpToPx(ctx, 56);
+        float corner = dpToPx(ctx, 20);
+        RectF cardRect = new RectF(PADDING, cardTop, WIDTH_PX - PADDING, cardBottom);
+
+        // 卡片背景
+        Paint cardBg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        cardBg.setColor(COLOR_CARD_BG);
+        canvas.drawRoundRect(cardRect, corner, corner, cardBg);
+
+        // 卡片边框
+        Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(dpToPx(ctx, 1));
+        borderPaint.setColor(COLOR_BORDER);
+        canvas.drawRoundRect(cardRect, corner, corner, borderPaint);
+
+        int ry = cardTop + dpToPx(ctx, 30);
+
+        // 报告标题
+        Paint sectionTitle = new Paint(Paint.ANTI_ALIAS_FLAG);
+        sectionTitle.setColor(COLOR_TEXT_PRIMARY);
+        sectionTitle.setTextSize(dpToPx(ctx, 20));
+        sectionTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        sectionTitle.setFakeBoldText(true);
+        canvas.drawText("AI 分析结论", PADDING + dpToPx(ctx, 28), ry, sectionTitle);
+
+        // 标题下渐变装饰线
+        Paint titleLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        LinearGradient lineGradient = new LinearGradient(
+            PADDING + dpToPx(ctx, 28), ry + dpToPx(ctx, 8),
+            PADDING + dpToPx(ctx, 120), ry + dpToPx(ctx, 8),
+            COLOR_ACCENT, COLOR_ACCENT_2, Shader.TileMode.CLAMP);
+        titleLinePaint.setShader(lineGradient);
+        titleLinePaint.setStrokeWidth(dpToPx(ctx, 2));
+        titleLinePaint.setStrokeCap(Paint.Cap.ROUND);
+        canvas.drawLine(PADDING + dpToPx(ctx, 28), ry + dpToPx(ctx, 8),
+            PADDING + dpToPx(ctx, 120), ry + dpToPx(ctx, 8), titleLinePaint);
+
+        ry += dpToPx(ctx, 32);
+
+        // 报告正文
+        Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int maxWidth = WIDTH_PX - PADDING * 2 - dpToPx(ctx, 56);
+        int lineHeight = dpToPx(ctx, 27);
 
         String[] lines = report.split("\n");
         for (String rawLine : lines) {
             String line = rawLine.trim();
             if (line.isEmpty()) {
-                h += dpToPx(ctx, 16);
+                ry += dpToPx(ctx, 8);
+                continue;
+            }
+
+            // 小标题：趋势 / 建议 / 支撑/阻力 / 新闻 / 项目 / 声明
+            boolean isHeading = line.startsWith("趋势：") || line.startsWith("支撑/阻力：")
+                || line.startsWith("建议：") || line.startsWith("新闻：")
+                || line.startsWith("项目：") || line.startsWith("声明：");
+            // 行情摘要行
+            boolean isSummary = line.contains(" / ") || line.startsWith("24h 高：") || line.startsWith("24h 成交额：");
+
+            if (isHeading) {
+                textPaint.setColor(COLOR_ACCENT_2);
+                textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+                textPaint.setFakeBoldText(true);
+                textPaint.setTextSize(dpToPx(ctx, 16));
+            } else if (isSummary) {
+                textPaint.setColor(COLOR_TEXT_SECONDARY);
+                textPaint.setTypeface(Typeface.DEFAULT);
+                textPaint.setFakeBoldText(false);
+                textPaint.setTextSize(dpToPx(ctx, 14));
+            } else {
+                textPaint.setColor(COLOR_TEXT_PRIMARY);
+                textPaint.setTypeface(Typeface.DEFAULT);
+                textPaint.setFakeBoldText(false);
+                textPaint.setTextSize(dpToPx(ctx, 15));
+            }
+
+            while (line.length() > 0) {
+                int cut = line.length();
+                while (cut > 0 && textPaint.measureText(line.substring(0, cut)) > maxWidth) {
+                    cut--;
+                }
+                if (cut <= 0) cut = 1;
+                canvas.drawText(line.substring(0, cut), PADDING + dpToPx(ctx, 28), ry, textPaint);
+                ry += lineHeight;
+                line = line.substring(cut).trim();
+            }
+        }
+
+        return cardBottom;
+    }
+
+    /** 底部品牌条（带二维码） */
+    private static void drawFooter(Canvas canvas, Context ctx, int height) {
+        int barHeight = dpToPx(ctx, 250);
+        int barTop = height - barHeight;
+
+        // 卡片背景
+        float corner = dpToPx(ctx, 20);
+        RectF footerRect = new RectF(PADDING, barTop, WIDTH_PX - PADDING, height - dpToPx(ctx, 16));
+        Paint footerBg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        footerBg.setColor(COLOR_CARD_BG);
+        canvas.drawRoundRect(footerRect, corner, corner, footerBg);
+
+        // 边框
+        Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borderPaint.setStyle(Paint.Style.STROKE);
+        borderPaint.setStrokeWidth(dpToPx(ctx, 1));
+        borderPaint.setColor(COLOR_BORDER);
+        canvas.drawRoundRect(footerRect, corner, corner, borderPaint);
+
+        int y = barTop + dpToPx(ctx, 22);
+
+        // 下载引导
+        Paint ctaPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ctaPaint.setColor(COLOR_ACCENT_2);
+        ctaPaint.setTextSize(dpToPx(ctx, 18));
+        ctaPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        ctaPaint.setFakeBoldText(true);
+        ctaPaint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("扫码下载最强AI炒币智能体", WIDTH_PX / 2f, y, ctaPaint);
+
+        y += dpToPx(ctx, 26);
+
+        // 二维码
+        try {
+            String downloadUrl = getDownloadUrl(ctx);
+            Bitmap qrBitmap = generateQrCode(ctx, downloadUrl);
+            if (qrBitmap != null) {
+                int qrLeft = (WIDTH_PX - QR_SIZE) / 2;
+                int qrBgPadding = dpToPx(ctx, 10);
+
+                Paint qrBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                qrBgPaint.setColor(0xFFFFFFFF);
+                RectF qrBgRect = new RectF(
+                    qrLeft - qrBgPadding, y - qrBgPadding,
+                    qrLeft + QR_SIZE + qrBgPadding, y + QR_SIZE + qrBgPadding);
+                canvas.drawRoundRect(qrBgRect, dpToPx(ctx, 12), dpToPx(ctx, 12), qrBgPaint);
+
+                Paint qrBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                qrBorderPaint.setStyle(Paint.Style.STROKE);
+                qrBorderPaint.setStrokeWidth(dpToPx(ctx, 2));
+                qrBorderPaint.setColor(COLOR_ACCENT);
+                canvas.drawRoundRect(qrBgRect, dpToPx(ctx, 12), dpToPx(ctx, 12), qrBorderPaint);
+
+                canvas.drawBitmap(qrBitmap, qrLeft, y, null);
+                y += QR_SIZE + qrBgPadding * 2 + dpToPx(ctx, 14);
+            }
+        } catch (Exception e) {
+            Logger.warning(null, "行情分享", "二维码生成失败: " + e.getMessage());
+        }
+
+        // 底部品牌
+        Paint brand = new Paint(Paint.ANTI_ALIAS_FLAG);
+        brand.setColor(COLOR_TEXT_MUTED);
+        brand.setTextSize(dpToPx(ctx, 12));
+        brand.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("让 AI 帮你做决策 · 智能 · 安全 · 免费",
+            WIDTH_PX / 2f, height - dpToPx(ctx, 22), brand);
+    }
+
+    private static String getDownloadUrl(Context ctx) {
+        SharedPreferences prefs = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        return prefs.getString("download_url", DEFAULT_DOWNLOAD_URL);
+    }
+
+    private static Bitmap generateQrCode(Context ctx, String content) {
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            hints.put(EncodeHintType.MARGIN, 1);
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE, hints);
+            Bitmap qr = Bitmap.createBitmap(QR_SIZE, QR_SIZE, Bitmap.Config.RGB_565);
+            for (int x = 0; x < QR_SIZE; x++) {
+                for (int y = 0; y < QR_SIZE; y++) {
+                    qr.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            return qr;
+        } catch (WriterException e) {
+            Logger.error(null, "行情分享", "二维码生成失败: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private static int measureHeight(Context ctx, String report) {
+        int h = PADDING;
+        h += dpToPx(ctx, 52); // header
+        h += dpToPx(ctx, 28); // gap
+        h += dpToPx(ctx, 170); // token card
+        h += dpToPx(ctx, 28); // gap
+        h += measureReportHeight(ctx, report) + dpToPx(ctx, 56); // report card
+        h += dpToPx(ctx, 28); // gap
+        h += dpToPx(ctx, 250); // footer with qr
+        return h;
+    }
+
+    private static int measureReportHeight(Context ctx, String report) {
+        Paint p = new Paint();
+        p.setTextSize(dpToPx(ctx, 15));
+        int maxWidth = WIDTH_PX - PADDING * 2 - dpToPx(ctx, 56);
+        int lineHeight = dpToPx(ctx, 27);
+        int h = dpToPx(ctx, 30);
+        h += dpToPx(ctx, 32);
+
+        String[] lines = report.split("\n");
+        for (String rawLine : lines) {
+            String line = rawLine.trim();
+            if (line.isEmpty()) {
+                h += dpToPx(ctx, 8);
                 continue;
             }
             int linesCount = 0;
@@ -262,6 +497,9 @@ public class MarketShareGenerator {
     }
 
     private static int dpToPx(Context ctx, int dp) {
+        if (ctx == null) {
+            return (int) (dp * 2.75f + 0.5f);
+        }
         return (int) (dp * ctx.getResources().getDisplayMetrics().density + 0.5f);
     }
 }

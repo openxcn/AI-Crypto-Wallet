@@ -2973,6 +2973,18 @@ public class ChainAPI {
      * Returns: symbol, name, balance, value, contract_address, logo_url, is_verified
      */
     public static java.util.List<String[]> getAllTokenBalances(Context ctx, String chain, String address, boolean fullDiscovery) throws Exception {
+        // 默认不跳过 Transfer 扫描（保持原行为）
+        return getAllTokenBalances(ctx, chain, address, fullDiscovery, false);
+    }
+
+    /**
+     * 拉取该地址在某链上的代币余额（可控是否做远程代币发现 & 是否跳过 Transfer 扫描）。
+     * skipTransferScan=true 时跳过慢速的全量 Transfer 事件扫描，用于首屏秒开；
+     * 新代币可在随后台扫描中发现。
+     * Returns: symbol, name, balance, value, contract_address, logo_url, is_verified
+     */
+    public static java.util.List<String[]> getAllTokenBalances(Context ctx, String chain, String address,
+                                                                boolean fullDiscovery, boolean skipTransferScan) throws Exception {
         java.util.List<String[]> tokens = new java.util.ArrayList<>();
         Set<String> seenContracts = new HashSet<>();
         Map<String, Double> prices = getPrices(ctx);
@@ -3079,7 +3091,8 @@ public class ChainAPI {
         }
 
         // 3. 全量扫描 Transfer 事件（仅当持久化代币未全部找到时，首次启动或新代币转入）
-        if (needTransferScan) {
+        // skipTransferScan=true（首屏秒开）时跳过，新代币由随后台扫描发现
+        if (needTransferScan && !skipTransferScan) {
             discoverTokensFromTransferLogs(ctx, chain, address, tokens, seenContracts, prices);
         }
 
@@ -3096,6 +3109,18 @@ public class ChainAPI {
                                                           java.util.List<String[]> tokens, Set<String> seenContracts,
                                                           Map<String, Double> prices) {
         if (!isEVMChain(chain)) return;
+
+        // 低频节流：30秒内不重复全量扫描（首次启动仍会扫描，之后下拉刷新秒开）
+        try {
+            android.content.SharedPreferences prefs = ctx.getSharedPreferences("token_scan_prefs", android.content.Context.MODE_PRIVATE);
+            long lastScan = prefs.getLong("last_scan_" + chain + "_" + address, 0);
+            long now = System.currentTimeMillis();
+            if (now - lastScan < 30 * 1000L) {
+                Logger.info(ctx, "代币发现", "距上次全量扫描不足30秒，跳过（秒开）");
+                return;
+            }
+            prefs.edit().putLong("last_scan_" + chain + "_" + address, now).apply();
+        } catch (Exception e) {}
 
         String transferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
         String walletPadded = "0x000000000000000000000000" + address.toLowerCase().replace("0x", "");
@@ -3141,16 +3166,24 @@ public class ChainAPI {
         }
         if (currentRpc == null || latestBlock == 0) return;
 
-        // 只查最近 500,000 区块（17天），找到新合约就停止
-        long fromBlock = Math.max(0, latestBlock - 500000);
+        // 只查最近 100,000 区块（约 3-4 天），从最新区块往前找，找到新合约就停止；
+        // 避免首次空钱包因全量扫描数百个分块而长时间阻塞资产列表渲染
+        long fromBlock = Math.max(0, latestBlock - 100000);
         int chunkSize = 5000;
         int consecutiveEmpty = 0;
         int newTokenCount = 0;
+        long scanStart = System.currentTimeMillis();
+        int maxScanSeconds = 8;
 
         Logger.info(ctx, "代币发现", "开始全量扫描 Transfer 事件发现新代币，范围 " + fromBlock + " - " + latestBlock);
 
         for (long end = latestBlock; end > fromBlock; end -= chunkSize) {
             long start = Math.max(fromBlock, end - chunkSize + 1);
+            // 时间预算：防止在无交易的钱包上长时间扫描，阻塞资产列表加载
+            if (System.currentTimeMillis() - scanStart > maxScanSeconds * 1000L) {
+                Logger.info(ctx, "代币发现", "扫描超过 " + maxScanSeconds + " 秒，提前停止");
+                break;
+            }
             try {
                 JSONObject filter = new JSONObject();
                 filter.put("fromBlock", "0x" + Long.toHexString(start));
@@ -3188,8 +3221,11 @@ public class ChainAPI {
                 JSONArray logs = json.optJSONArray("result");
                 if (logs == null || logs.length() == 0) {
                     consecutiveEmpty++;
-                    if (consecutiveEmpty >= 5 && newTokenCount > 0) break;
-                    if (consecutiveEmpty >= 100 && newTokenCount == 0) break;
+                    // 连续 5 段（约 2.5 万区块）无转入即停止，避免空钱包全量空扫阻塞
+                    if (consecutiveEmpty >= 5) {
+                        Logger.info(ctx, "代币发现", "连续 " + consecutiveEmpty + " 段无转入，停止扫描");
+                        break;
+                    }
                     continue;
                 }
 
@@ -4009,8 +4045,10 @@ public class ChainAPI {
                     }
                 }
             } catch (Exception e) {
-                // 可能返回单个对象而非数组
+                // 批量响应解析失败（空响应/非法JSON/node异常）。若静默跳过会让该批次真实代币被丢弃，
+                // 造成资产列表时有时无（显示不稳定）。抛出异常触发调用方逐个查询回退，保证真实代币不漏。
                 Logger.warning(ctx, "代币发现", "批量查询解析失败 (批次 " + (batchStart/batchSize+1) + "): " + e.getMessage());
+                throw new Exception("批量查询解析失败，回退逐个查询");
             }
         }
 

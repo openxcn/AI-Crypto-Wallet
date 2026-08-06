@@ -97,10 +97,9 @@ public class TokenDetailActivity extends BaseActivity {
 
         findViewById(R.id.btnReceive).setOnClickListener(v -> {
             Logger.action(this, "UI操作", "接收", null);
-            String address = WalletManager.getWalletAddress(this);
-            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setPrimaryClip(ClipData.newPlainText("address", address));
-            Toast.makeText(this, getString(R.string.toast_address_copied), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, ReceiveActivity.class);
+            intent.putExtra("chain", chain);
+            startActivity(intent);
             Logger.actionResult(this, "UI操作", "接收", tokenSymbol);
         });
 

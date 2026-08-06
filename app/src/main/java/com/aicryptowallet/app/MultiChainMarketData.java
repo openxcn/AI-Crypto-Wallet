@@ -73,6 +73,14 @@ public class MultiChainMarketData {
         CHAIN_SYMBOLS.put("CELO", "CELOUSDT");
         CHAIN_SYMBOLS.put("XTZ", "XTZUSDT");
         CHAIN_SYMBOLS.put("ONE", "ONEUSDT");
+        CHAIN_SYMBOLS.put("DOGE", "DOGEUSDT");
+        CHAIN_SYMBOLS.put("XRP", "XRPUSDT");
+        CHAIN_SYMBOLS.put("SHIB", "SHIBUSDT");
+        CHAIN_SYMBOLS.put("PEPE", "PEPEUSDT");
+        CHAIN_SYMBOLS.put("WIF", "WIFUSDT");
+        CHAIN_SYMBOLS.put("BONK", "BONKUSDT");
+        CHAIN_SYMBOLS.put("FLOKI", "FLOKIUSDT");
+        CHAIN_SYMBOLS.put("TRUMP", "TRUMPUSDT");
     }
 
     // 链 -> DEX Router 映射
@@ -121,6 +129,14 @@ public class MultiChainMarketData {
         GATEIO_SYMBOLS.put("CELO", "CELO_USDT");
         GATEIO_SYMBOLS.put("XTZ", "XTZ_USDT");
         GATEIO_SYMBOLS.put("ONE", "ONE_USDT");
+        GATEIO_SYMBOLS.put("DOGE", "DOGE_USDT");
+        GATEIO_SYMBOLS.put("XRP", "XRP_USDT");
+        GATEIO_SYMBOLS.put("SHIB", "SHIB_USDT");
+        GATEIO_SYMBOLS.put("PEPE", "PEPE_USDT");
+        GATEIO_SYMBOLS.put("WIF", "WIF_USDT");
+        GATEIO_SYMBOLS.put("BONK", "BONK_USDT");
+        GATEIO_SYMBOLS.put("FLOKI", "FLOKI_USDT");
+        GATEIO_SYMBOLS.put("TRUMP", "TRUMP_USDT");
     }
 
     /**

@@ -165,8 +165,14 @@ public class AIAgentActivity extends BaseActivity {
             }
 
             // 默认进入聊天模式（第一幕是对话框），渲染历史记录或欢迎语
+            String presetMessage = getIntent().getStringExtra("preset_message");
             if (chatList != null) {
-                if (chatHistory.isEmpty()) {
+                if (!TextUtils.isEmpty(presetMessage)) {
+                    // 从行情页等外部跳转过来，自动发送预设消息，无需用户手动粘贴
+                    renderChatHistory();
+                    scrollChatToBottom();
+                    sendChatMessage(presetMessage);
+                } else if (chatHistory.isEmpty()) {
                     String welcome = agentMemory != null ? agentMemory.getWelcomeMessage() :
                         "你好！我是 AI 助手，可以回答关于加密货币的问题。";
                     appendChatMessage("assistant", welcome);
@@ -518,15 +524,22 @@ public class AIAgentActivity extends BaseActivity {
             // 跳过思考中占位消息（不应被保存，但防御性处理）
             if ("assistant_thinking".equals(turn[0])) continue;
             long ts = turn.length >= 3 ? parseLongSafe(turn[2]) : 0;
-            appendChatMessage(turn[0], turn[1], ts);
+            appendChatMessage(turn[0], turn[1], ts, false);
         }
     }
 
-    /** 发送用户输入的消息 */
+    /** 发送输入框里的消息 */
     private void sendChatMessage() {
-        if (etChatInput == null || chatList == null) return;
+        if (etChatInput == null) return;
         String text = etChatInput.getText().toString().trim();
         if (TextUtils.isEmpty(text)) return;
+        etChatInput.setText("");
+        sendChatMessage(text);
+    }
+
+    /** 发送指定文本消息（支持外部跳转自动触发） */
+    private void sendChatMessage(String text) {
+        if (chatList == null || TextUtils.isEmpty(text)) return;
 
         // 如果有 pending ask_user 回复监听器，用户消息作为回复而不是新聊天
         // AI 之前通过 ask_user 工具向用户提问并在阻塞等待，这里把回复回调给它
@@ -537,7 +550,6 @@ public class AIAgentActivity extends BaseActivity {
             appendChatMessage("user", text, now);
             chatHistory.add(new String[]{"user", text, String.valueOf(now)});
             Logger.info(this, "AI 对话", "用户(回复ask): " + text);
-            etChatInput.setText("");
             saveChatHistory();
             listener.onReply(text);
             return;
@@ -548,7 +560,6 @@ public class AIAgentActivity extends BaseActivity {
         chatHistory.add(new String[]{"user", text, String.valueOf(now)});
         // 写入日志：用户消息
         Logger.info(this, "AI 对话", "用户: " + text);
-        etChatInput.setText("");
 
         // 占位的"思考中"气泡
         appendChatMessage("assistant_thinking", "思考中...");
@@ -596,12 +607,22 @@ public class AIAgentActivity extends BaseActivity {
 
     /** 在聊天列表追加一条消息，role: user / assistant / assistant_thinking */
     private void appendChatMessage(String role, String content) {
-        // 默认使用当前时间作为时间轴
-        appendChatMessage(role, content, System.currentTimeMillis());
+        // 默认使用当前时间作为时间轴，新消息需要推送系统通知
+        appendChatMessage(role, content, System.currentTimeMillis(), true);
     }
 
     /** 带时间戳的 appendChatMessage：在每条消息上方显示时间轴 */
     private void appendChatMessage(String role, String content, long timestamp) {
+        appendChatMessage(role, content, timestamp, true);
+    }
+
+    /**
+     * 带时间戳的 appendChatMessage：
+     * @param timestamp 消息时间轴时间戳
+     * @param notify 是否同步推送系统通知。加载历史记录/切换会话重放时应传 false，
+     *               避免每次打开 AI 页面都重新推送一遍旧对话内容。
+     */
+    private void appendChatMessage(String role, String content, long timestamp, boolean notify) {
         if (chatList == null) return;
 
         boolean isUser = "user".equals(role);
@@ -661,8 +682,8 @@ public class AIAgentActivity extends BaseActivity {
         chatList.addView(bubble);
         scrollChatToBottom();
 
-        // AI 助手消息同步推送系统通知（Activity 不在前台时）
-        if (!isUser && !isThinking) {
+        // AI 助手消息同步推送系统通知（仅新消息，Activity 不在前台时）
+        if (!isUser && !isThinking && notify) {
             AINotificationHelper.notifyChatReply(this, "AI 助手", content);
         }
     }
@@ -1242,7 +1263,7 @@ public class AIAgentActivity extends BaseActivity {
                     long ts = msg.optLong("ts", System.currentTimeMillis());
                     if (role.isEmpty() || content.isEmpty()) continue;
                     chatHistory.add(new String[]{role, content, String.valueOf(ts)});
-                    appendChatMessage(role, content, ts);
+                    appendChatMessage(role, content, ts, false);
                 }
             }
 
@@ -1309,7 +1330,9 @@ public class AIAgentActivity extends BaseActivity {
     private String buildWalletAssetsPrompt() {
         try {
             DataCache cache = new DataCache(this);
-            if (!cache.hasValidCache(WalletManager.getWalletAddress(this))) {
+            String walletAddr = WalletManager.getWalletAddress(this);
+            cache.setCurrentWallet(walletAddr);
+            if (!cache.hasValidCache(walletAddr)) {
                 return "";
             }
 
@@ -1432,6 +1455,7 @@ public class AIAgentActivity extends BaseActivity {
             "- browser_click: 用 CSS 选择器点击浏览器页面元素（如 #swap-button）\n" +
             "- browser_input: 用 CSS 选择器在浏览器输入框填入文本\n" +
             "- browser_evaluate: 在浏览器中执行任意 JS 并返回结果\n" +
+            "- browser_close: 关闭当前打开的 DApp 浏览器页面（页面打不开、无法读取、或用户要求关闭时调用，不受白名单限制）\n" +
             "- query_dapp_whitelist: 查询已加入 AI 自动操作白名单的 DApp 列表\n" +
             "- request_dapp_whitelist: 申请将某 DApp 加入 AI 自动操作白名单，需用户确认后才生效\n" +
             "- remove_dapp_whitelist: 将某 DApp 从 AI 自动操作白名单中移除\n" +

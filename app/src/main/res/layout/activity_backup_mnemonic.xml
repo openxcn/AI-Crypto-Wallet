@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0a0a1a"
+    android:orientation="vertical">
+
+    <!-- 顶部导航栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="←"
+            android:textColor="#ffffff"
+            android:textSize="24sp"
+            android:padding="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_backup_mnemonic"
+            android:textColor="#ffffff"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginStart="16dp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- 安全提示 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/msg_backup_mnemonic_warning"
+                android:textColor="#ef4444"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- 助记词标题 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/text_mnemonic_words"
+                    android:textColor="#8892b0"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/btnCopyMnemonic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/text_copy_mnemonic"
+                    android:textColor="#6C5CE7"
+                    android:textSize="14sp"
+                    android:padding="8dp" />
+            </LinearLayout>
+
+            <!-- 助记词网格 -->
+            <LinearLayout
+                android:id="@+id/mnemonicGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/input_background"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- 切记提示 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_important_notice"
+                android:textColor="#ef4444"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/msg_mnemonic_important_notice"
+                android:textColor="#ef4444"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 底部按钮 -->
+    <Button
+        android:id="@+id/btnBackupDone"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="@string/text_backup_done_verify"
+        android:textColor="#ffffff"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:background="@drawable/button_primary_background"
+        android:layout_margin="24dp" />
+
+</LinearLayout>

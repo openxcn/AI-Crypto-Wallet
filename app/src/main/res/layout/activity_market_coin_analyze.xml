@@ -157,7 +157,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/str_ai_analysis_report"
                     android:textColor="#667eea"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <View
@@ -172,10 +172,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="#ffffff"
-                    android:textSize="14sp"
-                    android:lineSpacingExtra="4dp"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp"
                     android:visibility="gone" />
             </LinearLayout>
+
+            <!-- 生成的分享图预览 -->
+            <ImageView
+                android:id="@+id/ivSharePreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
 
             <!-- 操作按钮 -->
             <LinearLayout
@@ -212,6 +222,7 @@
                     android:gravity="center"
                     android:background="@drawable/card_background"
                     android:layout_marginStart="8dp"
+                    android:visibility="gone"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground" />

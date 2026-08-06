@@ -44,6 +44,12 @@ public class SplashActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        // 底部显示当前版本号小字
+        android.widget.TextView tvVersion = findViewById(R.id.tvVersion);
+        if (tvVersion != null) {
+            tvVersion.setText("v" + BuildConfig.VERSION_NAME);
+        }
+
         startDotAnimation();
         startBackgroundChecks();
         scheduleSplashFinish();

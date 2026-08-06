@@ -102,4 +102,15 @@
             android:layout_margin="4dp"
             android:background="#6b7280" />
     </LinearLayout>
+
+    <!-- 底部版本号小字 -->
+    <TextView
+        android:id="@+id/tvVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:textColor="#4b5563"
+        android:textSize="12sp" />
 </FrameLayout>

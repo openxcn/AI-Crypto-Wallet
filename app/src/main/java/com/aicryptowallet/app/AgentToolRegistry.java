@@ -151,6 +151,8 @@ public class AgentToolRegistry {
     public static final String TOOL_BROWSER_CLICK = "browser_click";
     public static final String TOOL_BROWSER_INPUT = "browser_input";
     public static final String TOOL_BROWSER_EVALUATE = "browser_evaluate";
+    public static final String TOOL_BROWSER_CLOSE = "browser_close";
+    public static final String TOOL_BROWSER_LIST_TABS = "browser_list_tabs";
     public static final String TOOL_GET_DAPP_ADDRESS = "get_dapp_address";
     public static final String TOOL_GET_FUNCTION_SIGNATURE = "get_function_signature";
     public static final String TOOL_OPEN_CREATE_WALLET = "open_create_wallet";
@@ -275,6 +277,16 @@ public class AgentToolRegistry {
             TOOL_BROWSER_EVALUATE,
             "在 DApp 浏览器中执行任意 JavaScript 并返回结果。用于获取复杂页面状态或执行自定义操作。",
             "{\"type\":\"object\",\"properties\":{\"script\":{\"type\":\"string\",\"description\":\"要执行的 JavaScript 代码\"}},\"required\":[\"script\"]}"
+        ),
+        new ToolDefinition(
+            TOOL_BROWSER_CLOSE,
+            "关闭当前打开的 DApp 浏览器页面。可传入 url 参数关闭指定标签页。当页面打不开、无法读取内容、或用户要求关闭网页时调用。此操作不受白名单限制，任何已打开的页面都能被关闭。",
+            "{\"type\":\"object\",\"properties\":{\"url\":{\"type\":\"string\",\"description\":\"要关闭的标签页 URL，可选。指定后关闭匹配该 URL 的标签页；不指定则关闭当前标签页\"}},\"required\":[]}"
+        ),
+        new ToolDefinition(
+            TOOL_BROWSER_LIST_TABS,
+            "列出当前 DApp 浏览器中所有已打开的标签页，包含每个标签页的 URL、标题、打开时间、是否当前激活标签页。用于 AI 了解当前打开了哪些网页，决定要关闭哪个或继续操作哪个。",
+            "{\"type\":\"object\",\"properties\":{},\"required\":[]}"
         ),
         new ToolDefinition(
             TOOL_GET_DAPP_ADDRESS,
@@ -467,6 +479,11 @@ public class AgentToolRegistry {
             }
             case TOOL_BROWSER_INPUT: return "在页面输入：" + args.optString("text", "");
             case TOOL_BROWSER_EVALUATE: return "执行浏览器脚本";
+            case TOOL_BROWSER_CLOSE: {
+                String u = args.optString("url", "");
+                return u.isEmpty() ? "关闭 DApp 浏览器页面" : "关闭 DApp 标签页：" + u;
+            }
+            case TOOL_BROWSER_LIST_TABS: return "列出 DApp 浏览器标签页";
             case TOOL_GET_DAPP_ADDRESS: return "获取 DApp 地址";
             case TOOL_GET_FUNCTION_SIGNATURE: return "获取函数签名";
             case TOOL_OPEN_CREATE_WALLET: return "创建新钱包";
@@ -568,6 +585,10 @@ public class AgentToolRegistry {
                     return executeWithRetry(ctx, toolName, () -> executeBrowserInput(ctx, args));
                 case TOOL_BROWSER_EVALUATE:
                     return executeWithRetry(ctx, toolName, () -> executeBrowserEvaluate(ctx, args));
+                case TOOL_BROWSER_CLOSE:
+                    return executeBrowserClose(ctx, args);
+                case TOOL_BROWSER_LIST_TABS:
+                    return executeBrowserListTabs(ctx);
                 case TOOL_GET_DAPP_ADDRESS:
                     return executeGetDappAddress(ctx, args);
                 case TOOL_GET_FUNCTION_SIGNATURE:
@@ -613,6 +634,7 @@ public class AgentToolRegistry {
     private static ToolResult executeGetWalletAssets(Context ctx, JSONObject args, String defaultChain) throws Exception {
         DataCache cache = new DataCache(ctx);
         String address = WalletManager.getWalletAddress(ctx);
+        cache.setCurrentWallet(address);
         if (!cache.hasValidCache(address)) {
             return ToolResult.error("暂无缓存的钱包资产数据，请稍后重试或刷新首页");
         }
@@ -1672,6 +1694,29 @@ public class AgentToolRegistry {
         } catch (Exception e) {
             Logger.error(ctx, "Agent工具", "browser_evaluate 失败: " + e.getMessage(), e);
             return ToolResult.error("执行 JS 失败: " + e.getMessage());
+        }
+    }
+
+    private static ToolResult executeBrowserClose(Context ctx, JSONObject args) {
+        try {
+            String url = args != null ? args.optString("url", "") : "";
+            Logger.info(ctx, "Agent工具", "browser_close 调用 url=" + url);
+            String result = DAppBrowserActivity.closePage(url);
+            return ToolResult.success(result);
+        } catch (Exception e) {
+            Logger.error(ctx, "Agent工具", "browser_close 失败: " + e.getMessage(), e);
+            return ToolResult.error("关闭 DApp 浏览器失败: " + e.getMessage());
+        }
+    }
+
+    private static ToolResult executeBrowserListTabs(Context ctx) {
+        try {
+            Logger.info(ctx, "Agent工具", "browser_list_tabs 调用");
+            String result = DAppBrowserActivity.listTabs();
+            return ToolResult.success(result);
+        } catch (Exception e) {
+            Logger.error(ctx, "Agent工具", "browser_list_tabs 失败: " + e.getMessage(), e);
+            return ToolResult.error("列出 DApp 标签页失败: " + e.getMessage());
         }
     }
 

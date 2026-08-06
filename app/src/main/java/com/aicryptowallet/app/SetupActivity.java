@@ -1,8 +1,5 @@
 package com.aicryptowallet.app;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -10,8 +7,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 
 public class SetupActivity extends BaseActivity {
 
@@ -110,35 +105,15 @@ public class SetupActivity extends BaseActivity {
             }
 
             if ("create".equals(mode)) {
-                new AlertDialog.Builder(this, R.style.AlertDialogCustom)
-                    .setTitle(getString(R.string.title_wallet_created_successfully))
-                    .setMessage(getString(R.string.msg_save_mnemonic_warning, mnemonic))
-                    .setPositiveButton(getString(R.string.btn_copy_mnemonic), (dialog, which) -> {
-                        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                        if (cm != null) {
-                            cm.setPrimaryClip(ClipData.newPlainText("mnemonic", mnemonic));
-                            Toast.makeText(this, getString(R.string.toast_copied), Toast.LENGTH_LONG).show();
-                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                ClipboardManager cm2 = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                                if (cm2 != null) {
-                                    ClipData current = cm2.getPrimaryClip();
-                                    if (current != null && current.getItemCount() > 0) {
-                                        CharSequence text = current.getItemAt(0).getText();
-                                        if (text != null && text.toString().equals(mnemonic)) {
-                                            cm2.setPrimaryClip(ClipData.newPlainText("", ""));
-                                            Toast.makeText(this, getString(R.string.toast_clipboard_cleared_automatically), Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-                                }
-                            }, 30_000);
-                        }
-                        goToHome();
-                    })
-                    .setNegativeButton(getString(R.string.btn_i_ve_saved), (dialog, which) -> {
-                        goToHome();
-                    })
-                    .setCancelable(false)
-                    .show();
+                // 跳转到助记词备份页面
+                Intent intent = new Intent(this, BackupMnemonicActivity.class);
+                intent.putExtra("mnemonic", mnemonic);
+                intent.putExtra("walletName", walletName);
+                intent.putExtra("password", password);
+                intent.putExtra("address", address);
+                intent.putExtra("chain", chain);
+                startActivity(intent);
+                finish();
             } else if (isPrivateKeyImport) {
                 Toast.makeText(this, getString(R.string.toast_private_key_wallet_imported), Toast.LENGTH_SHORT).show();
                 goToHome();

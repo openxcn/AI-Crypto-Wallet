@@ -14,6 +14,17 @@ try {
 def appVersionName = versionProps['VERSION_NAME'] ?: '2.8.3'
 def appVersionCode = (versionProps['VERSION_CODE'] ?: '283').toInteger()
 
+// 签名密码从 local.properties 读取（该文件已被 .gitignore 忽略，不会泄露到仓库）
+// 若未配置，则回退到环境变量，避免在代码中硬编码密码
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+def ksStorePassword = localProps.getProperty('aicw.storePassword') ?: System.getenv('AICW_STORE_PASSWORD') ?: ""
+def ksKeyPassword = localProps.getProperty('aicw.keyPassword') ?: System.getenv('AICW_KEY_PASSWORD') ?: ""
+def ksAlias = localProps.getProperty('aicw.keyAlias') ?: System.getenv('AICW_KEY_ALIAS') ?: "aicw"
+
 android {
     compileSdkVersion 34
     defaultConfig {
@@ -30,19 +41,22 @@ android {
     signingConfigs {
         release {
             storeFile file("${rootDir}/aicw-keystore.jks")
-            storePassword "aicw2026"
-            keyAlias "aicw"
-            keyPassword "aicw2026"
+            storePassword ksStorePassword
+            keyAlias ksAlias
+            keyPassword ksKeyPassword
         }
     }
     buildTypes {
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
             versionNameSuffix ""
             buildConfigField "String", "VERSION_DISPLAY", "\"AI Crypto Wallet v${appVersionName}\""
             buildConfigField "int", "RELEASE_VERSION_CODE", "1"
+            debuggable false
+            jniDebuggable false
         }
         debug {
             minifyEnabled false
@@ -54,7 +68,7 @@ android {
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             if (variant.buildType.name == "release") {
-                outputFileName = "AICryptoWallet-v${variant.versionName}-release.apk"
+                outputFileName = "AICryptoWallet-latest-release.apk"
             } else {
                 outputFileName = "AICryptoWallet-v${variant.versionName}-debug.apk"
             }

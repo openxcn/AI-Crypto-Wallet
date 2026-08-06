@@ -3,17 +3,16 @@ package com.aicryptowallet.app;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AppCompatActivity;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
@@ -25,7 +24,10 @@ import java.util.Map;
 
 public class ReceiveActivity extends BaseActivity {
 
+    private static final String DOWNLOAD_URL = "https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk";
+
     private ImageView ivQrCode;
+    private ImageView ivDownloadQr;
     private Bitmap qrBitmap;
     private String address;
     private String chainName;
@@ -45,6 +47,7 @@ public class ReceiveActivity extends BaseActivity {
         address = WalletManager.getWalletAddress(this);
 
         ivQrCode = findViewById(R.id.ivQrCode);
+        ivDownloadQr = findViewById(R.id.ivDownloadQr);
         TextView tvWalletName = findViewById(R.id.tvWalletName);
         TextView tvChainName = findViewById(R.id.tvChainName);
         TextView tvAddress = findViewById(R.id.tvAddress);
@@ -55,35 +58,29 @@ public class ReceiveActivity extends BaseActivity {
 
         tvWalletName.setText(walletName);
         tvChainName.setText(chainName);
-        tvAddress.setText(formatAddress(address));
+        // 一排显示地址，中间省略
+        tvAddress.setText(address);
         tvWarning.setText(getString(R.string.text_please_confirm_that_the, chainName));
 
+        // 点击地址也可复制
+        tvAddress.setOnClickListener(v -> copyAddress());
+
         generateQrCode(address);
+        generateDownloadQr();
 
         btnBack.setOnClickListener(v -> finish());
-
-        btnCopyAddress.setOnClickListener(v -> {
-            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            cm.setPrimaryClip(ClipData.newPlainText("address", address));
-            Toast.makeText(this, getString(R.string.toast_copied), Toast.LENGTH_SHORT).show();
-        });
-
+        btnCopyAddress.setOnClickListener(v -> copyAddress());
         btnSaveQr.setOnClickListener(v -> saveQrToGallery());
     }
 
-    private String formatAddress(String addr) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < addr.length(); i++) {
-            sb.append(addr.charAt(i));
-            if ((i + 1) % 10 == 0 && i != addr.length() - 1) {
-                sb.append('\n');
-            }
-        }
-        return sb.toString();
+    private void copyAddress() {
+        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        cm.setPrimaryClip(ClipData.newPlainText("address", address));
+        Toast.makeText(this, getString(R.string.toast_copied, "地址"), Toast.LENGTH_SHORT).show();
     }
 
     private void generateQrCode(String content) {
-        int size = dpToPx(240);
+        int size = dpToPx(320);
         Map<EncodeHintType, Object> hints = new HashMap<>();
         hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
@@ -94,20 +91,55 @@ public class ReceiveActivity extends BaseActivity {
             BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints);
             int width = bitMatrix.getWidth();
             int height = bitMatrix.getHeight();
-            qrBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            Bitmap raw = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    qrBitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                    raw.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
                 }
             }
 
-            Bitmap whiteBg = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565);
-            whiteBg.eraseColor(Color.WHITE);
-            Canvas canvas = new Canvas(whiteBg);
-            int padding = dpToPx(12);
-            canvas.drawBitmap(qrBitmap, padding, padding, null);
-            ivQrCode.setImageBitmap(whiteBg);
-            qrBitmap = whiteBg;
+            // 白色底 QR 图
+            int padding = dpToPx(14);
+            int total = size + padding * 2;
+            Bitmap qrWithBg = Bitmap.createBitmap(total, total, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(qrWithBg);
+            canvas.drawColor(Color.WHITE);
+            canvas.drawBitmap(raw, padding, padding, null);
+
+            ivQrCode.setImageBitmap(qrWithBg);
+            qrBitmap = qrWithBg;
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void generateDownloadQr() {
+        try {
+            int size = dpToPx(112);
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            hints.put(EncodeHintType.MARGIN, 1);
+
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(DOWNLOAD_URL, BarcodeFormat.QR_CODE, size, size, hints);
+            int w = bitMatrix.getWidth();
+            int h = bitMatrix.getHeight();
+            Bitmap raw = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+            for (int x = 0; x < w; x++) {
+                for (int y = 0; y < h; y++) {
+                    raw.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+
+            int padding = dpToPx(4);
+            int total = size + padding * 2;
+            Bitmap result = Bitmap.createBitmap(total, total, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(result);
+            canvas.drawColor(Color.WHITE);
+            canvas.drawBitmap(raw, padding, padding, null);
+
+            ivDownloadQr.setImageBitmap(result);
         } catch (WriterException e) {
             e.printStackTrace();
         }
@@ -125,7 +157,7 @@ public class ReceiveActivity extends BaseActivity {
         }
         try {
             String result = MediaStore.Images.Media.insertImage(
-                getContentResolver(), qrBitmap, "QRCode_" + System.currentTimeMillis(), "收款二维码");
+                getContentResolver(), qrBitmap, "AICryptoWallet_QR_" + System.currentTimeMillis(), "收款二维码");
             if (result != null) {
                 Toast.makeText(this, getString(R.string.toast_saved_to_album), Toast.LENGTH_SHORT).show();
             } else {

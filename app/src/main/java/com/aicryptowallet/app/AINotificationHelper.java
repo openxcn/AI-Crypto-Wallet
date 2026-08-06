@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -39,6 +40,7 @@ public class AINotificationHelper {
     private static final int BASE_PERMISSION_ID = 4000;
     private static final int BASE_SCHEDULED_ID = 5000;
     private static final int BASE_ALERT_ID = 6000;
+    private static final int BASE_ASSET_ID = 7000;
 
     private static int chatCounter = 0;
     private static int operationCounter = 0;
@@ -121,6 +123,60 @@ public class AINotificationHelper {
     public static void notifyAlert(Context ctx, String title, String content) {
         postNotification(ctx, CHANNEL_ID_ALERT, BASE_ALERT_ID + (++alertCounter % 100),
             title, content, NotificationCompat.PRIORITY_HIGH, true);
+    }
+
+    /**
+     * 资产变动提醒通知。
+     * 点击通知直接打开该笔交易详情页（TxDetailActivity），按下返回键回到钱包资产列表（HomeActivity）。
+     * 若未携带交易哈希，则退化为直接打开资产列表。
+     */
+    public static void notifyAssetChange(Context ctx, String title, String content,
+                                         String txHash, String chain) {
+        int notifId = BASE_ASSET_ID + (++alertCounter % 100);
+        try {
+            createChannels(ctx);
+            NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
+
+            PendingIntent pi;
+            if (txHash != null && !txHash.isEmpty()) {
+                // 任务栈：HomeActivity(资产列表) -> TxDetailActivity(交易详情)
+                // 返回键从交易详情退回资产列表
+                Intent base = new Intent(ctx, HomeActivity.class);
+                base.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                Intent detail = new Intent(ctx, TxDetailActivity.class);
+                detail.putExtra(TxDetailActivity.EXTRA_TX_HASH, txHash);
+                detail.putExtra(TxDetailActivity.EXTRA_CHAIN, chain);
+                TaskStackBuilder sb = TaskStackBuilder.create(ctx);
+                sb.addNextIntent(base);
+                sb.addNextIntent(detail);
+                pi = sb.getPendingIntent(notifId,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            } else {
+                Intent base = new Intent(ctx, HomeActivity.class);
+                base.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                pi = PendingIntent.getActivity(ctx, notifId, base,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            }
+
+            String bigText = content != null ? content : "";
+            String summary = bigText.length() > 100 ? bigText.substring(0, 100) + "..." : bigText;
+
+            Notification notification = new NotificationCompat.Builder(ctx, CHANNEL_ID_ALERT)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(summary)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(bigText))
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build();
+
+            nm.notify(notifId, notification);
+            Logger.info(ctx, "AI通知", "已推送资产变动通知: " + title);
+        } catch (Exception e) {
+            Logger.error(ctx, "AI通知", "推送资产变动通知失败: " + e.getMessage(), e);
+        }
     }
 
     /**

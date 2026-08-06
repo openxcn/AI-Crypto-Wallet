@@ -523,7 +523,8 @@ public class AIAnalyzer {
         sb.append("- browser_click：用 CSS 选择器点击页面元素（如 #swap-button）\n");
         sb.append("- browser_input：用 CSS 选择器在输入框填入文本\n");
         sb.append("- browser_evaluate：执行任意 JS 并返回结果\n");
-        sb.append("使用流程：先 browser_open_url 打开页面，等待 2-3 秒后 browser_get_state 查看页面，再决定点击或输入。涉及资金操作前必须调用 ask_user 让用户确认。\n\n");
+        sb.append("- browser_close：关闭当前打开的 DApp 浏览器页面（页面打不开、无法读取、或用户要求关闭时调用，不受白名单限制）\n");
+        sb.append("使用流程：先 browser_open_url 打开页面，等待 2-3 秒后 browser_get_state 查看页面，再决定点击或输入。页面打不开或用户要求关闭时调用 browser_close 关闭。涉及资金操作前必须调用 ask_user 让用户确认。\n\n");
 
         sb.append("=== 决策流程 ===\n");
         sb.append("1. 调用 get_position 了解当前持仓\n");

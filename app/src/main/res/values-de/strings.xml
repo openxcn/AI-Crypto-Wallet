@@ -466,7 +466,7 @@
     <string name="text_query_failed">Abfrage fehlgeschlagen</string>
     <string name="toast_query_failed">Abfrage fehlgeschlagen: &quot;1&quot;</string>
     <string name="str_standard">Standard</string>
-    <string name="msg_detecting_that_the_current">Die Erkennung, dass die aktuelle Netzwerkumgebung extrem instabil ist, wirkt sich stark auf KI-Entscheidungen und Datenaktualisierungen aus. Es wird empfohlen, es nach dem Wechsel zu einer stabilen ausländischen Netzwerkumgebung zu verwenden.</string>
+    <string name="msg_detecting_that_the_current">Die Erkennung, dass die aktuelle Netzwerkumgebung extrem instabil ist, wirkt sich stark auf KI-Entscheidungen und Datenaktualisierungen aus. Es wird empfohlen, es nach dem Wechsel zu einer stabilen Netzwerkumgebung zu verwenden. Als dezentralisierte Anwendung können wir keine gesetzlich nicht gestatteten Netzwerkinformationen weiterleiten. Bitte halten Sie sich unbedingt an die lokalen Gesetze und Vorschriften.</string>
     <string name="text_model_name">Modellname</string>
     <string name="text_loading_token_list_from">Token-Liste 1 wird aus dem Block-Explorer geladen...\ nURL: 2</string>
     <string name="str_loading">Laden</string>

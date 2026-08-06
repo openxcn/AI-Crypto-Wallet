@@ -56,6 +56,7 @@ public class WalletManager {
         public String type;        // normal / watch_only / imported
         public String mnemonicEnc;  // 加密后的助记词（或私钥）
         public String password;     // 密码哈希
+        public boolean backedUp;   // 是否已完成助记词备份验证
 
         public JSONObject toJson() {
             JSONObject obj = new JSONObject();
@@ -67,6 +68,7 @@ public class WalletManager {
                 obj.put("type", type != null ? type : "normal");
                 obj.put("mnemonicEnc", mnemonicEnc != null ? mnemonicEnc : "");
                 obj.put("password", password != null ? password : "");
+                obj.put("backedUp", backedUp);
             } catch (Exception ignored) {}
             return obj;
         }
@@ -80,6 +82,7 @@ public class WalletManager {
             w.type = obj.optString("type", "normal");
             w.mnemonicEnc = obj.optString("mnemonicEnc", "");
             w.password = obj.optString("password", "");
+            w.backedUp = obj.optBoolean("backedUp", false);
             return w;
         }
 
@@ -141,6 +144,7 @@ public class WalletManager {
         w.type = "normal";
         w.password = password;
         w.mnemonicEnc = mnemonicEnc;
+        w.backedUp = true; // 旧版钱包默认标记为已备份（在引入备份验证功能之前创建的）
 
         JSONArray arr = new JSONArray();
         arr.put(w.toJson());
@@ -283,6 +287,7 @@ public class WalletManager {
         w.type = "normal";
         w.password = hashPassword(password);
         w.mnemonicEnc = encMnemonic;
+        w.backedUp = false; // 新创建的钱包尚未完成备份验证
 
         List<WalletInfo> list = getAllWallets(ctx);
         list.add(w);
@@ -295,6 +300,28 @@ public class WalletManager {
         list.add(wallet);
         saveWalletList(ctx, list);
         setActiveWalletId(ctx, wallet.id);
+    }
+
+    public static void removeWalletByAddress(Context ctx, String address) {
+        List<WalletInfo> list = getAllWallets(ctx);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).address.equalsIgnoreCase(address)) {
+                list.remove(i);
+                break;
+            }
+        }
+        saveWalletList(ctx, list);
+    }
+
+    public static void markWalletBackedUp(Context ctx, String address) {
+        List<WalletInfo> list = getAllWallets(ctx);
+        for (WalletInfo w : list) {
+            if (w.address.equalsIgnoreCase(address)) {
+                w.backedUp = true;
+                break;
+            }
+        }
+        saveWalletList(ctx, list);
     }
 
     public static void removeWallet(Context ctx, String walletId) {
@@ -330,6 +357,7 @@ public class WalletManager {
         w.address = address;
         w.chain = chain;
         w.type = "watch_only";
+        w.backedUp = true; // 观察钱包无需助记词备份
 
         List<WalletInfo> list = getAllWallets(ctx);
         list.add(w);
@@ -625,6 +653,7 @@ public class WalletManager {
         w.type = "imported";
         w.password = hashPassword(password);
         w.mnemonicEnc = encPrivateKey; // 存储加密后的私钥
+        w.backedUp = true; // 导入钱包由用户提供私钥/助记词，无需额外备份
 
         List<WalletInfo> list = getAllWallets(ctx);
         list.add(w);

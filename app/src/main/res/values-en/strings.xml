@@ -466,7 +466,7 @@
     <string name="text_query_failed">Query failed</string>
     <string name="toast_query_failed">Query failed: &quot;1&quot;</string>
     <string name="str_standard">Standard</string>
-    <string name="msg_detecting_that_the_current">Detecting that the current network environment is extremely unstable will greatly affect AI decisions and data updates. It is recommended to use it after switching to a stable overseas network environment.</string>
+    <string name="msg_detecting_that_the_current">Detecting that the current network environment is extremely unstable will greatly affect AI decisions and data updates. It is recommended to use it after switching to a stable network environment. As a decentralized application, we cannot relay any network information that is not permitted by law. Please be sure to comply with local laws and regulations.</string>
     <string name="text_model_name">Model Name</string>
     <string name="text_loading_token_list_from">Loading token list 1 from block explorer...\ nURL: 2</string>
     <string name="str_loading">Loading...</string>

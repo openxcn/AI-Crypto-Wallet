@@ -122,8 +122,13 @@ public class HomeActivity extends BaseActivity {
     private static final String PREFS_MARKET = "market_prefs";
     private static final String KEY_PINNED_COINS = "pinned_coins";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService allWalletsExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService marketExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService aiRecordsExecutor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
+    // 资产加载任务去重：已有任务在执行时，新请求只记录待刷新，不重复排队清空列表
+    private volatile boolean isLoadingAssets = false;
+    private volatile boolean pendingAssetRefresh = false;
     private boolean balanceVisible = true;
     private double lastTotalBalanceUsd = 0.0;
     private double lastAllWalletsTotalUsd = 0.0;
@@ -267,6 +272,8 @@ public class HomeActivity extends BaseActivity {
             loadWalletInfo();
             loadAssetsFromCache();                 // 先显示缓存（秒开）
             optimizeNodeAndLoadAssets();             // 自动测速选节点后刷新
+            // 冷启动更早拉起 AI 前台服务：若用户已开启 AI，立即在后台运行，无需等 onResume
+            ensureAgentServiceIfRunning();
 
         } catch (Throwable t) {
             Logger.error(this, "HomeActivity", "onCreate FATAL: " + t.getClass().getName() + ": " + t.getMessage(), t);
@@ -296,6 +303,10 @@ public class HomeActivity extends BaseActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
+        // 通过 intent 重新回到前台时，同样确保 AI 前台服务在运行（避免必须点击 AI 按钮才启动）
+        try {
+            ensureAgentServiceIfRunning();
+        } catch (Throwable ignore) {}
     }
 
     /**
@@ -365,6 +376,8 @@ public class HomeActivity extends BaseActivity {
         super.onResume();
         Logger.info(this, "HomeActivity", "onResume called");
         try {
+            // AI 已开启时自动拉起后台前台服务，避免必须点进 AI 页面才启动
+            ensureAgentServiceIfRunning();
             updateAIStatusCard();
             // 延迟检查余额，避免与 Activity 初始化冲突
             handler.postDelayed(() -> {
@@ -380,10 +393,33 @@ public class HomeActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 若用户此前已开启 AI（agent_running=true），自动启动 AgentForegroundService，
+     * 保证 App 打开后 AI 立即在后台运行，无需手动点击 AI 按钮。
+     */
+    private void ensureAgentServiceIfRunning() {
+        try {
+            boolean agentRunning = getSharedPreferences("ai_agent_prefs", Context.MODE_PRIVATE)
+                .getBoolean("agent_running", false);
+            if (!agentRunning) return;
+            android.content.Intent svcIntent = new android.content.Intent(this, AgentForegroundService.class);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(svcIntent);
+            } else {
+                startService(svcIntent);
+            }
+            Logger.info(this, "HomeActivity", "AI 已开启，自动启动后台前台服务");
+        } catch (Exception e) {
+            Logger.warning(this, "HomeActivity", "自动启动 AI 服务失败: " + e.getMessage());
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         executor.shutdownNow();
+        allWalletsExecutor.shutdownNow();
+        marketExecutor.shutdownNow();
         aiRecordsExecutor.shutdownNow();
         handler.removeCallbacksAndMessages(null);
     }
@@ -1058,7 +1094,7 @@ public class HomeActivity extends BaseActivity {
             }
         }
 
-        executor.execute(() -> {
+        marketExecutor.execute(() -> {
             try {
                 Request request = new Request.Builder()
                     .url("https://api.gateio.ws/api/v4/spot/tickers")
@@ -2481,6 +2517,7 @@ public class HomeActivity extends BaseActivity {
 
             // 余额：当前钱包显示缓存值，其他显示 0
             if (w.id.equals(activeId)) {
+                dataCache.setCurrentWallet(w.id);
                 double total = dataCache.getCachedTotalValue();
                 tvBalance.setText(CurrencyManager.formatFiat(this, total));
             } else {
@@ -2496,6 +2533,9 @@ public class HomeActivity extends BaseActivity {
                     dialog.dismiss();
                     Toast.makeText(HomeActivity.this, getString(R.string.toast_switched_to, w.name), Toast.LENGTH_SHORT).show();
                     loadWalletInfo();
+                    // 切换钱包：立即秒开该钱包的缓存数据，再由后台任务刷新覆盖
+                    dataCache.setCurrentWallet(WalletManager.getWalletAddress(this));
+                    loadAssetsFromCache();
                     loadAssets();
                     updateAIStatusCard();
                 } else {
@@ -2809,8 +2849,12 @@ public class HomeActivity extends BaseActivity {
     private void loadAssetsFromCache() {
         try {
             String address = WalletManager.getWalletAddress(this);
+            dataCache.setCurrentWallet(address);
+
             if (!dataCache.hasValidCache(address)) {
                 Logger.info(this, "缓存加载", "无有效缓存，跳过");
+                LinearLayout tc = findViewById(R.id.tokenListContainer);
+                if (tc != null) tc.removeAllViews();
                 return;
             }
 
@@ -2951,12 +2995,27 @@ public class HomeActivity extends BaseActivity {
             return;
         }
 
-        // 如果已有缓存数据显示，保留它（避免清空后再加载的空白感）
-        // 只有容器为空时才显示 Loading 占位
-        boolean hasCachedDisplay = tokenContainer.getChildCount() > 0;
-        if (!hasCachedDisplay) {
-            tokenContainer.removeAllViews();
+        // 任务去重：已有加载任务在执行时，不重复排队、不清空列表，
+        // 仅记录待刷新，当前任务完成后会自动补一次（避免列表反复清空却刷不出来）
+        if (isLoadingAssets) {
+            pendingAssetRefresh = true;
+            Logger.info(this, "资产加载", "已有加载任务在执行，合并本次刷新请求");
+            if (assetsSwipeRefresh != null && assetsSwipeRefresh.isRefreshing()) {
+                // 保留 spinner，待当前任务完成后统一停止
+            }
+            return;
+        }
+        isLoadingAssets = true;
 
+        String currentAddr = WalletManager.getWalletAddress(this);
+        dataCache.setCurrentWallet(currentAddr);
+
+        // 秒开：有缓存时先显示缓存资产，避免刷新时列表空白；后台扫描完成后会覆盖更新
+        if (dataCache.hasValidCache(currentAddr)) {
+            loadAssetsFromCache();
+        } else {
+            // 无缓存，显示 Loading 占位
+            tokenContainer.removeAllViews();
             TextView loadingText = new TextView(this);
             loadingText.setText("Loading...");
             loadingText.setTextColor(getResources().getColor(R.color.text_secondary));
@@ -2964,9 +3023,6 @@ public class HomeActivity extends BaseActivity {
             loadingText.setGravity(Gravity.CENTER);
             loadingText.setPadding(48, 48, 48, 48);
             tokenContainer.addView(loadingText);
-        } else {
-            // 有缓存数据，显示下拉刷新指示器表示正在更新
-            if (assetsSwipeRefresh != null) assetsSwipeRefresh.setRefreshing(true);
         }
 
         // 安全超时：30秒后强制停止刷新动画，防止 spinner 卡死
@@ -3007,14 +3063,24 @@ public class HomeActivity extends BaseActivity {
 
             java.util.List<String[]> allTokens = new java.util.ArrayList<>();
 
+            // 网络加载失败标记：原生币或代币查询抛异常时，保留旧缓存，避免用 0/空数据覆盖真实资产造成显示不稳定
+            final boolean[] loadFailed = {false};
+
             double nativeBalance = 0;
             try {
                 nativeBalance = ChainAPI.getNativeBalance(this, chain, address);
             } catch (Exception e) {
+                loadFailed[0] = true;
+                Logger.warning(this, "资产加载", "原生币余额查询失败，保留旧缓存: " + e.getMessage());
+                // 回退用缓存的原生币余额，避免显示归零
+                try {
+                    nativeBalance = dataCache.getCachedNativeBalance();
+                } catch (Exception ignore) {}
             }
 
             try {
-                java.util.List<String[]> discoveredTokens = ChainAPI.getAllTokenBalances(this, chain, address);
+                // 首屏秒开：跳过慢速的 Transfer 全量扫描，先渲染原生币+已知代币
+                java.util.List<String[]> discoveredTokens = ChainAPI.getAllTokenBalances(this, chain, address, true, true);
                 if (discoveredTokens != null && !discoveredTokens.isEmpty()) {
                     Set<String> hiddenTokens = getHiddenTokens(chain);
                     for (String[] token : discoveredTokens) {
@@ -3024,7 +3090,8 @@ public class HomeActivity extends BaseActivity {
                     }
                 }
             } catch (Exception e) {
-                Logger.error(this, "代币发现", "动态发现失败：" + e.getMessage());
+                loadFailed[0] = true;
+                Logger.warning(this, "资产加载", "代币发现失败，保留旧缓存: " + e.getMessage());
             }
             Map<String, Double> prices;
             double nativePrice = 0;
@@ -3063,6 +3130,50 @@ public class HomeActivity extends BaseActivity {
             final double finalTotal = totalValue;
             final String[][] finalAssets = allTokens.toArray(new String[0][]);
 
+            // 网络加载失败时，用缓存数据兜底渲染，避免列表被清空/显示不稳定
+            if (loadFailed[0] && dataCache.hasValidCache(address)) {
+                try {
+                    List<String[]> cached = dataCache.getCachedTokens();
+                    if (cached != null && !cached.isEmpty()) {
+                        allTokens.clear();
+                        allTokens.addAll(cached);
+                        Logger.info(this, "资产加载", "网络失败，用缓存数据兜底渲染 " + allTokens.size() + " 项");
+                    }
+                } catch (Exception ignore) {}
+            }
+
+            // 资产变动提醒：统一去重去抖（恒定余额不重复报、已通知代币不重复报、前后台/刷新不叠加）
+            try {
+                if (dataCache.hasValidCache(address) && !loadFailed[0]) {
+                    DataCache.AssetChangeResult chg = dataCache.detectAssetChange(address, allTokens, nativeBalance);
+                    if (chg.shouldNotify) {
+                        // 原生币到账文案：仅当明显增加时带上名称+余额
+                        String nativePart = chg.nativeIncreased && !chg.nativeName.isEmpty()
+                            ? chg.nativeName + " " + chg.nativeBalanceText : "";
+                        String msg;
+                        if (!chg.newTokens.isEmpty() && !nativePart.isEmpty()) {
+                            msg = getString(R.string.msg_asset_changed, chg.newTokens + "、" + nativePart);
+                        } else if (!chg.newTokens.isEmpty()) {
+                            msg = getString(R.string.msg_new_asset_arrived, chg.newTokens, "");
+                        } else {
+                            msg = getString(R.string.msg_asset_changed, nativePart);
+                        }
+                        Logger.success(this, "资产变动", "检测到资产变动: " + msg);
+                        final String fMsg = msg;
+                        final String fChain = chain;
+                        final String fAddr = address;
+                        // 异步补全最新交易哈希并推送：点击通知直达该笔交易详情，返回键退回资产列表
+                        executor.execute(() -> {
+                            String txHash = getLatestIncomingTxHash(fChain, fAddr);
+                            AINotificationHelper.notifyAssetChange(HomeActivity.this,
+                                getString(R.string.title_asset_change_reminder), fMsg, txHash, fChain);
+                        });
+                    }
+                }
+            } catch (Throwable t) {
+                Logger.warning(this, "资产变动", "检测异常: " + t.getMessage());
+            }
+
             // 保存到缓存暂存区
             try {
                 dataCache.saveAssets(address, chain, finalTotal, nativeBalance, nativeValue, allTokens, prices);
@@ -3070,15 +3181,17 @@ public class HomeActivity extends BaseActivity {
                 Logger.error(this, "缓存保存", "失败: " + e.getMessage(), e);
             }
 
-            // 计算所有钱包总资产：在后台线程执行，避免主线程阻塞
-            final double[] allTotalHolder = {finalTotal};
-            try {
-                allTotalHolder[0] = calculateAllWalletsTotal(finalPrices, finalTotal, address);
-            } catch (Exception e) {
-                Logger.error(this, "总资产", "计算所有钱包总资产失败: " + e.getMessage(), e);
-            }
+            final double currentWalletTotalVal = finalTotal;
 
             handler.post(() -> {
+                // 如果钱包已再次切换，跳过旧数据显示
+                if (!currentAddr.equals(WalletManager.getWalletAddress(HomeActivity.this))) {
+                    Logger.info(HomeActivity.this, "资产加载", "钱包已切换，跳过旧数据显示");
+                    if (assetsSwipeRefresh != null && assetsSwipeRefresh.isRefreshing()) {
+                        assetsSwipeRefresh.setRefreshing(false);
+                    }
+                    return;
+                }
                 tokenContainer.removeAllViews();
                 if (smallAssetsContainer != null) smallAssetsContainer.removeAllViews();
                 int smallCount = 0;
@@ -3161,18 +3274,52 @@ public class HomeActivity extends BaseActivity {
                 TextView tvTotalBal = findViewById(R.id.tvTotalBalanceAssets);
                 if (tvTotalBal != null) tvTotalBal.setText(balanceVisible ? CurrencyManager.formatFiat(this, lastTotalBalanceUsd) : "******");
 
-                // 显示所有钱包总资产（已在后台线程计算完成），并更新今日盈亏
-                double allTotal = allTotalHolder[0];
-                lastAllWalletsTotalUsd = allTotal;
-                TextView tvAll = findViewById(R.id.tvAllWalletsTotal);
-                if (tvAll != null) tvAll.setText(balanceVisible ? CurrencyManager.formatFiat(this, lastAllWalletsTotalUsd) : "******");
-
-                // 更新今日盈亏（基于全部钱包总资产，并剔除今日转入转出）
-                updateTodayPnL(allTotal, finalPrices);
-
                 if (assetsSwipeRefresh != null && assetsSwipeRefresh.isRefreshing()) {
                     assetsSwipeRefresh.setRefreshing(false);
                     Toast.makeText(HomeActivity.this, getString(R.string.toast_asset_has_been_refreshed), Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            // 所有钱包总资产单独计算，避免阻塞当前钱包资产列表渲染
+            allWalletsExecutor.execute(() -> {
+                double allTotal = currentWalletTotalVal;
+                try {
+                    allTotal = calculateAllWalletsTotal(finalPrices, currentWalletTotalVal, address);
+                } catch (Exception e) {
+                    Logger.error(this, "总资产", "计算所有钱包总资产失败: " + e.getMessage(), e);
+                }
+                final double resultAllTotal = allTotal;
+                handler.post(() -> {
+                    lastAllWalletsTotalUsd = resultAllTotal;
+                    TextView tvAll = findViewById(R.id.tvAllWalletsTotal);
+                    if (tvAll != null) tvAll.setText(balanceVisible ? CurrencyManager.formatFiat(HomeActivity.this, lastAllWalletsTotalUsd) : "******");
+                    updateTodayPnL(resultAllTotal, finalPrices);
+                });
+            });
+
+            // 首屏已秒开渲染，后台补充 Transfer 扫描：发现新代币后自动刷新（不阻塞当前渲染）
+            executor.execute(() -> {
+                try {
+                    java.util.List<String[]> scanned = ChainAPI.getAllTokenBalances(HomeActivity.this, chain, address);
+                    if (scanned == null || scanned.isEmpty()) return;
+                    Set<String> knownContracts = new HashSet<>();
+                    for (String[] a : allTokens) {
+                        if (a.length > 4 && a[4] != null && !a[4].isEmpty()) knownContracts.add(a[4].toLowerCase());
+                    }
+                    boolean hasNew = false;
+                    for (String[] s : scanned) {
+                        if (s.length > 4 && s[4] != null && !s[4].isEmpty()
+                            && !knownContracts.contains(s[4].toLowerCase())) {
+                            hasNew = true;
+                            break;
+                        }
+                    }
+                    if (hasNew) {
+                        Logger.info(HomeActivity.this, "代币发现", "后台扫描发现新代币，自动刷新资产列表");
+                        handler.post(() -> loadAssets(false));
+                    }
+                } catch (Exception e) {
+                    Logger.warning(HomeActivity.this, "代币发现", "后台补充扫描失败: " + e.getMessage());
                 }
             });
           } catch (Throwable t) {
@@ -3186,6 +3333,13 @@ public class HomeActivity extends BaseActivity {
                     Toast.makeText(HomeActivity.this, getString(R.string.toast_refresh_failed, t.getMessage()), Toast.LENGTH_SHORT).show();
                 } catch (Throwable ignored) {}
             });
+          } finally {
+            // 重置加载标志；若期间又有刷新请求合并，则补执行一次
+            isLoadingAssets = false;
+            if (pendingAssetRefresh) {
+                pendingAssetRefresh = false;
+                handler.post(() -> loadAssets(false));
+            }
           }
         });
     }
@@ -3425,6 +3579,29 @@ public class HomeActivity extends BaseActivity {
             return Double.parseDouble(cleaned);
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    /**
+     * 获取该钱包最新的一笔收款交易哈希（尽力而为）。
+     * 用于资产变动通知点击后直达该笔交易详情。
+     */
+    private String getLatestIncomingTxHash(String chain, String address) {
+        try {
+            java.util.List<String[]> txs = ChainAPI.getTransactionHistory(this, chain, address, "", 1);
+            if (txs == null || txs.isEmpty()) return null;
+            // 优先取最近一笔"收款"交易（我方为接收方）；无则取第一笔
+            for (String[] tx : txs) {
+                if (tx.length > 2 && tx[2] != null
+                    && tx[2].equalsIgnoreCase(address) && tx[0] != null && !tx[0].isEmpty()) {
+                    return tx[0];
+                }
+            }
+            String first = txs.get(0)[0];
+            return first != null && !first.isEmpty() ? first : null;
+        } catch (Exception e) {
+            Logger.warning(this, "资产变动", "获取最新交易哈希失败: " + e.getMessage());
+            return null;
         }
     }
 
@@ -4063,6 +4240,7 @@ public class HomeActivity extends BaseActivity {
             case "browser_click": return "浏览器点击";
             case "browser_input": return "浏览器输入";
             case "browser_evaluate": return "浏览器执行脚本";
+            case "browser_close": return "关闭浏览器页面";
             case "get_dapp_address": return "获取 DApp 地址";
             case "get_function_signature": return "获取函数签名";
             case "open_create_wallet": return "创建钱包";

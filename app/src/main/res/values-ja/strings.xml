@@ -466,7 +466,7 @@
     <string name="text_query_failed">クエリに失敗しました</string>
     <string name="toast_query_failed">クエリに失敗しました: &quot;1&quot;</string>
     <string name="str_standard">標準</string>
-    <string name="msg_detecting_that_the_current">現在のネットワーク環境が非常に不安定であることを検出すると、AIの意思決定やデータの更新に大きく影響します。安定した海外ネットワーク環境に切り替えた後に使用することをお勧めします。</string>
+    <string name="msg_detecting_that_the_current">現在のネットワーク環境が非常に不安定であることを検出すると、AIの意思決定やデータの更新に大きく影響します。安定したネットワーク環境に切り替えた後に使用することをお勧めします。分散型アプリケーションとして、法律で許可されていないネットワーク情報を中継することはできません。現地の法律・規制を必ず遵守してください。</string>
     <string name="text_model_name">モデル名</string>
     <string name="text_loading_token_list_from">ブロックエクスプローラからトークンリスト1を読み込んでいます...\ nURL: 2</string>
     <string name="str_loading">アップデート中</string>

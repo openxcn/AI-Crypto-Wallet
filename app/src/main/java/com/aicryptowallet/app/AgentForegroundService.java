@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.IBinder;
+import android.text.TextUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.concurrent.Executors;
@@ -37,9 +38,11 @@ public class AgentForegroundService extends Service {
     public static final int NOTIFICATION_ID_PERSIST = AINotificationHelper.NOTIFICATION_ID_PERSIST;
     public static final String PREFS = "ai_agent_prefs";
     private static final int CHECK_INTERVAL_MINUTES = 5;
+    private static final int ASSET_CHECK_INTERVAL_SECONDS = 60;
     private static final MediaType JSON_TYPE = MediaType.parse("application/json");
 
     private ScheduledExecutorService scheduler;
+    private ScheduledExecutorService assetScheduler;
     private TradeAuthManager tradeAuthManager;
     private RiskManager riskManager;
     private SafetyGate safetyGate;
@@ -85,6 +88,14 @@ public class AgentForegroundService extends Service {
                 scheduler.scheduleAtFixedRate(this::runAnalysisCycle, 10, intervalSeconds, TimeUnit.SECONDS);
                 Logger.info(this, "FGS", "定时分析已启动，间隔 " + CHECK_INTERVAL_MINUTES + " 分钟");
             }
+
+            // 独立的资产实时监测定时器（更短周期），前后台均监测资产变动并推送
+            if (assetScheduler == null || assetScheduler.isShutdown()) {
+                assetScheduler = Executors.newSingleThreadScheduledExecutor();
+                assetScheduler.scheduleAtFixedRate(this::checkAssetChanges, 20,
+                    ASSET_CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
+                Logger.info(this, "FGS", "后台资产监测已启动，间隔 " + ASSET_CHECK_INTERVAL_SECONDS + " 秒");
+            }
         } catch (Exception e) {
             Logger.error(this, "FGS", "启动定时任务失败: " + e.getMessage(), e);
         }
@@ -92,10 +103,6 @@ public class AgentForegroundService extends Service {
     }
 
     private void runAnalysisCycle() {
-        String selectedChain = WalletManager.getChain(this);
-        if (selectedChain == null || selectedChain.isEmpty()) {
-            selectedChain = "ETH";
-        }
         try {
             // 当 Activity 在前台时，让 Activity 的 scheduler 处理（避免重复分析）
             if (activityInForeground) {
@@ -105,30 +112,77 @@ public class AgentForegroundService extends Service {
             // 注意：不检查 autoTradeEnabled —— 用户启动了 Agent 就要持续监控分析
             // 是否执行真实交易由 SafetyGate 在工具调用层拦截（autoTradeEnabled=false 时写入工具被拒绝）
 
-            AINotificationHelper.notifyScheduledTask(this, "AI 定时分析开始", "链: " + selectedChain + "，正在执行周期分析...");
-
-            // 拉取主周期 K 线
-            String primaryCycle = TradingCycleConfig.getPrimaryCycle(this);
-            MarketData data = MultiChainMarketData.getKlines(selectedChain, primaryCycle, 100);
-            if (data == null || data.prices == null || data.prices.length == 0) {
-                Logger.warning(this, "FGS", "无法获取市场数据");
+            // 多链监控：收集用户所有钱包覆盖的链，对每条链分别分析
+            java.util.List<String> chains = collectMonitorChains();
+            if (chains.isEmpty()) {
+                Logger.warning(this, "FGS", "没有可监控的链，跳过本轮分析");
                 return;
+            }
+
+            AINotificationHelper.notifyScheduledTask(this, "AI 定时分析开始",
+                "监控链: " + TextUtils.join("、", chains) + "，正在执行周期分析...");
+
+            String primaryCycle = TradingCycleConfig.getPrimaryCycle(this);
+            int analyzed = 0;
+            for (String chain : chains) {
+                analyzed += analyzeChain(chain, primaryCycle);
+            }
+
+            if (analyzed > 0) {
+                AIOperationLogManager.logAnalysis(this, "ALL", "AI 定时分析完成",
+                    "已分析 " + analyzed + " 条链", "success");
+            }
+        } catch (Exception e) {
+            Logger.error(this, "FGS", "分析周期失败: " + e.getMessage(), e);
+            AIOperationLogManager.logAnalysis(this, "ALL", "AI 定时分析失败", e.getMessage(), "failed");
+        }
+    }
+
+    /** 收集需要监控的链：所有钱包覆盖的去重后的链列表；无钱包时回退到当前链 */
+    private java.util.List<String> collectMonitorChains() {
+        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+        try {
+            java.util.List<WalletManager.WalletInfo> wallets = WalletManager.getAllWallets(this);
+            for (WalletManager.WalletInfo w : wallets) {
+                if (w != null && w.chain != null && !w.chain.isEmpty()) {
+                    set.add(w.chain);
+                }
+            }
+        } catch (Exception e) {
+            Logger.warning(this, "FGS", "读取钱包列表失败: " + e.getMessage());
+        }
+        if (set.isEmpty()) {
+            String chain = WalletManager.getChain(this);
+            if (chain != null && !chain.isEmpty()) set.add(chain);
+            else set.add("ETH");
+        }
+        return new java.util.ArrayList<>(set);
+    }
+
+    /** 对单条链执行一次完整分析，返回是否成功分析 */
+    private int analyzeChain(String chain, String primaryCycle) {
+        try {
+            // 拉取主周期 K 线
+            MarketData data = MultiChainMarketData.getKlines(chain, primaryCycle, 100);
+            if (data == null || data.prices == null || data.prices.length == 0) {
+                Logger.warning(this, "FGS", "无法获取市场数据 chain=" + chain);
+                return 0;
             }
 
             // Agent 分析（AI 可自主调用工具，包括自动交易）
             TradingSignal signal;
             try {
                 AgentRuntime.AgentResult agentResult =
-                    AIAnalyzer.analyzeWithTools(this, data, selectedChain, safetyGate);
+                    AIAnalyzer.analyzeWithTools(this, data, chain, safetyGate);
                 signal = AIAnalyzer.parseAgentResult(agentResult);
                 if (agentResult != null && !agentResult.toolCallHistory.isEmpty()) {
-                    Logger.info(this, "FGS", "本轮工具调用 " + agentResult.toolCallHistory.size() + " 次");
+                    Logger.info(this, "FGS", "本轮工具调用 " + agentResult.toolCallHistory.size() + " 次 chain=" + chain);
                 }
             } catch (Exception agentErr) {
-                Logger.warning(this, "FGS", "Agent 模式失败，降级单轮 LLM 分析: " + agentErr.getMessage());
+                Logger.warning(this, "FGS", "Agent 模式失败，降级单轮 LLM 分析 chain=" + chain + ": " + agentErr.getMessage());
                 try {
                     AIAnalyzer fallbackAnalyzer = new AIAnalyzer();
-                    signal = fallbackAnalyzer.analyze(this, data, selectedChain);
+                    signal = fallbackAnalyzer.analyze(this, data, chain);
                 } catch (Exception llmErr) {
                     Logger.warning(this, "FGS", "LLM 不可用（网络不通/未配 Key），降级本地策略引擎");
                     signal = new StrategyEngine().analyze(data);
@@ -141,15 +195,15 @@ public class AgentForegroundService extends Service {
                 }
             }
 
-            handleSignal(signal, data, selectedChain);
-            String resultText = "链: " + selectedChain + "，信号: " + signal.getDisplayText();
-            AINotificationHelper.notifyScheduledTask(this, "AI 定时分析完成", resultText);
-            AIOperationLogManager.logAnalysis(this, selectedChain, "AI 定时分析完成", resultText, "success");
+            handleSignal(signal, data, chain);
+            String resultText = "链: " + chain + "，信号: " + signal.getDisplayText();
+            AIOperationLogManager.logAnalysis(this, chain, "AI 定时分析完成", resultText, "success");
+            return 1;
         } catch (Exception e) {
-            Logger.error(this, "FGS", "分析周期失败: " + e.getMessage(), e);
-            String errText = "链: " + selectedChain + "，错误: " + e.getMessage();
-            AINotificationHelper.notifyScheduledTask(this, "AI 定时分析失败", errText);
-            AIOperationLogManager.logAnalysis(this, selectedChain, "AI 定时分析失败", errText, "failed");
+            Logger.error(this, "FGS", "分析链失败 chain=" + chain + ": " + e.getMessage(), e);
+            String errText = "链: " + chain + "，错误: " + e.getMessage();
+            AIOperationLogManager.logAnalysis(this, chain, "AI 定时分析失败", errText, "failed");
+            return 0;
         }
     }
 
@@ -161,24 +215,35 @@ public class AgentForegroundService extends Service {
     private void handleSignal(TradingSignal signal, MarketData data, String chain) {
         if (signal == null) return;
         String signalType = signal.getDisplayText();
-        boolean isMajor = "STRONG_BUY".equals(signalType) || "STRONG_SELL".equals(signalType);
+        boolean isMajor = signal.type == TradingSignal.SignalType.STRONG_BUY
+            || signal.type == TradingSignal.SignalType.STRONG_SELL;
+
+        // 每次后台分析都推送实质报告（不再只在强买强卖时推送），
+        // 让用户停留在 HomeActivity 时也能主动看到分析内容，无需手动点 AI 按钮。
+        StringBuilder msg = new StringBuilder();
+        msg.append("【后台分析报告】\n");
+        msg.append("信号: ").append(signalType).append("\n");
+        if (data != null) {
+            msg.append("当前价格: $").append(String.format("%.4f", data.currentPrice)).append("\n");
+            if (data.change24h != 0) {
+                msg.append(String.format("24h涨跌: %+.2f%%\n", data.change24h));
+            }
+        }
+        msg.append("分析依据: ").append(signal.reason).append("\n");
+
+        if ("强烈买入".equals(signalType)) {
+            msg.append("\n检测到强烈买入信号。如果你已启用自动交易，AI 已尝试自动执行买入。");
+        } else if ("强烈卖出".equals(signalType)) {
+            msg.append("\n检测到强烈卖出信号。建议关注持仓。");
+        } else {
+            msg.append("\n当前无强烈买卖信号，维持现有策略，持续监控。");
+        }
+
+        appendToChatHistory("assistant", msg.toString());
+        AINotificationHelper.notifyScheduledTask(this, "【" + chain + "】AI 分析报告 · " + signalType,
+            msg.toString());
 
         if (isMajor) {
-            StringBuilder msg = new StringBuilder();
-            msg.append("【后台分析报告】\n");
-            msg.append("信号: ").append(signalType).append("\n");
-            if (data != null) {
-                msg.append(String.format("当前价格: $%.4f\n", data.currentPrice));
-            }
-            msg.append("分析依据: ").append(signal.reason).append("\n");
-
-            if ("STRONG_BUY".equals(signalType)) {
-                msg.append("\n检测到强烈买入信号。如果你已启用自动交易，AI 已尝试自动执行买入。");
-            } else {
-                msg.append("\n检测到强烈卖出信号。建议关注持仓。");
-            }
-
-            appendToChatHistory("assistant", msg.toString());
             AINotificationHelper.notifyAlert(this, "【" + chain + "】" + signalType, signal.reason);
         }
 
@@ -296,6 +361,76 @@ public class AgentForegroundService extends Service {
         return null;
     }
 
+    /**
+     * 后台实时资产监测：轻量对比当前资产快照与上次快照，发现变动即推送通知。
+     * 点击通知直达该笔交易详情，返回键退回资产列表。
+     */
+    private void checkAssetChanges() {
+        try {
+            String chain = WalletManager.getChain(this);
+            String address = WalletManager.getWalletAddress(this);
+            if (chain == null || chain.isEmpty() || address == null || address.isEmpty()) return;
+
+            // AIAgent 前台时由 Activity 自行检测，避免重复通知；HomeActivity 刷新与后台监测可能并存，靠快照去重
+            if (activityInForeground) return;
+
+            double nativeBalance;
+            try {
+                nativeBalance = ChainAPI.getNativeBalance(this, chain, address);
+            } catch (Exception e) {
+                return;
+            }
+
+            java.util.List<String[]> tokens;
+            try {
+                tokens = ChainAPI.getAllTokenBalances(this, chain, address, false);
+            } catch (Exception e) {
+                tokens = new java.util.ArrayList<>();
+            }
+
+            // 资产变动检测：与 HomeActivity 共用同一套"去重去抖"（恒定余额不重复报、
+            // 已通知代币不重复报、FGS 与前台刷新不叠加通知）
+            DataCache dataCache = new DataCache(this);
+            String nativeName = ChainAPI.getChainName(chain);
+            java.util.List<String[]> allTokens = new java.util.ArrayList<>();
+            allTokens.add(new String[]{chain, nativeName,
+                ChainAPI.formatAmount(nativeBalance), "0", "", "true"});
+            allTokens.addAll(tokens);
+
+            DataCache.AssetChangeResult chg = dataCache.detectAssetChange(address, allTokens, nativeBalance);
+            if (chg.shouldNotify) {
+                Logger.success(this, "FGS", "后台检测到资产变动");
+                String txHash = getLatestIncomingTxHash(chain, address);
+                String title = getString(R.string.title_asset_change_reminder);
+                String content = !chg.newTokens.isEmpty()
+                    ? getString(R.string.msg_asset_changed, chg.newTokens)
+                    : getString(R.string.msg_asset_changed_bg);
+                AINotificationHelper.notifyAssetChange(this, title, content, txHash, chain);
+            }
+        } catch (Exception e) {
+            Logger.warning(this, "FGS", "资产监测失败: " + e.getMessage());
+        }
+    }
+
+    /** 获取该钱包最新的一笔收款交易哈希（尽力而为），用于通知点击直达交易详情 */
+    private String getLatestIncomingTxHash(String chain, String address) {
+        try {
+            java.util.List<String[]> txs = ChainAPI.getTransactionHistory(this, chain, address, "", 1);
+            if (txs == null || txs.isEmpty()) return null;
+            for (String[] tx : txs) {
+                if (tx.length > 2 && tx[2] != null
+                    && tx[2].equalsIgnoreCase(address) && tx[0] != null && !tx[0].isEmpty()) {
+                    return tx[0];
+                }
+            }
+            String first = txs.get(0)[0];
+            return first != null && !first.isEmpty() ? first : null;
+        } catch (Exception e) {
+            Logger.warning(this, "FGS", "获取最新交易哈希失败: " + e.getMessage());
+            return null;
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -303,6 +438,10 @@ public class AgentForegroundService extends Service {
             if (scheduler != null) {
                 scheduler.shutdown();
                 scheduler = null;
+            }
+            if (assetScheduler != null) {
+                assetScheduler.shutdown();
+                assetScheduler = null;
             }
             Logger.info(this, "FGS", "AI 前台服务已停止");
         } catch (Exception e) {

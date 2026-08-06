@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2026 红魔团队 (Red Devil Team)
+ *
+ * This software is proprietary and confidential.
+ * Unauthorized copying, distribution, or modification is strictly prohibited.
+ *
+ * Licensed to: Authorized Users Only
+ * Authorization required: Contact aibgsps@gmail.com
+ */
 package com.aicryptowallet.app;
 
 import android.app.Application;
@@ -6,6 +15,9 @@ import android.content.SharedPreferences;
 
 /**
  * 应用全局上下文 - 初始化日志系统和全局异常处理
+ *
+ * AI Crypto Wallet - 红魔团队专有软件
+ * 未经授权禁止复制、修改或分发
  */
 public class CryptoWalletApplication extends Application {
 
@@ -17,6 +29,9 @@ public class CryptoWalletApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // 版权声明与授权验证
+        verifyAndLogLicense();
 
         // 应用用户设置的主题模式（浅色/深色/跟随系统）
         ThemeManager.applyTheme(this);
@@ -33,6 +48,23 @@ public class CryptoWalletApplication extends Application {
 
         // 版本升级时迁移节点配置
         migrateNodeConfig();
+    }
+
+    /**
+     * 验证授权并记录版权信息
+     */
+    private void verifyAndLogLicense() {
+        boolean authorized = LicenseManager.verifyLicense(this);
+        String fingerprint = LicenseManager.getSignatureFingerprint(this);
+
+        if (authorized) {
+            // 授权通过：记录版权信息
+            android.util.Log.i("AICryptoWallet", LicenseManager.getCopyrightNotice());
+            android.util.Log.i("AICryptoWallet", LicenseManager.getLicenseNotice());
+        } else {
+            // 授权失败：记录警告（release 版本不会显示，但日志中保留）
+            android.util.Log.e("AICryptoWallet", "UNAUTHORIZED: License verification failed!");
+        }
     }
 
     /**
