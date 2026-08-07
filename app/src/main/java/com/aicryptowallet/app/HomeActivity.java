@@ -4386,6 +4386,12 @@ public class HomeActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
+        // 若从上层 Activity（如 AIAgentActivity 的"操作记录"）进入本页，
+        // 按返回应回到上一层；仅当本页是任务根（正常主界面入口）时才退出 APP
+        if (!isTaskRoot()) {
+            finish();
+            return;
+        }
         finishAffinity();
     }
 
