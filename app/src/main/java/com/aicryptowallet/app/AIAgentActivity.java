@@ -167,12 +167,28 @@ public class AIAgentActivity extends BaseActivity {
 
             // 默认进入聊天模式（第一幕是对话框），渲染历史记录或欢迎语
             String presetMessage = getIntent().getStringExtra("preset_message");
+            // 从通知点开：把通知内容作为一条 AI 消息展示，让用户能直接看到通知里的内容
+            String notifContent = getIntent().getStringExtra("notification_content");
+            String notifTitle = getIntent().getStringExtra("notification_title");
+            boolean fromNotif = getIntent().getBooleanExtra("from_notification", false);
             if (chatList != null) {
                 if (!TextUtils.isEmpty(presetMessage)) {
                     // 从行情页等外部跳转过来，自动发送预设消息，无需用户手动粘贴
                     renderChatHistory();
                     scrollChatToBottom();
                     sendChatMessage(presetMessage);
+                } else if (fromNotif && !TextUtils.isEmpty(notifContent)) {
+                    // 点击通知进入：先渲染历史，再把通知内容作为 AI 消息展示（不触发 LLM）
+                    renderChatHistory();
+                    scrollChatToBottom();
+                    long nts = System.currentTimeMillis();
+                    String display = notifContent;
+                    if (!TextUtils.isEmpty(notifTitle) && !notifTitle.equals(getString(R.string.str_ai_currency_speculation_assistant))) {
+                        display = notifTitle + "\n" + notifContent;
+                    }
+                    appendChatMessage("assistant", display, nts);
+                    chatHistory.add(new String[]{"assistant", display, String.valueOf(nts)});
+                    saveChatHistory();
                 } else if (chatHistory.isEmpty()) {
                     String welcome = agentMemory != null ? agentMemory.getWelcomeMessage() :
                         "你好！我是 AI 助手，可以回答关于加密货币的问题。";
