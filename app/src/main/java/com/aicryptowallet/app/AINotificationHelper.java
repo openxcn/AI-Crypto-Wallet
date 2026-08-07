@@ -35,15 +35,10 @@ public class AINotificationHelper {
 
     // 基础通知 ID
     public static final int NOTIFICATION_ID_PERSIST = 1001;
-    private static final int BASE_CHAT_ID = 2000;
-    private static final int BASE_OPERATION_ID = 3000;
     private static final int BASE_PERMISSION_ID = 4000;
     private static final int BASE_SCHEDULED_ID = 5000;
-    private static final int BASE_ALERT_ID = 6000;
     private static final int BASE_ASSET_ID = 7000;
 
-    private static int chatCounter = 0;
-    private static int operationCounter = 0;
     private static int permissionCounter = 0;
     private static int scheduledCounter = 0;
     private static int alertCounter = 0;
@@ -86,23 +81,24 @@ public class AINotificationHelper {
 
     /**
      * AI 聊天回复通知。Activity 在前台时不弹通知。
+     * 通知瘦身：普通聊天回复不再推送系统通知，仅保留主动沟通/交易记录/用户决策三类。
      */
     public static void notifyChatReply(Context ctx, String title, String content) {
-        if (isChatActivityForeground()) return;
-        postNotification(ctx, CHANNEL_ID_CHAT, BASE_CHAT_ID + (++chatCounter % 100),
-            title, content, NotificationCompat.PRIORITY_DEFAULT, false);
+        // 已停用：普通聊天回复不再推送通知，避免打扰
+        Logger.info(ctx, "AI通知", "聊天回复通知已停用（瘦身）");
     }
 
     /**
      * AI 操作/工具调用通知。
+     * 通知瘦身：工具操作记录不再推送系统通知。
      */
     public static void notifyOperation(Context ctx, String title, String content) {
-        postNotification(ctx, CHANNEL_ID_OPERATION, BASE_OPERATION_ID + (++operationCounter % 100),
-            title, content, NotificationCompat.PRIORITY_DEFAULT, false);
+        // 已停用：工具操作记录不再推送通知
+        Logger.info(ctx, "AI通知", "操作记录通知已停用（瘦身）");
     }
 
     /**
-     * AI 权限申请通知（高优先级）。
+     * AI 权限申请通知（高优先级）。保留：需要用户决策时通知。
      */
     public static void notifyPermissionRequest(Context ctx, String title, String content) {
         postNotification(ctx, CHANNEL_ID_PERMISSION, BASE_PERMISSION_ID + (++permissionCounter % 100),
@@ -110,7 +106,7 @@ public class AINotificationHelper {
     }
 
     /**
-     * AI 定时任务通知。
+     * AI 定时任务通知。仅主动沟通消息使用。
      */
     public static void notifyScheduledTask(Context ctx, String title, String content) {
         postNotification(ctx, CHANNEL_ID_SCHEDULED, BASE_SCHEDULED_ID + (++scheduledCounter % 100),
@@ -119,10 +115,11 @@ public class AINotificationHelper {
 
     /**
      * AI 重大信号通知。
+     * 通知瘦身：分析信号已迁移到后台分析报告下拉列表，不再推送系统通知。
      */
     public static void notifyAlert(Context ctx, String title, String content) {
-        postNotification(ctx, CHANNEL_ID_ALERT, BASE_ALERT_ID + (++alertCounter % 100),
-            title, content, NotificationCompat.PRIORITY_HIGH, true);
+        // 已停用：分析信号不再推送通知，统一在后台分析报告列表查看
+        Logger.info(ctx, "AI通知", "重大信号通知已停用（瘦身）");
     }
 
     /**
@@ -228,17 +225,6 @@ public class AINotificationHelper {
             Logger.info(ctx, "AI通知", "已推送通知: " + title);
         } catch (Exception e) {
             Logger.error(ctx, "AI通知", "推送通知失败: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 判断 AIAgentActivity 是否在前台。
-     */
-    private static boolean isChatActivityForeground() {
-        try {
-            return AIAgentActivity.isForeground || AgentForegroundService.activityInForeground;
-        } catch (Exception e) {
-            return false;
         }
     }
 }

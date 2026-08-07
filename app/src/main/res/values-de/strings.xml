@@ -85,7 +85,11 @@
     <string name="title_ai_trading_settings">KI-Handelseinstellungen</string>
     <string name="str_ai_exchange">KI-Austausch</string>
     <string name="text_ai_analysis">KI-Analyse</string>
+    <string name="text_no_network">Gerät ist offline</string>
+    <string name="text_ai_analysis_timeout">Analyse abgelaufen. Bitte Netzwerk prüfen und erneut versuchen.</string>
     <string name="str_ai_analysis_report">KI-Analysebericht</string>
+    <string name="str_background_reports">Hintergrund-Analyseberichte</string>
+    <string name="toast_no_background_reports">Noch keine Hintergrund-Analyseberichte</string>
     <string name="str_ai_assistant">KI-Assistent</string>
     <string name="title_ai_assistant_is_not">AI Assistant ist nicht aktiviert</string>
     <string name="title_ai_security_interception">Abfangen von KI-Sicherheitsmaßnahmen</string>
@@ -792,6 +796,22 @@ Grund: Krypto ist sehr volatil, manuelle Bestätigung erforderlich.
 Aktueller Status des automatischen Handels: %1$s</string>
     <string name="str_enabled">Aktiviert ✅</string>
     <string name="str_disabled">Deaktiviert ⛔</string>
+    <string name="str_proactive_chat_title">Proaktiver Chat</string>
+    <string name="str_proactive_trading_switch">Handelsbenachrichtigungen</string>
+    <string name="str_proactive_chat_switch">Smalltalk</string>
+    <string name="str_proactive_switch_hint">Ausgeschaltet arbeitet die KI nur im Hintergrund mit Protokoll, keine aktiven Benachrichtigungen</string>
+    <string name="str_chat_frequency">Chat-Häufigkeit</string>
+    <string name="freq_occasional">Gelegentlich</string>
+    <string name="freq_normal">Normal</string>
+    <string name="freq_talky">Redselig</string>
+    <string name="freq_unlimited">Unbegrenzt</string>
+    <string name="str_personality_preset">KI-Ton</string>
+    <string name="preset_none">Standard</string>
+    <string name="preset_steady">Ruhig und Rational</string>
+    <string name="preset_humorous">Humorvoll</string>
+    <string name="preset_sarcasm">Sarkastisch</string>
+    <string name="preset_gentle">Sanft</string>
+    <string name="preset_firm">Entschlossen</string>
     <string name="str_enable_auto_trade">Automatischen Handel aktivieren</string>
     <string name="str_disable_auto_trade">Automatischen Handel deaktivieren</string>
     <string name="msg_cross_chain_risk_normal">Diese Transaktion wird über [%1$s] für %2$s abgewickelt, geschätzter Betrag $%3$s. Cross-Chain-Swaps beinhalten Bridge-Risiko, Slippage und Ankunftsverzögerungen. Bitte bestätigen Sie, dass Sie die Risiken verstehen.</string>

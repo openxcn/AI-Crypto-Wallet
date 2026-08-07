@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.view.Gravity;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,6 +38,8 @@ public class TokenDetailActivity extends BaseActivity {
     private int tokenDecimals = 18; // 默认18，通过RPC查询合约获取真实值
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
+    // AI 分析看门狗：网络分析超时后恢复按钮，避免按钮卡在禁用态"点不动"
+    private Runnable aiBtnWatchdog;
     private LinearLayout txListContainer;
     private ProgressBar progressLoading;
     private TextView tvNoTx;
@@ -75,6 +79,7 @@ public class TokenDetailActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (aiBtnWatchdog != null) handler.removeCallbacks(aiBtnWatchdog);
         if (!executor.isShutdown()) {
             executor.shutdownNow();
         }
@@ -296,9 +301,25 @@ public class TokenDetailActivity extends BaseActivity {
 
     private void startAiAnalysis() {
         Logger.info(this, "AI风险分析", "startAiAnalysis 开始: chain=" + chain + " contract=" + contractAddress + " symbol=" + tokenSymbol);
+
+        // 网络预检：未联网时直接提示，不进入分析，避免按钮被禁用后无结果
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, getString(R.string.text_no_network), Toast.LENGTH_LONG).show();
+            return;
+        }
+
         TextView btn = findViewById(R.id.btnAiAnalyze);
-        btn.setText(getString(R.string.text_ai_analysis));
-        btn.setEnabled(false);
+        // 点击后：红色 + "分析中"，便于区分是否正在分析
+        setAiBtnAnalyzing(btn);
+
+        // 看门狗：分析最多等待 3 分钟，超时后无论如何都恢复按钮，防止"点不动"
+        if (aiBtnWatchdog != null) handler.removeCallbacks(aiBtnWatchdog);
+        aiBtnWatchdog = () -> {
+            setAiBtnIdle(btn);
+            btn.setEnabled(true);
+            Toast.makeText(TokenDetailActivity.this, getString(R.string.text_ai_analysis_timeout), Toast.LENGTH_LONG).show();
+        };
+        handler.postDelayed(aiBtnWatchdog, 180000);
 
         executor.execute(() -> {
             try {
@@ -312,7 +333,8 @@ public class TokenDetailActivity extends BaseActivity {
                 RiskManager.saveRiskScore(this, chain, contractAddress, result.stars, result.report);
 
                 handler.post(() -> {
-                    btn.setText(getString(R.string.text_ai_analysis));
+                    if (aiBtnWatchdog != null) handler.removeCallbacks(aiBtnWatchdog);
+                    setAiBtnIdle(btn);
                     btn.setEnabled(true);
                     updateRiskDisplay(result.stars);
                     // 显示底部分享按钮
@@ -323,12 +345,36 @@ public class TokenDetailActivity extends BaseActivity {
             } catch (Exception e) {
                 Logger.error(TokenDetailActivity.this, "AI风险分析", "风险分析异常: " + e.getMessage(), e);
                 handler.post(() -> {
-                    btn.setText(getString(R.string.text_ai_analysis));
+                    if (aiBtnWatchdog != null) handler.removeCallbacks(aiBtnWatchdog);
+                    setAiBtnIdle(btn);
                     btn.setEnabled(true);
                     Toast.makeText(TokenDetailActivity.this, getString(R.string.text_ai_analysis, e.getMessage()), Toast.LENGTH_SHORT).show();
                 });
             }
         });
+    }
+
+    /** 按钮进入"分析中"状态：红色文字 + 红色底 + "分析中" */
+    private void setAiBtnAnalyzing(TextView btn) {
+        if (btn == null) return;
+        btn.setText(getString(R.string.text_analyzing));
+        btn.setTextColor(0xFFFF6B6B);
+        btn.setBackgroundResource(R.drawable.card_background_red);
+    }
+
+    /** 按钮恢复"空闲"状态：绿色文字 + AI 分析 + 默认底 */
+    private void setAiBtnIdle(TextView btn) {
+        if (btn == null) return;
+        btn.setText(getString(R.string.text_ai_analysis));
+        btn.setTextColor(0xFF4ADE80);
+        btn.setBackgroundResource(R.drawable.card_background);
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnected();
     }
 
     private void updateRiskDisplay(int stars) {

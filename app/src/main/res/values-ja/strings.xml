@@ -85,7 +85,11 @@
     <string name="title_ai_trading_settings">AI取引設定</string>
     <string name="str_ai_exchange">AI交換</string>
     <string name="text_ai_analysis">AI分析</string>
+    <string name="text_no_network">端末がオフラインです</string>
+    <string name="text_ai_analysis_timeout">分析がタイムアウトしました。ネットワークを確認して再試行してください。</string>
     <string name="str_ai_analysis_report">AI分析レポート</string>
+    <string name="str_background_reports">バックグラウンド分析レポート</string>
+    <string name="toast_no_background_reports">バックグラウンド分析レポートはありません</string>
     <string name="str_ai_assistant">AIアシスタント</string>
     <string name="title_ai_assistant_is_not">AI アシスタントが有効になっていません</string>
     <string name="title_ai_security_interception">AIセキュリティ傍受</string>
@@ -792,6 +796,22 @@
 現在の自動取引状態：%1$s</string>
     <string name="str_enabled">有効 ✅</string>
     <string name="str_disabled">無効 ⛔</string>
+    <string name="str_proactive_chat_title">主動チャット</string>
+    <string name="str_proactive_trading_switch">取引通知</string>
+    <string name="str_proactive_chat_switch">雑談のやり取り</string>
+    <string name="str_proactive_switch_hint">オフにするとAIはバックグラウンドで記録のみ行い、通知は送信しません</string>
+    <string name="str_chat_frequency">チャット頻度</string>
+    <string name="freq_occasional">時々</string>
+    <string name="freq_normal">通常</string>
+    <string name="freq_talky">よく話す</string>
+    <string name="freq_unlimited">無制限</string>
+    <string name="str_personality_preset">AIの口調</string>
+    <string name="preset_none">デフォルト</string>
+    <string name="preset_steady">冷静理知</string>
+    <string name="preset_humorous">ユーモア</string>
+    <string name="preset_sarcasm">毒舌</string>
+    <string name="preset_gentle">優しい</string>
+    <string name="preset_firm">果断的</string>
     <string name="str_enable_auto_trade">自動取引を有効にする</string>
     <string name="str_disable_auto_trade">自動取引を無効にする</string>
     <string name="msg_cross_chain_risk_normal">この取引は【%1$s】で%2$sを完了し、推定金額 $%3$sです。クロスチェーン兌換にはブリッジリスク、スリッページ、到着遅延があります。リスクを理解した上で確認してください。</string>

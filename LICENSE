@@ -1,32 +1,71 @@
-AI Crypto Wallet - 专有软件许可协议
-版权所有 (C) 2026 红魔团队. 保留所有权利.
+AI Crypto Wallet — Business Source License 1.1 (BSL-1.1)
+已按红魔团队商业模式定制 Additional Use Grant 与 Change Date。
 
-本软件及其相关文档文件（以下简称"软件"）归红魔团队所有，受版权法和国际版权条约
-以及其他知识产权法和条约的保护。
+────────────────────────────────────────────────
+【中文说明 / Chinese Summary】（本段为说明，非许可条款正文）
+本软件采用 Business Source License 1.1（源码可见，非 OSI 开源协议）。
+你可以：
+- 自由查看、审计源码
+- 个人、非商业目的下载、安装、使用本应用
+你不可：
+- 未经红魔团队书面授权进行商业使用、再分发、托管运营或销售
+- 以本软件为基础分叉后用于商业牟利
+- 移除版权声明 / 商标
+Change Date（转换日）：2031-08-06 之后，本软件自动转为 Apache License 2.0。
+如需商用授权，请联系 aibgsps@gmail.com
+────────────────────────────────────────────────
 
-授予许可：
-1. 您被授予非独占的、不可转让的、有限的许可，允许您在授权设备上安装和使用本软件。
+Business Source License 1.1
 
-2. 未经红魔团队书面授权，您不得：
-   (a) 复制、修改、改编、翻译本软件的任何部分；
-   (b) 对本软件进行反向工程、反编译或反汇编；
-   (c) 出租、出借、转授许可或以其他方式转让本软件的任何权利；
-   (d) 将本软件用于任何非法目的；
-   (e) 移除或更改本软件中的任何版权声明或其他所有权声明。
+License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
+"Business Source License" is a trademark of MariaDB Corporation Ab.
 
-3. 本软件的所有权和知识产权归红魔团队所有。本软件受版权法和其他知识产权法保护。
+Parameters
 
-4. 未经授权分发：
-   严禁未经红魔团队明确书面授权，以任何形式（包括但不限于直接上传到其他网站、
-   通过 P2P 网络分发、作为其他应用的一部分分发等）分发本软件。
+Licensor:            红魔团队 (Red Devil Team)
+Licensed Work:       AI Crypto Wallet
+Additional Use Grant: You may make use of the Licensed Work solely for your own
+                      personal, non-commercial purposes, including downloading,
+                      installing, and using the application, and reviewing the
+                      source code for security auditing. Any commercial use,
+                      redistribution, hosting, resale, or offering of the Licensed
+                      Work as a service, whether in original or modified form,
+                      requires a separate written license from the Licensor.
+Change Date:          2031-08-06
+Change License:       Apache License, Version 2.0
 
-5. 品牌声明：
-   AI Crypto Wallet、红魔团队及相关标志是红魔团队的商标。未经授权，
-   不得在任何产品、服务、出版物或网站中使用这些名称或标志。
+For information about alternative licensing arrangements for the Licensed Work,
+please contact: aibgsps@gmail.com
 
-免责声明：
-本软件按"现状"提供，不附带任何明示或暗示的担保，
-包括但不限于适销性、特定用途适用性和非侵权性的暗示担保。
+Terms
 
-联系信息：
-如需获取授权许可，请联系：aibgsps@gmail.com
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work. The
+Licensor may make an Additional Use Grant, above, permitting limited production
+use. If your use of the Licensed Work does not comply with the requirements
+stated in this License, you must purchase a commercial license from the
+Licensor, or refrain from using the Licensed Work.
+
+All copies of the original and modified Licensed Work, and derivative works of
+the Licensed Work, are subject to this License. This License applies separately
+for each version of the Licensed Work and the Change Date. Rights granted under
+this License are not automatically extended to any future versions of the
+Licensed Work. The rights granted under this License are granted to you on a
+non-exclusive, non-transferable basis.
+
+You may not attempt to remove or alter any license notices on the Licensed Work.
+You may not use the Licensed Work in violation of any applicable law.
+
+THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR OR
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE LICENSED WORK OR THE USE OR OTHER DEALINGS IN THE LICENSED
+WORK.
+
+Alternatively, if you are located in the United States, the Licensed Work is
+made available to you under the terms of the Apache License, Version 2.0,
+beginning on the Change Date described above.
+
+Copyright (c) 2026 红魔团队 (Red Devil Team). All rights reserved.

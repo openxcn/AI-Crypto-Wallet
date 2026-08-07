@@ -68,6 +68,19 @@ public class AgentRuntime {
     }
 
     /**
+     * 分步交互监听器：在 Agent 循环过程中实时回调中间信息，
+     * 用于实现"收到→先回一句→搜索→再回一句→推理→总结"的真实分步互动体验。
+     */
+    public interface RoundListener {
+        /** 中间轮次产出的自然语言文本（如"我来查一下""查到了…"），在 UI 上逐条展示 */
+        void onAssistantText(String text);
+        /** 开始执行某个工具（用于展示进度提示，如"正在查询市场数据…"） */
+        void onToolStart(String toolName);
+        /** 工具执行结束 */
+        void onToolEnd(String toolName, boolean success, String brief);
+    }
+
+    /**
      * 运行 Agent 循环
      *
      * @param userPrompt     用户意图/分析任务
@@ -76,6 +89,19 @@ public class AgentRuntime {
      * @return AgentResult 包含最终回复和工具调用历史
      */
     public AgentResult run(String userPrompt, String systemPrompt, int maxRounds) throws Exception {
+        return run(userPrompt, systemPrompt, maxRounds, null);
+    }
+
+    /**
+     * 运行 Agent 循环（带分步交互监听器）
+     *
+     * @param userPrompt     用户意图/分析任务
+     * @param systemPrompt   系统提示词（设定角色和安全规则）
+     * @param maxRounds      最大循环轮次
+     * @param listener       可选的分步交互监听器，用于实时回流中间产出；可为 null
+     * @return AgentResult 包含最终回复和工具调用历史
+     */
+    public AgentResult run(String userPrompt, String systemPrompt, int maxRounds, RoundListener listener) throws Exception {
         String apiKey = AIAnalyzer.getApiKeyStatic(ctx);
         String model = AIAnalyzer.getModelStatic(ctx);
         String apiUrl = AIAnalyzer.getApiUrlStatic(ctx);
@@ -136,10 +162,15 @@ public class AgentRuntime {
             messages.put(buildAssistantMessage(llmResponse, isClaude));
 
             if (toolCalls == null || toolCalls.length() == 0) {
-                // 没有工具调用，循环结束
+                // 没有工具调用，循环结束（最终回复由调用方展示，这里不重复回调）
                 Logger.success(ctx, "AgentRuntime", "Agent 完成，共 " + (round + 1) + " 轮，工具调用 " + callHistory.size() + " 次");
                 AINotificationHelper.notifyChatReply(ctx, "AI 助手", assistantText);
                 return new AgentResult(assistantText, callHistory, true);
+            }
+
+            // 中间轮次：先把本轮的中间文本实时回流给 UI（"先回一句"），再执行工具
+            if (listener != null && assistantText != null && !assistantText.trim().isEmpty()) {
+                listener.onAssistantText(assistantText.trim());
             }
 
             // 执行所有工具调用
@@ -162,8 +193,12 @@ public class AgentRuntime {
 
                 Logger.info(ctx, "AgentRuntime", "调用工具: " + toolName + " 参数=" + argsJsonStr);
 
+                if (listener != null) listener.onToolStart(toolName);
+
                 JSONObject args = new JSONObject(argsJsonStr);
                 AgentToolRegistry.ToolResult result = AgentToolRegistry.execute(ctx, toolName, args, chain, safetyGate);
+
+                if (listener != null) listener.onToolEnd(toolName, result.success, result.output);
 
                 AgentToolRegistry.ToolCallRecord record =
                     new AgentToolRegistry.ToolCallRecord(toolName, argsJsonStr, result);
