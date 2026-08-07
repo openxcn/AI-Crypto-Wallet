@@ -85,7 +85,11 @@
     <string name="title_ai_trading_settings">AI trading settings</string>
     <string name="str_ai_exchange">AI exchange</string>
     <string name="text_ai_analysis">AI analysis</string>
+    <string name="text_no_network">Device is offline</string>
+    <string name="text_ai_analysis_timeout">Analysis timed out. Please check your network and retry.</string>
     <string name="str_ai_analysis_report">AI analysis report</string>
+    <string name="str_background_reports">Background reports</string>
+    <string name="toast_no_background_reports">No background reports yet</string>
     <string name="str_ai_assistant">AI assistant</string>
     <string name="title_ai_assistant_is_not">AI Assistant is not enabled</string>
     <string name="title_ai_security_interception">AI security interception</string>
@@ -792,6 +796,22 @@ Reason: Crypto volatility is high, manual confirmation is required.
 Current auto-trading status: %1$s</string>
     <string name="str_enabled">Enabled ✅</string>
     <string name="str_disabled">Disabled ⛔</string>
+    <string name="str_proactive_chat_title">Proactive Chat</string>
+    <string name="str_proactive_trading_switch">Trading notifications</string>
+    <string name="str_proactive_chat_switch">Casual chat</string>
+    <string name="str_proactive_switch_hint">When off, AI works in background with logs only, no proactive push</string>
+    <string name="str_chat_frequency">Chat frequency</string>
+    <string name="freq_occasional">Occasional</string>
+    <string name="freq_normal">Normal</string>
+    <string name="freq_talky">Chatty</string>
+    <string name="freq_unlimited">Unlimited</string>
+    <string name="str_personality_preset">AI tone</string>
+    <string name="preset_none">Default</string>
+    <string name="preset_steady">Steady and Rational</string>
+    <string name="preset_humorous">Humorous</string>
+    <string name="preset_sarcasm">Sarcastic</string>
+    <string name="preset_gentle">Gentle</string>
+    <string name="preset_firm">Decisive</string>
     <string name="str_enable_auto_trade">Enable Auto Trading</string>
     <string name="str_disable_auto_trade">Disable Auto Trading</string>
     <string name="msg_cross_chain_risk_normal">This transaction will be completed via [%1$s] for %2$s, estimated amount $%3$s. Cross-chain swaps involve bridge risk, slippage and arrival delays. Please confirm you understand the risks.</string>

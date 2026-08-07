@@ -92,6 +92,7 @@ public class HomeActivity extends BaseActivity {
     private TextView tabTradeManual;
     private TextView tabTradeAI;
     private int currentTradeTab = 0; // 0=手动记录, 1=AI操作记录
+    private int currentMainTab = 0; // 当前主 Tab：0=资产, 1=首页, 2=交易, 3=发现, 4=我的
 
     // 外部跳转入口：直接打开 AI 操作记录
     public static final String EXTRA_SHOW_AI_RECORDS = "show_ai_records";
@@ -626,6 +627,7 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void switchTab(int index) {
+        currentMainTab = index;
         if (assetsSwipeRefresh != null) assetsSwipeRefresh.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
         if (tabHome != null) tabHome.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
         if (tabTrade != null) tabTrade.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
@@ -4387,11 +4389,17 @@ public class HomeActivity extends BaseActivity {
     @Override
     public void onBackPressed() {
         // 若从上层 Activity（如 AIAgentActivity 的"操作记录"）进入本页，
-        // 按返回应回到上一层；仅当本页是任务根（正常主界面入口）时才退出 APP
+        // 按返回应回到上一层；仅当本页是任务根时再处理主界面 Tab 返回
         if (!isTaskRoot()) {
             finish();
             return;
         }
+        // 任务根且当前不在默认 Tab（资产页）时，按返回先回到资产页，而不是直接退出 App
+        if (currentMainTab != 0) {
+            switchTab(0);
+            return;
+        }
+        // 已在默认（资产）页，按返回才退出 App
         finishAffinity();
     }
 

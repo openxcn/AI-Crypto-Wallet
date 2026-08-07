@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.IBinder;
-import android.text.TextUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.concurrent.Executors;
@@ -37,12 +36,16 @@ public class AgentForegroundService extends Service {
 
     public static final int NOTIFICATION_ID_PERSIST = AINotificationHelper.NOTIFICATION_ID_PERSIST;
     public static final String PREFS = "ai_agent_prefs";
+    /** 后台分析报告存储 Key（JSONArray，每项含 ts/content） */
+    public static final String KEY_BACKGROUND_REPORTS = "background_analysis_reports";
+    private static final int MAX_BACKGROUND_REPORTS = 50;
     private static final int CHECK_INTERVAL_MINUTES = 5;
     private static final int ASSET_CHECK_INTERVAL_SECONDS = 60;
     private static final MediaType JSON_TYPE = MediaType.parse("application/json");
 
     private ScheduledExecutorService scheduler;
     private ScheduledExecutorService assetScheduler;
+    private ScheduledExecutorService chatScheduler;
     private TradeAuthManager tradeAuthManager;
     private RiskManager riskManager;
     private SafetyGate safetyGate;
@@ -51,6 +54,11 @@ public class AgentForegroundService extends Service {
 
     /** 当 AIAgentActivity 在前台时设为 true，本服务跳过分析避免与 Activity 的 scheduler 重复 */
     public static volatile boolean activityInForeground = false;
+
+    /** 主动闲聊发送后通知已打开的聊天页刷新（由 AIAgentActivity 注册/注销） */
+    public static volatile Runnable onProactiveChatListener;
+    private static final android.os.Handler mainHandler =
+        new android.os.Handler(android.os.Looper.getMainLooper());
 
     @Override
     public void onCreate() {
@@ -96,6 +104,14 @@ public class AgentForegroundService extends Service {
                     ASSET_CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
                 Logger.info(this, "FGS", "后台资产监测已启动，间隔 " + ASSET_CHECK_INTERVAL_SECONDS + " 秒");
             }
+
+            // 主动闲聊定时器：按频率档位决定是否主动发一条闲聊消息
+            if (chatScheduler == null || chatScheduler.isShutdown()) {
+                chatScheduler = Executors.newSingleThreadScheduledExecutor();
+                chatScheduler.scheduleAtFixedRate(this::maybeSendProactiveChat, 60,
+                    CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES);
+                Logger.info(this, "FGS", "主动闲聊调度已启动，间隔 " + CHECK_INTERVAL_MINUTES + " 分钟");
+            }
         } catch (Exception e) {
             Logger.error(this, "FGS", "启动定时任务失败: " + e.getMessage(), e);
         }
@@ -118,9 +134,6 @@ public class AgentForegroundService extends Service {
                 Logger.warning(this, "FGS", "没有可监控的链，跳过本轮分析");
                 return;
             }
-
-            AINotificationHelper.notifyScheduledTask(this, "AI 定时分析开始",
-                "监控链: " + TextUtils.join("、", chains) + "，正在执行周期分析...");
 
             String primaryCycle = TradingCycleConfig.getPrimaryCycle(this);
             int analyzed = 0;
@@ -218,10 +231,8 @@ public class AgentForegroundService extends Service {
         boolean isMajor = signal.type == TradingSignal.SignalType.STRONG_BUY
             || signal.type == TradingSignal.SignalType.STRONG_SELL;
 
-        // 每次后台分析都推送实质报告（不再只在强买强卖时推送），
-        // 让用户停留在 HomeActivity 时也能主动看到分析内容，无需手动点 AI 按钮。
+        // 后台分析报告：不再推送到聊天框，整体存入"后台分析报告"下拉列表中
         StringBuilder msg = new StringBuilder();
-        msg.append("【后台分析报告】\n");
         msg.append("信号: ").append(signalType).append("\n");
         if (data != null) {
             msg.append("当前价格: $").append(String.format("%.4f", data.currentPrice)).append("\n");
@@ -239,13 +250,8 @@ public class AgentForegroundService extends Service {
             msg.append("\n当前无强烈买卖信号，维持现有策略，持续监控。");
         }
 
-        appendToChatHistory("assistant", msg.toString());
-        AINotificationHelper.notifyScheduledTask(this, "【" + chain + "】AI 分析报告 · " + signalType,
-            msg.toString());
-
-        if (isMajor) {
-            AINotificationHelper.notifyAlert(this, "【" + chain + "】" + signalType, signal.reason);
-        }
+        appendBackgroundAnalysisReport(chain, msg.toString());
+        // 通知瘦身：后台分析报告不再推送系统通知，仅保留在顶部下拉列表
 
         // 定时新闻推送
         boolean shouldPushNews = false;
@@ -258,7 +264,7 @@ public class AgentForegroundService extends Service {
             }
         } catch (Exception ignored) {}
 
-        if (shouldPushNews) {
+        if (shouldPushNews && AIAgentSettings.isProactiveTradingEnabled(this)) {
             try {
                 String query = chain + " market news";
                 JSONObject newsArgs = new JSONObject();
@@ -269,8 +275,7 @@ public class AgentForegroundService extends Service {
                 if (newsResult.success) {
                     String newsSummary = callLLMForNewsSummary(newsResult.output, query);
                     if (newsSummary != null && !newsSummary.isEmpty()) {
-                        appendToChatHistory("assistant", "【市场动态速递】\n" + newsSummary);
-                        AINotificationHelper.notifyScheduledTask(this, "【市场动态】" + chain, newsSummary);
+                        appendBackgroundAnalysisReport(chain, "【市场动态】\n" + newsSummary);
                     }
                 }
                 getSharedPreferences(PREFS, MODE_PRIVATE)
@@ -302,6 +307,30 @@ public class AgentForegroundService extends Service {
             prefs.edit().putString("chat_history", arr.toString()).apply();
         } catch (Exception e) {
             Logger.error(this, "FGS", "写入聊天记录失败: " + e.getMessage(), e);
+        }
+    }
+
+    /** 将后台分析报告追加到独立存储（供聊天框左上角下拉列表展示），不进入聊天框 */
+    private void appendBackgroundAnalysisReport(String chain, String content) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+            String json = prefs.getString(KEY_BACKGROUND_REPORTS, "[]");
+            JSONArray arr = new JSONArray(json);
+            JSONObject report = new JSONObject();
+            report.put("ts", System.currentTimeMillis());
+            report.put("chain", chain);
+            report.put("content", content);
+            arr.put(report);
+            // 最多保留最近 MAX_BACKGROUND_REPORTS 条
+            while (arr.length() > MAX_BACKGROUND_REPORTS) {
+                JSONArray newArr = new JSONArray();
+                for (int i = 1; i < arr.length(); i++) newArr.put(arr.get(i));
+                arr = newArr;
+            }
+            prefs.edit().putString(KEY_BACKGROUND_REPORTS, arr.toString()).apply();
+            Logger.info(this, "FGS", "已保存后台分析报告 chain=" + chain);
+        } catch (Exception e) {
+            Logger.error(this, "FGS", "写入后台分析报告失败: " + e.getMessage(), e);
         }
     }
 
@@ -398,7 +427,7 @@ public class AgentForegroundService extends Service {
             allTokens.addAll(tokens);
 
             DataCache.AssetChangeResult chg = dataCache.detectAssetChange(address, allTokens, nativeBalance);
-            if (chg.shouldNotify) {
+            if (chg.shouldNotify && AIAgentSettings.isProactiveTradingEnabled(this)) {
                 Logger.success(this, "FGS", "后台检测到资产变动");
                 String txHash = getLatestIncomingTxHash(chain, address);
                 String title = getString(R.string.title_asset_change_reminder);
@@ -410,6 +439,134 @@ public class AgentForegroundService extends Service {
         } catch (Exception e) {
             Logger.warning(this, "FGS", "资产监测失败: " + e.getMessage());
         }
+    }
+
+    /** 主动闲聊：按频率档位与当日限额决定是否主动发一条闲聊消息 */
+    private void maybeSendProactiveChat() {
+        try {
+            if (!AIAgentSettings.isProactiveChatEnabled(this)) return;
+
+            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+
+            // 当日限额（按自然日重置）
+            int dailyLimit = AIAgentSettings.getDailyChatLimit(this);
+            String dayKey = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US)
+                .format(new java.util.Date());
+            int sentToday = prefs.getInt("chat_sent_date_" + dayKey, 0);
+            if (dailyLimit > 0 && sentToday >= dailyLimit) return;
+
+            // 最小间隔（按频率档位）
+            long minGap = chatMinGapMillis(AIAgentSettings.getChatFrequency(this));
+            long lastTs = prefs.getLong("last_proactive_chat_ts", 0);
+            if (System.currentTimeMillis() - lastTs < minGap) return;
+
+            String topic = pickChatTopic();
+            String content = callLLMForCasualChat(topic);
+            if (content == null || content.isEmpty()) return;
+
+            appendToChatHistory("assistant", content);
+            if (AIAgentSettings.isProactiveChatEnabled(this)) {
+                AINotificationHelper.notifyScheduledTask(this,
+                    getString(R.string.str_proactive_chat_title), content);
+            }
+            prefs.edit()
+                .putLong("last_proactive_chat_ts", System.currentTimeMillis())
+                .putInt("chat_sent_date_" + dayKey, sentToday + 1)
+                .apply();
+            Logger.info(this, "FGS", "已发送一条主动闲聊，今日第 " + (sentToday + 1) + " 条");
+            // 通知已打开的聊天页实时刷新（若在聊天页，立即显示这条主动闲聊）
+            Runnable l = onProactiveChatListener;
+            if (l != null) {
+                mainHandler.post(l);
+            }
+        } catch (Exception e) {
+            Logger.warning(this, "FGS", "主动闲聊失败: " + e.getMessage());
+        }
+    }
+
+    /** 按频率档位返回两条主动闲聊之间的最小间隔毫秒 */
+    private long chatMinGapMillis(int freq) {
+        switch (freq) {
+            case AIAgentSettings.FREQ_OCCASIONAL: return 6L * 3600L * 1000L; // 偶尔：每 6 小时
+            case AIAgentSettings.FREQ_TALKY:      return 3600L * 1000L;      // 话痨：每 1 小时
+            case AIAgentSettings.FREQ_UNLIMITED:  return 30L * 60L * 1000L;  // 不限：每 30 分钟
+            case AIAgentSettings.FREQ_NORMAL:
+            default:                              return 4L * 3600L * 1000L; // 正常：每 4 小时
+        }
+    }
+
+    /** 随机挑选一个闲聊话题（世界观/人生/金融/数字货币/科技） */
+    private static final String[] CHAT_TOPICS = {
+        "对世界观的看法与思考",
+        "人生的意义与选择",
+        "关于金融投资本质的思考",
+        "数字货币与去中心化的未来",
+        "科技趋势与人类未来的关系",
+        "如何面对市场波动保持心态平和",
+        "长期主义与短期主义的取舍"
+    };
+    private String pickChatTopic() {
+        return CHAT_TOPICS[(int) (System.currentTimeMillis() % CHAT_TOPICS.length)];
+    }
+
+    /** 调用 LLM 生成一条符合当前语气设定、贴近自然语言的主动闲聊消息 */
+    private String callLLMForCasualChat(String topic) {
+        try {
+            String apiKey = AIAnalyzer.getApiKeyStatic(this);
+            String model = AIAnalyzer.getModelStatic(this);
+            String apiUrl = AIAnalyzer.getApiUrlStatic(this);
+            if (apiKey == null || apiKey.isEmpty() || model == null || model.isEmpty() || apiUrl == null || apiUrl.isEmpty()) {
+                return null;
+            }
+            String personality = (agentMemory != null) ? agentMemory.getPersonality() : "";
+            String presetText = AIAgentSettings.getPresetPersonalityText(this);
+            String tone = (presetText != null && !presetText.isEmpty()) ? presetText : personality;
+
+            String systemPrompt = "你是一个亲近用户的 AI 助手，性格：" + tone + "。\n" +
+                "请你用非常自然、像朋友聊天一样的口吻，围绕给定话题主动和用户聊几句。" +
+                "要有观点、有温度，但不要生硬说教，也不要刻意推销。" +
+                "控制在 2-4 句话以内。若涉及金融投资，请务必附带一句“非投资建议，自担风险”的提示。";
+            String userPrompt = "主动话题：" + topic + "\n请用自然的朋友口吻主动和主人聊这个话题。";
+
+            JSONArray messages = new JSONArray();
+            JSONObject sysMsg = new JSONObject();
+            sysMsg.put("role", "system");
+            sysMsg.put("content", systemPrompt);
+            messages.put(sysMsg);
+            JSONObject userMsg = new JSONObject();
+            userMsg.put("role", "user");
+            userMsg.put("content", userPrompt);
+            messages.put(userMsg);
+
+            String chatUrl = apiUrl;
+            if (!chatUrl.endsWith("/chat/completions")) {
+                chatUrl = chatUrl.endsWith("/") ? chatUrl + "chat/completions" : chatUrl + "/chat/completions";
+            }
+            JSONObject body = new JSONObject();
+            body.put("model", model);
+            body.put("messages", messages);
+            body.put("max_tokens", 400);
+            body.put("temperature", 1.0);
+
+            Request req = new Request.Builder()
+                .url(chatUrl)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .post(RequestBody.create(body.toString(), JSON_TYPE))
+                .build();
+
+            try (Response resp = httpClient.newCall(req).execute()) {
+                String respStr = resp.body() != null ? resp.body().string() : "";
+                JSONObject respJson = new JSONObject(respStr);
+                JSONArray choices = respJson.optJSONArray("choices");
+                if (choices != null && choices.length() > 0) {
+                    return choices.getJSONObject(0).getJSONObject("message").getString("content").trim();
+                }
+            }
+        } catch (Exception e) {
+            Logger.error(this, "FGS", "主动闲聊 LLM 生成失败: " + e.getMessage(), e);
+        }
+        return null;
     }
 
     /** 获取该钱包最新的一笔收款交易哈希（尽力而为），用于通知点击直达交易详情 */
@@ -442,6 +599,10 @@ public class AgentForegroundService extends Service {
             if (assetScheduler != null) {
                 assetScheduler.shutdown();
                 assetScheduler = null;
+            }
+            if (chatScheduler != null) {
+                chatScheduler.shutdown();
+                chatScheduler = null;
             }
             Logger.info(this, "FGS", "AI 前台服务已停止");
         } catch (Exception e) {

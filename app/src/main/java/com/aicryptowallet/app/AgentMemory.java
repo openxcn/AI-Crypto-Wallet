@@ -121,6 +121,15 @@ public class AgentMemory {
         return key.substring(0, 4) + "****" + key.substring(key.length() - 4);
     }
 
+    /** 生效的性格：优先用户选择的语气预设模板，否则沿用记忆里自由文本 */
+    private String effectivePersonality() {
+        String presetText = AIAgentSettings.getPresetPersonalityText(ctx);
+        if (presetText != null && !presetText.isEmpty()) {
+            return presetText;
+        }
+        return personality;
+    }
+
     /** 生成自述文本，注入到 LLM 系统提示词中 */
     public String toSystemPrompt() {
         // 动态获取当前钱包地址（用户可能刚导入新钱包）
@@ -141,7 +150,7 @@ public class AgentMemory {
         return ctx.getString(R.string.str_ai_system_prompt,
             aiName,
             ownerName,
-            personality,
+            effectivePersonality(),
             tradingChain,
             checkIntervalMinutes,
             symbol,
@@ -235,7 +244,7 @@ public class AgentMemory {
         return ctx.getString(R.string.str_ai_welcome_message,
                 owner,
                 aiName,
-                personality,
+                effectivePersonality(),
                 tradingChain,
                 checkIntervalMinutes,
                 symbol,

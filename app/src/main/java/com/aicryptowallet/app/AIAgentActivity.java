@@ -18,6 +18,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.FileProvider;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -70,7 +71,7 @@ public class AIAgentActivity extends BaseActivity {
     private View detailsPanel;          // 详情面板（原 ScrollView）
     private View chatPanel;             // 聊天面板
     private TextView btnToggleChat;     // 顶部切换按钮
-    private TextView btnChatMenu;       // 右上角下拉菜单按钮（包含新会话、会话列表、导出、清空）
+    private TextView btnChatMenu;       // 右上角下拉菜单按钮（包含新会话、会话列表、后台分析报告、导出、清空）
     private LinearLayout chatList;      // 消息列表容器
     private ScrollView chatScroll;      // 消息滚动视图
     private EditText etChatInput;       // 输入框
@@ -245,7 +246,7 @@ public class AIAgentActivity extends BaseActivity {
             if (btnToggleChat != null) {
                 btnToggleChat.setOnClickListener(v -> toggleChatMode());
             }
-            // 右上角下拉菜单（新会话 / 会话列表 / 导出 / 清空）
+            // 右上角下拉菜单（新会话 / 会话列表 / 后台分析报告 / 导出 / 清空）
             if (btnChatMenu != null) {
                 btnChatMenu.setOnClickListener(v -> showChatMenu(v));
             }
@@ -309,6 +310,8 @@ public class AIAgentActivity extends BaseActivity {
         AgentToolRegistry.setAskUserCallback(askUserCallback);
         // 标记 Activity 在前台：让前台服务跳过分析，避免与 Activity 的 scheduler 重复
         AgentForegroundService.activityInForeground = true;
+        // 注册主动闲聊实时刷新回调：后台/前台服务发了主动闲聊时，本页立即刷新显示
+        AgentForegroundService.onProactiveChatListener = this::refreshProactiveChat;
     }
 
     @Override
@@ -319,6 +322,8 @@ public class AIAgentActivity extends BaseActivity {
         AgentToolRegistry.clearAskUserCallback();
         // 标记 Activity 不在前台：让前台服务接管分析周期
         AgentForegroundService.activityInForeground = false;
+        // 注销主动闲聊刷新回调，避免 Activity 销毁后仍被调用
+        AgentForegroundService.onProactiveChatListener = null;
     }
 
     /**
@@ -561,22 +566,56 @@ public class AIAgentActivity extends BaseActivity {
         // 写入日志：用户消息
         Logger.info(this, "AI 对话", "用户: " + text);
 
-        // 占位的"思考中"气泡
+        // 占位的"思考中"气泡（会被后续分步消息逐条替换）
         appendChatMessage("assistant_thinking", "思考中...");
+
+        // 分步互动：Agent 循环中实时回流中间消息（先回一句 → 搜索 → 再回一句 → 推理 → 总结）
+        final java.util.concurrent.atomic.AtomicBoolean thinkingRemoved =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+        AgentRuntime.RoundListener roundListener = new AgentRuntime.RoundListener() {
+            @Override
+            public void onAssistantText(final String segText) {
+                handler.post(() -> {
+                    if (!thinkingRemoved.getAndSet(true)) {
+                        removeLastThinkingMessage();
+                    }
+                    // 中间消息：逐条展示，不推送系统通知（避免刷屏）
+                    appendChatSegment(segText, false);
+                });
+            }
+            @Override
+            public void onToolStart(final String toolName) {
+                handler.post(() -> {
+                    if (!thinkingRemoved.getAndSet(true)) {
+                        removeLastThinkingMessage();
+                    }
+                    String label = friendlyToolLabel(toolName);
+                    if (label != null) {
+                        appendChatSegment(label, false);
+                    }
+                });
+            }
+            @Override
+            public void onToolEnd(String toolName, boolean success, String brief) {
+                // 工具执行结果不逐条展示，避免刷屏，最终回复会统一总结
+            }
+        };
 
         // 后台调用 LLM（用 chatExecutor 避免卡死主 executor）
         chatExecutor.execute(() -> {
             String reply;
             try {
-                reply = callChatLLMWithRetry(text, 2);
+                reply = callChatLLMWithRetry(text, 2, roundListener);
             } catch (Exception e) {
                 reply = "调用 AI 失败（已重试）: " + e.getMessage();
                 Logger.error(this, "AI 聊天", "LLM 调用失败（已重试）", e);
             }
             final String finalReply = reply;
             handler.post(() -> {
-                // 移除"思考中"占位
-                removeLastThinkingMessage();
+                // 移除"思考中"占位（若已被中间消息替换则不再移除）
+                if (!thinkingRemoved.getAndSet(true)) {
+                    removeLastThinkingMessage();
+                }
                 // 解析 AI 回复中的 @SET 指令（AI 修改自身记忆）
                 if (agentMemory != null && agentMemory.applySetCommand(finalReply)) {
                     Logger.info(this, "AI 记忆", "AI 通过 @SET 修改了自身配置");
@@ -590,6 +629,7 @@ public class AIAgentActivity extends BaseActivity {
                     displayReply = before.isEmpty() ? "已按你的要求修改。" : before;
                 }
                 long aiNow = System.currentTimeMillis();
+                // 最终总结：作为最后一条消息展示（中间步骤已实时回流，无需再拆分）
                 appendChatMessage("assistant", displayReply, aiNow);
                 chatHistory.add(new String[]{"assistant", finalReply, String.valueOf(aiNow)});
                 // 写入日志：AI 回复
@@ -684,6 +724,85 @@ public class AIAgentActivity extends BaseActivity {
 
         // AI 助手消息同步推送系统通知（仅新消息，Activity 不在前台时）
         if (!isUser && !isThinking && notify) {
+            AINotificationHelper.notifyChatReply(this, "AI 助手", content);
+        }
+    }
+
+    /**
+     * 将工具名映射为友好的中文进度提示。
+     * 返回 null 表示该工具无需展示进度占位（避免刷屏）。
+     */
+    private String friendlyToolLabel(String toolName) {
+        if (toolName == null) return null;
+        switch (toolName) {
+            case "get_market_data":
+                return "正在查询市场数据…";
+            case "get_token_price":
+                return "正在查询代币价格…";
+            case "get_wallet_assets":
+                return "正在读取钱包资产…";
+            case "get_native_balance":
+                return "正在查询主链余额…";
+            case "get_token_balance":
+                return "正在查询代币余额…";
+            case "get_position":
+                return "正在查询当前持仓…";
+            case "get_safety_status":
+                return "正在检查安全网关…";
+            case "search_news":
+                return "正在搜索最新资讯…";
+            case "fetch_web_page":
+                return "正在抓取网页内容…";
+            case "query_dapp_whitelist":
+            case "request_dapp_whitelist":
+            case "remove_dapp_whitelist":
+                return "正在处理 DApp 白名单…";
+            case "list_wallets":
+                return "正在列出钱包…";
+            case "switch_wallet":
+                return "正在切换钱包…";
+            case "get_wallet_address":
+                return "正在读取钱包地址…";
+            default:
+                // 其余（交易类/写入类/浏览器类）不单独展示，避免频繁刷屏
+                return null;
+        }
+    }
+
+    /**
+     * 追加一条"分步"消息气泡（不显示时间轴，用于同一次回复拆出的后续片段）。
+     * 仅作为聊天界面展示，不重复写入完整历史（历史里仍以整条回复为准）。
+     */
+    private void appendChatSegment(String content, boolean notify) {
+        if (chatList == null || content == null) return;
+        TextView bubble = new TextView(this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        lp.gravity = Gravity.START;
+        lp.setMargins(0, 0, 0, 4);
+        bubble.setBackgroundResource(R.drawable.card_background);
+        bubble.setTextColor(0xFFFFFFFF);
+        bubble.setPadding(28, 16, 28, 16);
+        bubble.setLayoutParams(lp);
+        bubble.setTextSize(14);
+        bubble.setMaxWidth(getResources().getDisplayMetrics().widthPixels * 3 / 4);
+        bubble.setText(content);
+        bubble.setTextIsSelectable(true);
+        bubble.setOnLongClickListener(v -> {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager)
+                getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                android.content.ClipData clip = android.content.ClipData.newPlainText("AI对话", content);
+                cm.setPrimaryClip(clip);
+                Toast.makeText(this, getString(R.string.toast_copied), Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        });
+        chatList.addView(bubble);
+        scrollChatToBottom();
+        if (notify && !content.isEmpty()) {
             AINotificationHelper.notifyChatReply(this, "AI 助手", content);
         }
     }
@@ -866,6 +985,17 @@ public class AIAgentActivity extends BaseActivity {
         }
     }
 
+    /** 主动闲聊到达时的实时刷新：重载聊天记录并渲染到最底部 */
+    private void refreshProactiveChat() {
+        try {
+            loadChatHistory();
+            renderChatHistory();
+            scrollChatToBottom();
+        } catch (Exception e) {
+            Logger.error(this, "聊天记录", "主动闲聊刷新失败", e);
+        }
+    }
+
     /** 清空对话记录 */
     private void clearChatHistory() {
         if (chatHistory.isEmpty()) {
@@ -958,22 +1088,26 @@ public class AIAgentActivity extends BaseActivity {
     private void showChatMenu(View anchor) {
         try {
             androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, anchor);
-            popup.getMenu().add(0, 1, 0, getString(R.string.label_new_session));
-            popup.getMenu().add(0, 2, 1, getString(R.string.title_sessions_list));
-            popup.getMenu().add(0, 3, 2, getString(R.string.label_export_conversation));
-            popup.getMenu().add(0, 4, 3, getString(R.string.label_clear_conversation));
+            popup.getMenu().add(0, 1, 0, getString(R.string.str_background_reports));
+            popup.getMenu().add(0, 2, 1, getString(R.string.label_new_session));
+            popup.getMenu().add(0, 3, 2, getString(R.string.title_sessions_list));
+            popup.getMenu().add(0, 4, 3, getString(R.string.label_export_conversation));
+            popup.getMenu().add(0, 5, 4, getString(R.string.label_clear_conversation));
             popup.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
                 if (id == 1) {
-                    startNewSession();
+                    showBackgroundAnalysisReports(anchor);
                     return true;
                 } else if (id == 2) {
-                    showSessionList();
+                    startNewSession();
                     return true;
                 } else if (id == 3) {
-                    exportChatHistory();
+                    showSessionList();
                     return true;
                 } else if (id == 4) {
+                    exportChatHistory();
+                    return true;
+                } else if (id == 5) {
                     clearChatHistory();
                     return true;
                 }
@@ -984,6 +1118,97 @@ public class AIAgentActivity extends BaseActivity {
         } catch (Exception e) {
             Logger.error(this, "聊天菜单", "显示菜单失败", e);
         }
+    }
+
+    /** 后台分析报告存储 key（与前台服务共用） */
+    private static final String KEY_BACKGROUND_REPORTS = "background_analysis_reports";
+    private static final int MAX_BACKGROUND_REPORTS = 50;
+
+    /**
+     * 保存一条后台分析报告到独立存储（不进入聊天框）。
+     * 与 AgentForegroundService 使用相同的 key，保证前后台写入可互通读取。
+     */
+    private void saveBackgroundAnalysisReport(String chain, String content) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+            String json = prefs.getString(KEY_BACKGROUND_REPORTS, "[]");
+            JSONArray arr = json.isEmpty() ? new JSONArray() : new JSONArray(json);
+            JSONObject report = new JSONObject();
+            report.put("ts", System.currentTimeMillis());
+            report.put("chain", chain == null ? "" : chain);
+            report.put("content", content == null ? "" : content);
+            arr.put(report);
+            // 最多保留最近 MAX_BACKGROUND_REPORTS 条
+            while (arr.length() > MAX_BACKGROUND_REPORTS) {
+                JSONArray newArr = new JSONArray();
+                for (int i = 1; i < arr.length(); i++) newArr.put(arr.get(i));
+                arr = newArr;
+            }
+            prefs.edit().putString(KEY_BACKGROUND_REPORTS, arr.toString()).apply();
+            Logger.info(this, "后台分析报告", "已保存 chain=" + chain);
+        } catch (Exception e) {
+            Logger.error(this, "后台分析报告", "保存失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 点击左上角下拉箭头：以弹窗形式展示历史后台分析报告。
+     */
+    private void showBackgroundAnalysisReports(View anchor) {
+        try {
+            String json = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_BACKGROUND_REPORTS, "[]");
+            JSONArray arr = json.isEmpty() ? new JSONArray() : new JSONArray(json);
+            if (arr.length() == 0) {
+                Toast.makeText(this, getString(R.string.toast_no_background_reports), Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // 构建报告列表（最新的在最上面）
+            LinearLayout container = new LinearLayout(this);
+            container.setOrientation(LinearLayout.VERTICAL);
+            container.setPadding(dp(8), dp(8), dp(8), dp(8));
+            SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
+            for (int i = arr.length() - 1; i >= 0; i--) {
+                JSONObject report = arr.optJSONObject(i);
+                if (report == null) continue;
+                String chain = report.optString("chain", "");
+                String content = report.optString("content", "");
+                long ts = report.optLong("ts", 0);
+                String timeStr = ts > 0 ? sdf.format(new Date(ts)) : "";
+
+                TextView title = new TextView(this);
+                title.setText((chain.isEmpty() ? "" : "[" + chain + "] ") + getString(R.string.str_background_reports) + "  " + timeStr);
+                title.setTextColor(Color.parseColor("#FFE0E0E0"));
+                title.setTextSize(12);
+                title.setPadding(dp(4), dp(6), dp(4), dp(2));
+                container.addView(title);
+
+                TextView body = new TextView(this);
+                body.setText(content);
+                body.setTextColor(Color.parseColor("#FFB0B0B0"));
+                body.setTextSize(13);
+                body.setLineSpacing(dp(2), 1.0f);
+                body.setPadding(dp(4), 0, dp(4), dp(10));
+                body.setTextIsSelectable(true);
+                container.addView(body);
+            }
+
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(container);
+
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.str_background_reports))
+                .setView(scroll)
+                .setNegativeButton(getString(R.string.btn_off), null)
+                .show();
+            Logger.action(this, "AI Agent", "查看后台分析报告", null);
+        } catch (Exception e) {
+            Logger.error(this, "后台分析报告", "展示失败: " + e.getMessage(), e);
+        }
+    }
+
+    private int dp(int v) {
+        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     /**
@@ -1391,7 +1616,7 @@ public class AIAgentActivity extends BaseActivity {
      * 调用 LLM 进行多轮对话（OpenAI 兼容 / Claude）
      * 失败时返回友好错误，不抛异常给上层
      */
-    private String callChatLLM(String userMessage) throws Exception {
+    private String callChatLLM(String userMessage, AgentRuntime.RoundListener listener) throws Exception {
         String apiKey = AIAnalyzer.getApiKeyStatic(this);
         String model = AIAnalyzer.getModelStatic(this);
         String apiUrl = AIAnalyzer.getApiUrlStatic(this);
@@ -1535,7 +1760,7 @@ public class AIAgentActivity extends BaseActivity {
 
         // 使用 AgentRuntime 执行（支持工具调用）
         AgentRuntime runtime = new AgentRuntime(this, selectedChain, safetyGate);
-        AgentRuntime.AgentResult result = runtime.run(userPrompt.toString(), systemPrompt, 12);
+        AgentRuntime.AgentResult result = runtime.run(userPrompt.toString(), systemPrompt, 12, listener);
 
         // 记录工具调用历史（用于审计）
         if (result.toolCallHistory != null && !result.toolCallHistory.isEmpty()) {
@@ -1564,7 +1789,7 @@ public class AIAgentActivity extends BaseActivity {
      * 带重试的 LLM 调用包装。
      * 失败时自动重试一次（含超时、连接断开、API错误等），两次都失败才抛异常。
      */
-    private String callChatLLMWithRetry(String userMessage, int maxRetries) throws Exception {
+    private String callChatLLMWithRetry(String userMessage, int maxRetries, AgentRuntime.RoundListener listener) throws Exception {
         Exception lastException = null;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -1573,7 +1798,7 @@ public class AIAgentActivity extends BaseActivity {
                     // 重试前短暂等待，避开瞬时网络波动
                     Thread.sleep(1500);
                 }
-                return callChatLLM(userMessage);
+                return callChatLLM(userMessage, listener);
             } catch (Exception e) {
                 lastException = e;
                 Logger.warning(this, "AI 聊天", "LLM 调用失败(第" + attempt + "次): " + e.getMessage());
@@ -1759,8 +1984,8 @@ public class AIAgentActivity extends BaseActivity {
             msg.append("检测到强烈卖出信号。建议关注持仓，考虑止盈或止损。");
         }
 
-        appendChatMessage("assistant", msg.toString());
-        saveChatHistory();
+        // 后台分析报告：不再进入聊天框，存入"后台分析报告"下拉列表
+        saveBackgroundAnalysisReport(selectedChain, msg.toString());
 
         // 如果到了新闻汇报时间，让 AI 自主搜索新闻并推送
         if (shouldPushNews) {
@@ -1777,8 +2002,7 @@ public class AIAgentActivity extends BaseActivity {
                         // 用 AI 总结新闻
                         String newsSummary = callLLMForNewsSummary(newsResult.output, query);
                         if (newsSummary != null && !newsSummary.isEmpty()) {
-                            appendChatMessage("assistant", "【市场动态速递】\n" + newsSummary);
-                            saveChatHistory();
+                            saveBackgroundAnalysisReport(selectedChain, "【市场动态】\n" + newsSummary);
                         }
                     }
                     // 更新上次推送时间
@@ -2134,12 +2358,15 @@ public class AIAgentActivity extends BaseActivity {
 
     private void showSettings() {
         // 显示设置对话框
+        ScrollView scroller = new ScrollView(this);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(0, 0, 0, 16);
+        scroller.addView(layout);
 
         String currencyCode = CurrencyManager.getSelectedCurrency(this);
 
+        // ---------- 交易设置 ----------
         android.widget.EditText etLossLimit = new android.widget.EditText(this);
         etLossLimit.setHint(getString(R.string.hint_maximum_daily_loss_limit, currencyCode));
         etLossLimit.setText(String.valueOf(riskManager.getDailyLossLimit()));
@@ -2150,9 +2377,79 @@ public class AIAgentActivity extends BaseActivity {
         etLossLimit.setBackgroundColor(0xFF1a1a2e);
         layout.addView(etLossLimit);
 
+        // ---------- 主动聊天 ----------
+        addSettingsSectionTitle(layout, getString(R.string.str_proactive_chat_title));
+        SwitchCompat swProactiveMaster = new SwitchCompat(this);
+        swProactiveMaster.setText(getString(R.string.str_proactive_chat_title));
+        swProactiveMaster.setChecked(AIAgentSettings.isProactiveEnabled(this));
+        layout.addView(swProactiveMaster);
+
+        SwitchCompat swTrading = new SwitchCompat(this);
+        swTrading.setText(getString(R.string.str_proactive_trading_switch));
+        swTrading.setChecked(AIAgentSettings.isProactiveTradingEnabled(this));
+        layout.addView(swTrading);
+
+        SwitchCompat swChat = new SwitchCompat(this);
+        swChat.setText(getString(R.string.str_proactive_chat_switch));
+        swChat.setChecked(AIAgentSettings.isProactiveChatEnabled(this));
+        layout.addView(swChat);
+
+        // 让子开关随总开关联动的提示文字
+        TextView tvHint = new TextView(this);
+        tvHint.setText(getString(R.string.str_proactive_switch_hint));
+        tvHint.setTextSize(12);
+        tvHint.setTextColor(0xFF8a8aa8);
+        tvHint.setPadding(8, 4, 8, 8);
+        layout.addView(tvHint);
+
+        swProactiveMaster.setOnCheckedChangeListener((btn, checked) -> {
+            swTrading.setEnabled(checked);
+            swChat.setEnabled(checked);
+        });
+        swTrading.setEnabled(AIAgentSettings.isProactiveEnabled(this));
+        swChat.setEnabled(AIAgentSettings.isProactiveEnabled(this));
+
+        // ---------- 聊天频率 ----------
+        addSettingsSectionTitle(layout, getString(R.string.str_chat_frequency));
+        final int[] freqHolder = { AIAgentSettings.getChatFrequency(this) };
+        TextView tvFreq = buildSettingsOptionButton(frequencyName(freqHolder[0]));
+        layout.addView(tvFreq);
+        tvFreq.setOnClickListener(v -> {
+            final String[] names = { getString(R.string.freq_occasional), getString(R.string.freq_normal),
+                getString(R.string.freq_talky), getString(R.string.freq_unlimited) };
+            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.AlertDialogCustom)
+                .setTitle(getString(R.string.str_chat_frequency))
+                .setItems(names, (d, which) -> {
+                    freqHolder[0] = which;
+                    tvFreq.setText(frequencyName(which));
+                })
+                .setNegativeButton(getString(R.string.btn_s_decline), null)
+                .show();
+        });
+
+        // ---------- AI 语气 ----------
+        addSettingsSectionTitle(layout, getString(R.string.str_personality_preset));
+        final int[] presetHolder = { AIAgentSettings.getPersonalityPreset(this) };
+        TextView tvPreset = buildSettingsOptionButton(presetName(presetHolder[0]));
+        layout.addView(tvPreset);
+        tvPreset.setOnClickListener(v -> {
+            final String[] names = { getString(R.string.preset_none), getString(R.string.preset_steady),
+                getString(R.string.preset_humorous), getString(R.string.preset_sarcasm),
+                getString(R.string.preset_gentle), getString(R.string.preset_firm) };
+            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.AlertDialogCustom)
+                .setTitle(getString(R.string.str_personality_preset))
+                .setItems(names, (d, which) -> {
+                    presetHolder[0] = which - 1; // PRESET_NONE = -1
+                    tvPreset.setText(presetName(presetHolder[0]));
+                })
+                .setNegativeButton(getString(R.string.btn_s_decline), null)
+                .show();
+        });
+
+        int masterDefault = AIAgentSettings.isProactiveEnabled(this) ? 1 : 0;
         new androidx.appcompat.app.AlertDialog.Builder(this, R.style.AlertDialogCustom)
             .setTitle(getString(R.string.title_ai_trading_settings))
-            .setView(layout)
+            .setView(scroller)
             .setMessage(getString(R.string.msg_ai_trading_instructions,
                 getString(autoTradeEnabled ? R.string.str_enabled : R.string.str_disabled)))
             .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
@@ -2167,6 +2464,15 @@ public class AIAgentActivity extends BaseActivity {
                 } catch (Exception e) {
                     Toast.makeText(this, getString(R.string.toast_please_enter_valid_number), Toast.LENGTH_SHORT).show();
                 }
+                AIAgentSettings.setProactiveEnabled(this, swProactiveMaster.isChecked());
+                AIAgentSettings.setProactiveTradingEnabled(this, swTrading.isChecked());
+                AIAgentSettings.setProactiveChatEnabled(this, swChat.isChecked());
+                AIAgentSettings.setChatFrequency(this, freqHolder[0]);
+                AIAgentSettings.setPersonalityPreset(this, presetHolder[0]);
+                Logger.info(this, "设置", "主动聊天设置已保存 (总开关=" + swProactiveMaster.isChecked()
+                    + " 交易=" + swTrading.isChecked() + " 闲聊=" + swChat.isChecked()
+                    + " 频率=" + freqHolder[0] + " 语气=" + presetHolder[0]
+                    + "，旧状态 master=" + masterDefault + ")");
             })
             .setNeutralButton(
                 autoTradeEnabled ? getString(R.string.str_disable_auto_trade) : getString(R.string.str_enable_auto_trade),
@@ -2186,6 +2492,52 @@ public class AIAgentActivity extends BaseActivity {
             })
             .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
+    }
+
+    /** 设置弹窗内的小节标题 */
+    private void addSettingsSectionTitle(LinearLayout parent, String title) {
+        TextView tv = new TextView(this);
+        tv.setText(title);
+        tv.setTextColor(0xFF7aa2ff);
+        tv.setTextSize(13);
+        tv.setPadding(8, 20, 8, 4);
+        parent.addView(tv);
+    }
+
+    /** 可点击的下拉选项按钮（点击后弹出选择） */
+    private TextView buildSettingsOptionButton(String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(0xFFFFFFFF);
+        tv.setPadding(24, 16, 24, 16);
+        tv.setBackgroundColor(0xFF1a1a2e);
+        tv.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.arrow_down_float, 0);
+        tv.setCompoundDrawablePadding(8);
+        return tv;
+    }
+
+    /** 频率档位显示名 */
+    private String frequencyName(int freq) {
+        switch (freq) {
+            case AIAgentSettings.FREQ_OCCASIONAL: return getString(R.string.freq_occasional);
+            case AIAgentSettings.FREQ_TALKY:      return getString(R.string.freq_talky);
+            case AIAgentSettings.FREQ_UNLIMITED:  return getString(R.string.freq_unlimited);
+            case AIAgentSettings.FREQ_NORMAL:
+            default:                              return getString(R.string.freq_normal);
+        }
+    }
+
+    /** 语气预设显示名 */
+    private String presetName(int preset) {
+        switch (preset) {
+            case AIAgentSettings.PRESET_STEADY:   return getString(R.string.preset_steady);
+            case AIAgentSettings.PRESET_HUMOROUS: return getString(R.string.preset_humorous);
+            case AIAgentSettings.PRESET_SARCASM:  return getString(R.string.preset_sarcasm);
+            case AIAgentSettings.PRESET_GENTLE:   return getString(R.string.preset_gentle);
+            case AIAgentSettings.PRESET_FIRM:     return getString(R.string.preset_firm);
+            case AIAgentSettings.PRESET_NONE:
+            default:                              return getString(R.string.preset_none);
+        }
     }
 
     private void saveState() {

@@ -463,7 +463,8 @@
                 android:text="@string/str_ai_assistant"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:gravity="center" />
 
             <TextView
                 android:id="@+id/btnChatMenu"
