@@ -1,0 +1,37 @@
+# AI Crypto Wallet
+
+> AI Crypto Wallet (AI 炒币助手) is a self-custodial cryptocurrency wallet for Android with an on-device AI self-trading agent. Private keys stay on your device and are never exposed to the AI.
+
+## What this is
+
+AI Crypto Wallet is a non-custodial crypto wallet with a built-in AI trading agent that runs entirely on-device. The AI reads market data (RSI, MACD, moving averages, Bollinger Bands), monitors open positions, and can execute stop-loss / take-profit trades within a hard safety gate. Private keys are generated and stored locally and are never transmitted or shown to the AI.
+
+## Key facts
+
+- Type: Self-custodial (non-custodial) crypto wallet for Android
+- Core feature: On-device AI self-trading agent
+- Chains supported: BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX (10 chains)
+- Security: Three defense lines (TradeAuthManager, SafetyGate, RiskManager), circuit breaker, daily and per-trade limits, token whitelist, full audit logs
+- Cross-chain defaults: $100 per-trade, $500 daily cap
+- Platform token: R-MAB (ecosystem participant privileges)
+- Languages: English, 中文, 日本語, Deutsch
+- License: Business Source License 1.1 (BSL-1.1), source-available and publicly auditable (NOT OSI open source)
+- License conversion: Apache 2.0 after Change Date 2031-08-06
+
+## Important links
+
+- GitHub repository: https://github.com/openxcn/AI-Crypto-Wallet
+- Download APK: https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk
+- Landing page: https://openxcn.github.io/AI-Crypto-Wallet/
+- Whitepaper (IPFS): https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom
+- License: https://github.com/openxcn/AI-Crypto-Wallet/blob/main/LICENSE
+
+## Commercial licensing
+
+For commercial licensing, redistribution, hosting, or offering as a service, contact: aibgsps@gmail.com
+
+Copyright (C) 2026 Red Devil Team (红魔团队). All rights reserved.
+
+## Disclaimer
+
+Not financial advice. The AI provides analysis only. Cryptocurrency trading is highly risky. Use at your own risk.
