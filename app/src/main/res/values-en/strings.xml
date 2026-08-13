@@ -61,6 +61,10 @@
     <string name="text_details">%1$sDetails</string>
     <string name="toast_copied">%1$sCopied</string>
     <string name="str_create_import_wallet">+ Create/Import wallet</string>
+    <string name="str_oneclick_import_wallet">One-click import wallets</string>
+    <string name="toast_imported_count">Imported into %1$d chain(s)</string>
+    <string name="toast_no_wallet_reusable">No mainnet wallet to reuse. Please create or import one first.</string>
+    <string name="toast_no_custom_chain">Please add a custom/test chain first.</string>
     <string name="str_add">+ add</string>
     <string name="str_0_records">0 records</string>
     <string name="str_1_select_the_supplier">1. Select the supplier below\n2. Click &quot;Get Key&quot; to jump to the supplier\'s official website for registration\n3. Generate the API Key on the official website and copy it back\n4. Fill in the Key and click &quot;Activate&quot; to use it\n\nThe API Key will be encrypted and stored locally and will not be uploaded to any server.</string>
@@ -216,6 +220,18 @@
     <string name="text_analysis_failed">Analysis failed: %1$s</string>
     <string name="str_switch_desktop">Switch Desktop</string>
     <string name="str_change_account">Change Account</string>
+    <string name="str_dapp_op_history">Operation History</string>
+    <string name="str_dapp_op_history_hint">View this wallet\'s actions within DApps</string>
+    <string name="title_dapp_op_history">DApp Operation History</string>
+    <string name="msg_no_dapp_op_history">No operation history</string>
+    <string name="btn_clear_history">Clear History</string>
+    <string name="toast_op_history_cleared">Operation history cleared</string>
+    <string name="str_browse_history">Browsing History</string>
+    <string name="msg_no_browser_history">No browsing history</string>
+    <string name="msg_no_favorites">No favorites</string>
+    <string name="btn_clear_browse_history">Clear Browsing History</string>
+    <string name="toast_history_deleted">Record deleted</string>
+    <string name="toast_history_cleared">Browsing history cleared</string>
     <string name="text_create_wallet">Create %1$s wallet</string>
     <string name="str_create_new_wallet">Create new wallet</string>
     <string name="text_create_wallet_2">Create Wallet</string>
@@ -400,6 +416,12 @@
     <string name="str_technical_specification">Technical Specification</string>
     <string name="toast_report_copied">Report Copied!</string>
     <string name="btn_reject">Reject</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_use_alternative">Use an alternative bridge</string>
+    <string name="title_alternative_bridges">Choose an alternative bridge</string>
+    <string name="msg_dapp_restricted">This DApp has been flagged as unsafe by the system and is completely blocked; it cannot be opened or connected.\n\nRestricted source: %1$s</string>
+    <string name="msg_dapp_restricted_incident">[Fund loss advisory] %1$s has suffered serious security incidents: in October 2023 its cross-chain bridge contract was hacked with losses of about $28 million; in December 2023 it was attacked again with losses of about $110,000. This platform has been proven to have major fund security risks. Please do not use it to avoid asset loss.</string>
+    <string name="msg_alternative_bridges">Recommended alternative bridges:</string>
     <string name="str_licensing">licensing</string>
     <string name="toast_auth_revoked">Authorization revoked: 1...</string>
     <string name="text_authorization_scan_failed">Authorization scan failed: 1</string>
@@ -499,6 +521,21 @@
     <string name="toast_failed_to_add">Failed to add: 1</string>
     <string name="title_add_contact">Add Contact</string>
     <string name="title_adding_custom_token">Adding a custom token</string>
+    <string name="str_search_token_hint">Search token name/symbol/contract</string>
+    <string name="btn_restore_hidden_tokens">Restore hidden tokens</string>
+    <string name="str_home_assets">Home Assets</string>
+    <string name="str_custom_tokens">Custom Tokens</string>
+    <string name="str_popular_tokens">Popular Tokens</string>
+    <string name="str_add_new_token">Add New Token</string>
+    <string name="str_already_added">Added</string>
+    <string name="str_remove">Remove</string>
+    <string name="str_no_matching_tokens">No matching tokens found</string>
+    <string name="str_no_home_assets">No home assets yet</string>
+    <string name="str_no_custom_tokens">No custom tokens yet</string>
+    <string name="str_no_popular_tokens">No popular tokens</string>
+    <string name="str_contract_address_hint">Contract address (0x...)</string>
+    <string name="str_token_symbol_hint">Token symbol (auto-detected)</string>
+    <string name="str_token_decimals_hint">Decimals (auto-filled)</string>
     <string name="title_add_custom_node">Add Custom Node</string>
     <string name="str_add_observation_wallet">Add observation wallet</string>
     <string name="str_empty">Empty</string>
@@ -838,6 +875,8 @@ After adding, AI will be able to:
 【Important】Please make sure you trust this DApp and set a reasonable limit.
 %2$s</string>
     <string name="disclaimer_whitelist_risk">【Disclaimer】Adding a link to the whitelist means you accept all risks at your own discretion. AI cannot guarantee the security of this link, DApp, or its smart contracts. The Red Devil Team shall not be liable for any asset loss caused by you actively whitelisting the link and bypassing AI security checks.</string>
+    <string name="marquee_whitelist_hint">Current operation is whitelisted, no payment password required. To disable, you must manually turn off AI auto-trading. The current behavior is within a controllable range; turning off AI auto-trading will affect AI operations.</string>
+    <string name="msg_dapp_manual_confirm_prompt">AI auto-trading is off. You are operating DApp: %1$s, amount %2$s. Please enter your payment password to confirm this manual transaction.</string>
     <string name="msg_token_blacklisted_send">%1$s has been flagged as a high-risk token by AI; all transactions and approvals are blocked.
 
 To continue, please whitelist this token on the token details page first.

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,15 @@ public class ChainAPI {
             .readTimeout(readTimeoutSec, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .connectionPool(new okhttp3.ConnectionPool(0, 1, TimeUnit.MILLISECONDS))
+            // 强制优先 IPv4：国内手机网络常出现 IPv6 路由不通，导致解析到 IPv6 后 10s 超时"连不上节点"
+            .dns(hostname -> {
+                java.net.InetAddress[] all = java.net.InetAddress.getAllByName(hostname);
+                java.util.List<java.net.InetAddress> v4 = new java.util.ArrayList<>();
+                for (java.net.InetAddress a : all) {
+                    if (a instanceof java.net.Inet4Address) v4.add(a);
+                }
+                return v4.isEmpty() ? java.util.Arrays.asList(all) : v4;
+            })
             .addInterceptor(chain -> chain.proceed(chain.request().newBuilder()
                 .header("User-Agent", "Mozilla/5.0")
                 .build()));
@@ -72,6 +82,16 @@ public class ChainAPI {
 
     // 价格 API 专用：更长超时 + 失败重试 + SSL 信任
     private static final OkHttpClient priceClient = createTrustAllClient(8, 10);
+
+    // === SOL/TRX 代币余额缓存（按钱包缓存，避免循环内逐币重复 RPC） ===
+    // SOL/TRX 是非 EVM 链，不能用 eth_call 查代币，必须用链原生方法：
+    //   SOL: getTokenAccountsByOwner（一次拿到钱包全部 SPL 代币）
+    //   TRX: TronGrid /v1/accounts/{address} 返回的 trc20 字段（一次拿到全部 TRC20 余额）
+    private static final Map<String, Map<String, Double>> solTokenCache = new HashMap<>();
+    private static final Map<String, Long> solTokenCacheTs = new HashMap<>();
+    private static final Map<String, Map<String, Double>> trxTokenCache = new HashMap<>();
+    private static final Map<String, Long> trxTokenCacheTs = new HashMap<>();
+    private static final long TOKEN_CACHE_TTL_MS = 30000L;
 
     // IP 直连专用 client：用于绕过 SNI 阻断直连 Cloudflare CDN IP。
     // 关键设计：不直接用 IP URL，而是用域名 URL + 自定义 DNS 把域名解析到指定 IP。
@@ -365,6 +385,13 @@ public class ChainAPI {
         }
     }
 
+    private static Context appCtx;
+
+    /** 由 Application 初始化，供无参静态方法读取自定义链 */
+    public static void init(Context ctx) {
+        if (ctx != null) appCtx = ctx.getApplicationContext();
+    }
+
     public static List<CustomChain> getCustomChains(Context ctx) {
         List<CustomChain> list = new ArrayList<>();
         try {
@@ -394,6 +421,20 @@ public class ChainAPI {
         for (int i = list.size() - 1; i >= 0; i--) {
             if (list.get(i).code.equals(code)) list.remove(i);
         }
+        saveCustomChains(ctx, list);
+    }
+
+    /** 更新自定义链（code 为标识，按 code 定位替换；不存在则新增）*/
+    public static void updateCustomChain(Context ctx, CustomChain chain) {
+        List<CustomChain> list = getCustomChains(ctx);
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).code.equals(chain.code)) {
+                list.set(i, chain);
+                saveCustomChains(ctx, list);
+                return;
+            }
+        }
+        list.add(chain);
         saveCustomChains(ctx, list);
     }
 
@@ -445,6 +486,11 @@ public class ChainAPI {
         for (String[] c : CHAIN_CONFIG) {
             if (c[0].equals(chain)) return c[1];
         }
+        if (appCtx != null) {
+            for (CustomChain cc : getCustomChains(appCtx)) {
+                if (cc.code.equals(chain)) return cc.name;
+            }
+        }
         return chain;
     }
 
@@ -461,6 +507,11 @@ public class ChainAPI {
     public static String getChainSymbol(String chain) {
         for (String[] c : CHAIN_CONFIG) {
             if (c[0].equals(chain)) return c[3];
+        }
+        if (appCtx != null) {
+            for (CustomChain cc : getCustomChains(appCtx)) {
+                if (cc.code.equals(chain)) return cc.symbol;
+            }
         }
         return chain;
     }
@@ -484,10 +535,42 @@ public class ChainAPI {
         return false;
     }
 
+    /** 是否为用户自定义链（含币安测试网等测试链）。自定义链上的代币不套用真实价格。 */
+    public static boolean isCustomChain(Context ctx, String chain) {
+        if (chain == null || chain.isEmpty()) return false;
+        for (CustomChain cc : getCustomChains(ctx)) {
+            if (cc.code.equals(chain)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 在已获取的价格表上取代币价格。
+     * 自定义/测试链上的代币一律返回 0，避免测试代币（如测试网 USDT）套用到主网同名代币的真实价格。
+     * 复用调用方已获取的 prices，不额外联网。
+     */
+    public static double resolveTokenPrice(Map<String, Double> prices, Context ctx, String chain, String symbol) {
+        if (isCustomChain(ctx, chain)) return 0;
+        return prices != null ? prices.getOrDefault(symbol, 0.0) : 0.0;
+    }
+
+    /**
+     * 在已获取的价格表上取原生币价格。自定义/测试链统一返回 0。
+     */
+    public static double resolveNativePrice(Map<String, Double> prices, Context ctx, String chain) {
+        if (isCustomChain(ctx, chain)) return 0;
+        return prices != null ? prices.getOrDefault(chain, 0.0) : 0.0;
+    }
+
     private static String getRpcUrl(Context ctx, String chain) {
         String url = WalletManager.getRpcUrl(ctx, chain);
-        // 如果 WalletManager 返回空或默认占位，尝试从公开预设找一个可用节点
+        // 如果 WalletManager 返回空或默认占位，先回退到自定义链用户填写的 RPC
         if (url == null || url.isEmpty() || "default".equals(url)) {
+            for (CustomChain cc : getCustomChains(ctx)) {
+                if (cc.code.equals(chain) && cc.rpc != null && !cc.rpc.isEmpty()) {
+                    return cc.rpc;
+                }
+            }
             url = NodeManager.findFirstAvailableNode(chain);
             if (url != null && !url.isEmpty()) {
                 Logger.network(ctx, "RPC", "WalletManager 无节点，自动选择 " + Logger.getChainChineseName(chain) + " 节点：" + url);
@@ -501,14 +584,23 @@ public class ChainAPI {
      * 获取链的 RPC URL（公开方法）- 直接使用 WalletManager
      */
     public static String getRpcUrlStatic(Context ctx, String chain) {
-        return WalletManager.getRpcUrl(ctx, chain);
+        String url = WalletManager.getRpcUrl(ctx, chain);
+        // 自定义链可无预设节点，回退到用户填写的 RPC
+        if (url == null || url.isEmpty() || "default".equals(url)) {
+            for (CustomChain cc : getCustomChains(ctx)) {
+                if (cc.code.equals(chain) && cc.rpc != null && !cc.rpc.isEmpty()) {
+                    return cc.rpc;
+                }
+            }
+        }
+        return url;
     }
 
     public static double getNativeBalance(Context ctx, String chain, String address) throws Exception {
         Logger.info(ctx, "余额查询", "开始查询 " + Logger.getChainChineseName(chain) + " 余额");
         try {
             double balance;
-            if (isEVM(chain)) {
+            if (isEVM(ctx, chain)) {
                 balance = getEVMBalance(ctx, chain, address);
             } else {
                 switch (chain) {
@@ -611,7 +703,60 @@ public class ChainAPI {
                 // Try next node
             }
         }
+
+        // 自定义链没有预设节点时，回落已知可靠的公开测试网节点
+        String[] fallbacks = getCustomChainFallbackNodes(chain);
+        if (fallbacks != null) {
+            for (String rpcUrl : fallbacks) {
+                if (rpcUrl.equals(currentRpc)) continue;
+                try {
+                    JSONObject body = new JSONObject();
+                    body.put("jsonrpc", "2.0");
+                    body.put("method", "eth_getBalance");
+                    JSONArray params = new JSONArray();
+                    params.put(address);
+                    params.put("latest");
+                    body.put("params", params);
+                    body.put("id", 1);
+
+                    Request request = new Request.Builder()
+                        .url(rpcUrl)
+                        .post(RequestBody.create(body.toString(), JSON_TYPE))
+                        .build();
+
+                    try (Response response = client.newCall(request).execute()) {
+                        String resp = response.body() != null ? response.body().string() : "";
+                        JSONObject json = new JSONObject(resp);
+                        if (json.has("result")) {
+                            NodeManager.setSelectedNode(ctx, chain, rpcUrl);
+                            String result = json.getString("result");
+                            BigInteger wei = new BigInteger(result.substring(2), 16);
+                            int decimals = getChainDecimals(chain);
+                            return wei.doubleValue() / Math.pow(10, decimals);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
         return 0;
+    }
+
+    /** 为已知的 EVM 测试网自定义链提供可靠的公开备用节点 */
+    private static String[] getCustomChainFallbackNodes(String chain) {
+        if (chain == null) return null;
+        String lower = chain.toLowerCase();
+        boolean isBscTest = (lower.contains("bsc") || lower.contains("binance") || lower.contains("bnb"));
+        if (isBscTest && (lower.contains("test") || lower.contains("testnet"))) {
+            return new String[]{
+                "https://bsc-testnet-rpc.publicnode.com",
+                "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+                "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
+                "https://bsc-testnet.bnbchain.org",
+                "https://bsc-testnet-dataseed.bnbchain.org"
+            };
+        }
+        return null;
     }
 
     /** 直接用指定 client 和 rpcUrl 查代币余额（用于 BSC Binance 节点 IP 直连） */
@@ -646,6 +791,24 @@ public class ChainAPI {
     }
 
     public static double getERC20Balance(Context ctx, String chain, String walletAddress, String tokenContract, int decimals) {
+        // SOL/TRX 是非 EVM 链，不能用 eth_call 查代币余额，必须用链原生方法
+        if ("SOL".equals(chain)) {
+            try {
+                return getSolTokenBalance(ctx, walletAddress, tokenContract, decimals);
+            } catch (Exception e) {
+                Logger.error(ctx, "代币余额", "SOL 代币查询失败: " + e.getMessage());
+                return 0;
+            }
+        }
+        if ("TRX".equals(chain)) {
+            try {
+                return getTrxTokenBalance(ctx, walletAddress, tokenContract, decimals);
+            } catch (Exception e) {
+                Logger.error(ctx, "代币余额", "TRX 代币查询失败: " + e.getMessage());
+                return 0;
+            }
+        }
+
         String rpcUrl = getRpcUrl(ctx, chain);
         if (rpcUrl == null || rpcUrl.isEmpty()) return 0;
 
@@ -808,6 +971,154 @@ public class ChainAPI {
             }
         }
         throw lastEx;
+    }
+
+    // === SOL SPL 代币余额（非 EVM，不能用 eth_call，改用 getTokenAccountsByOwner） ===
+    private static String[] solTokenEndpoints(Context ctx) {
+        List<String> list = new ArrayList<>();
+        String sel = getRpcUrl(ctx, "SOL");
+        if (sel != null && !sel.isEmpty()) list.add(sel);
+        for (NodeManager.NodeEntry e : NodeManager.getPresets("SOL")) {
+            if (!list.contains(e.url)) list.add(e.url);
+        }
+        return list.toArray(new String[0]);
+    }
+
+    /** 一次 getTokenAccountsByOwner 拉取钱包全部 SPL 代币，返回 mint->原始余额(lamports) */
+    private static Map<String, Double> fetchSolTokenBalances(Context ctx, String wallet) throws Exception {
+        Exception lastEx = null;
+        for (String rpcUrl : solTokenEndpoints(ctx)) {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("jsonrpc", "2.0");
+                body.put("id", 1);
+                body.put("method", "getTokenAccountsByOwner");
+                JSONArray params = new JSONArray();
+                params.put(wallet);
+                JSONObject cfg = new JSONObject();
+                cfg.put("programId", "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+                params.put(cfg);
+                JSONObject opt = new JSONObject();
+                opt.put("encoding", "jsonParsed");
+                opt.put("commitment", "confirmed");
+                params.put(opt);
+                body.put("params", params);
+
+                Request request = new Request.Builder()
+                    .url(rpcUrl)
+                    .post(RequestBody.create(body.toString(), JSON_TYPE))
+                    .build();
+                Map<String, Double> result = new HashMap<>();
+                try (Response response = client.newCall(request).execute()) {
+                    String resp = response.body() != null ? response.body().string() : "";
+                    JSONObject json = new JSONObject(resp);
+                    JSONObject res = json.optJSONObject("result");
+                    if (res == null) throw new Exception("SOL RPC 无 result: " + resp);
+                    JSONArray value = res.optJSONArray("value");
+                    if (value != null) {
+                        for (int i = 0; i < value.length(); i++) {
+                            JSONObject acc = value.optJSONObject(i);
+                            if (acc == null) continue;
+                            JSONObject account = acc.optJSONObject("account");
+                            if (account == null) continue;
+                            JSONObject data = account.optJSONObject("data");
+                            if (data == null) continue;
+                            JSONObject parsed = data.optJSONObject("parsed");
+                            if (parsed == null) continue;
+                            JSONObject info = parsed.optJSONObject("info");
+                            if (info == null) continue;
+                            String mint = info.optString("mint", "");
+                            JSONObject ta = info.optJSONObject("tokenAmount");
+                            if (mint.isEmpty() || ta == null) continue;
+                            String amount = ta.optString("amount", "0");
+                            double raw;
+                            try { raw = Double.parseDouble(amount); } catch (Exception ex) { continue; }
+                            if (raw > 0) result.put(mint.toLowerCase(), raw);
+                        }
+                    }
+                }
+                return result;
+            } catch (Exception e) {
+                lastEx = e;
+            }
+        }
+        throw lastEx != null ? lastEx : new Exception("SOL 节点全部不可用");
+    }
+
+    private static double getSolTokenBalance(Context ctx, String wallet, String mint, int decimals) throws Exception {
+        String key = wallet.toLowerCase();
+        Map<String, Double> cache = solTokenCache.get(key);
+        Long ts = solTokenCacheTs.get(key);
+        if (cache == null || ts == null || System.currentTimeMillis() - ts > TOKEN_CACHE_TTL_MS) {
+            cache = fetchSolTokenBalances(ctx, wallet);
+            solTokenCache.put(key, cache);
+            solTokenCacheTs.put(key, System.currentTimeMillis());
+        }
+        Double raw = cache.get(mint.toLowerCase());
+        if (raw == null) return 0;
+        return raw / Math.pow(10, decimals);
+    }
+
+    // === TRX TRC20 代币余额（非 EVM，不能用 eth_call，改用 TronGrid /v1/accounts 的 trc20 字段） ===
+    private static String[] trxTokenEndpoints(Context ctx) {
+        List<String> list = new ArrayList<>();
+        String sel = getRpcUrl(ctx, "TRX");
+        if (sel != null && !sel.isEmpty()) list.add(sel);
+        for (NodeManager.NodeEntry e : NodeManager.getPresets("TRX")) {
+            if (!list.contains(e.url)) list.add(e.url);
+        }
+        return list.toArray(new String[0]);
+    }
+
+    /** 一次 /v1/accounts/{address} 拉取钱包全部 TRC20，返回 合约地址->原始余额(sun) */
+    private static Map<String, Double> fetchTrxTokenBalances(Context ctx, String wallet) throws Exception {
+        Exception lastEx = null;
+        for (String base : trxTokenEndpoints(ctx)) {
+            try {
+                Request request = new Request.Builder()
+                    .url(base + "/v1/accounts/" + wallet)
+                    .get()
+                    .build();
+                Map<String, Double> result = new HashMap<>();
+                try (Response response = client.newCall(request).execute()) {
+                    String resp = response.body() != null ? response.body().string() : "";
+                    JSONObject json = new JSONObject(resp);
+                    JSONArray data = json.optJSONArray("data");
+                    if (data == null || data.length() == 0) return result;
+                    JSONArray trc20 = data.getJSONObject(0).optJSONArray("trc20");
+                    if (trc20 != null) {
+                        for (int i = 0; i < trc20.length(); i++) {
+                            JSONObject item = trc20.optJSONObject(i);
+                            if (item == null) continue;
+                            Iterator<String> it = item.keys();
+                            while (it.hasNext()) {
+                                String c = it.next().toLowerCase();
+                                double raw = item.optDouble(c, 0);
+                                if (raw > 0) result.put(c, raw);
+                            }
+                        }
+                    }
+                }
+                return result;
+            } catch (Exception e) {
+                lastEx = e;
+            }
+        }
+        throw lastEx != null ? lastEx : new Exception("TRX 节点全部不可用");
+    }
+
+    private static double getTrxTokenBalance(Context ctx, String wallet, String contract, int decimals) throws Exception {
+        String key = wallet.toLowerCase();
+        Map<String, Double> cache = trxTokenCache.get(key);
+        Long ts = trxTokenCacheTs.get(key);
+        if (cache == null || ts == null || System.currentTimeMillis() - ts > TOKEN_CACHE_TTL_MS) {
+            cache = fetchTrxTokenBalances(ctx, wallet);
+            trxTokenCache.put(key, cache);
+            trxTokenCacheTs.put(key, System.currentTimeMillis());
+        }
+        Double raw = cache.get(contract.toLowerCase());
+        if (raw == null) return 0;
+        return raw / Math.pow(10, decimals);
     }
 
     // === SUI ===
@@ -1343,6 +1654,7 @@ public class ChainAPI {
     private static final String[][] BSC_POPULAR_TOKENS = {
         {"0x55d398326f99059ff775485246999027b3197955", "USDT", "Tether USD (BSC-USD)", "18"},
         {"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "WBNB", "Wrapped BNB", "18"},
+        {"0x570a5d26f7765ecb712c0924e4de545b89fd43df", "SOL", "SOLANA (SOL)", "18"},
         {"0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82", "CAKE", "PancakeSwap Token", "18"},
         {"0x92cb10e1d503b5c41f54fcc6b576176e6f29fbad", "R-MAB", "R-MAB Token", "8"},
         {"0x2dca79ad9909989e2081793961866ad6e7777777", "GOUT", "GOUT", "18"},
@@ -1543,307 +1855,7 @@ public class ChainAPI {
         {"0x746681150a5f0a84c8f78ba4bde0ca98461e8117", "PLAY", "PLAY", "9"},
         {"0xa78775bba7a542f291e5ef7f13c6204e704a90ba", "METO", "Metafluence", "18"},
         {"0xd9d0e3dd09c78930de4ac83856bd0af6d3dd2022", "GERMANY", "Germany", "18"},
-        {"0xf21768ccbc73ea5b6fd3c687208a7c2def2d966e", "REEF", "Reef.finance", "18"},
-        {"0x0d5E0de6DB268C457FaFcdD4e06420C9A06DD958", "CWM", "Cats World Material", "0"},
-        {"0xf853AB433b92954e8C8CC0ba903d82e8e4cf81e9", "CWF", "Cats World Food", "18"},
-        {"0xdDD44F1De6895958700f1Ba0c488D5Ba09bfa93d", "CWW", "Cats World Water", "18"},
-        {"0x75Ea72a886c06ecB740eE707692790814551c975", "CWC", "Cats World Crystal", "18"},
-        {"0x5ECA48DfC4e9C3AEC106539ed9afE36eaA6F1EBf", "LYCC", "LYCC", "0"},
-        {"0x4da6ae398C67FEfD3b8d4A703BD088fa6d7C04e8", "universal NFT", "universal NFT", "0"},
-        {"0x95dd9252d67f57beb62d1c2becfa571513a3878d", "PG", "Puff Genesis", "0"},
-        {"0x8f4cAEa1e235412aa14283802674a714Bea7aAB3", "BWE NFT", "🐋BLUE WHALE EQUITY🐋", "0"},
-        {"0x064b2b701fcb52e7f36b7d4819fa8bc6d9873641", "TP Halloween", "TokenPocket Halloween", "0"},
-        {"0xe778ed42852a4bc1a24618449f7e5d18db279053", "GST", "Gangster", "0"},
-        {"0x63dfc8cb9b289b2299e58ec78d1e2f17bc006c80", "CAP", "Captain", "0"},
-        {"0x5a90f4efd019d6f102850123e1e5e567d5dd11f9", "RMS", "Romulus", "0"},
-        {"0x7ecf418a1ee143c6dfc4aa8083ee8ce79b44fa28", "REM", "Remus", "0"},
-        {"0xf1f54bcb45b181e760635dccedd71e808d6b7e03", "SLT", "Sultan", "0"},
-        {"0x28854d40c796234f4d3969b397c1d0177b3ded5b", "PTS", "Ploutos", "0"},
-        {"0x994b1603578ca6808a59a0a901c9986a2d3ebbef", "MM", "Mansa Musa", "0"},
-        {"0xf85bc8d8b25ff541e99beb894363c0ac6234435a", "Ocean Club", "Ocean Club", "0"},
-        {"0x2b09d47d550061f995a3b5c6f0fd58005215d7c8", "BABT", "Binance Account Bound Token", "0"},
-        {"0xaa27fbefb5a1ecf33b811b7a434ba79c3c903f40", "MECO", "MECO", "0"},
-        {"0x924e4969b9e84B21dA623FCaCEddED5e8b3a7AA4", "Ethereum legendary golden Warrior", "Ethereum legendary golden Warrior", "0"},
-        {"0x1B834FB933d184d11F0E3dB56708D4D5E55FdCdD", "RICHPANDA", "RichPandaNFT", "0"},
-        {"0x9EcDdEbcC98595C101893981Be850329309A075d", "NOK", "NFT Of KING", "0"},
-        {"0x493f90a35826A58DD0Fe186EA12b9b0dD7Cf0B9b", "ELF", "FREE ELF-KOL-NFT", "0"},
-        {"0xd464e7D5809CE4d501d2aBeD1A533c65741e3c32", "RainbowLand NFT", "RainbowLand NFT", "0"},
-        {"0x4F7EE72dEE4E788891E8EFA98530e0ebf0684607", "ROLL", "Rolling Festival Ticket", "0"},
-        {"0x20979D17c33A9ef2a0A8B67cFC342968c8D17CE1", "TIPBANK", "TIPBANK", "0"},
-        {"0xC5717beb3d8eda80Fbd91EC50e7F1643Fc981df3", "Uni NFT", "Uni NFT", "0"},
-        {"0x4208808C59557997889429760E80B5682d2BB21a", "LucyNFT", "LNFT", "0"},
-        {"0xADc466855ebe8d1402C5F7e6706Fccc3AEdB44a0", "OAT", "Galaxy OAT", "0"},
-        {"0x24A2eE4B20aE999c481fa38e4d2DDdeb93c8891C", "RDZ", "Redwood NFTs", "0"},
-        {"0x879A36EF64BAAE89B2cc3E9C99B8B9eA57B99341", "UCN", "Unicorn Classic", "0"},
-        {"0xd66e7433c16A9B3223D6425BEE27FFEeC9D11B54", "PEACE DOVE", "PEACE DOVE", "0"},
-        {"0x9f278be3867CA5e6DDb99ED85C3F035CbA1A02D5", "EGGPLUS", "EggPlus", "0"},
-        {"0x054eDDF9Af1Bff80286B2c27c64bAa0C8E94ce08", "LegendHeroNFT", "LegendHeroNFT", "0"},
-        {"0xF2a6AC56a2A73E882AD3d7Faf2082c814c1a6756", "H₂Life", "H₂Life NFT", "0"},
-        {"0xa395ad7ef26c377a7161216103aa2e8c6984e608", "PanDao", "PandaDao", "0"},
-        {"0xa3D9A53dDb66c1D2Eb94a2c93F8A19e28123CEbD", "SPORT NFT", "SPORT NFT", "0"},
-        {"0x0516858073A0bfEe84cCD55606853f26B3DD5fF7", "YDJ.NFT", "YDJ.NFT", "0"},
-        {"0xaCc4616c64b7e2259AA1bfB370b8Ae704E6BF653", "DORCT", "Day of right club token", "0"},
-        {"0xb8Cba308628D4293387dFDEf7d0E34c09C638ce7", "TP Baby", "TP Baby", "0"},
-        {"0x9c9e1e0aFE458fb2C06d24296DaC440141bFC101", "Dtap", "Dtap NFT", "0"},
-        {"0xb7F7c7D91Ede27b019e265F8ba04c63333991e02", "BWC", "Baby Wealthy Club", "0"},
-        {"0x9939CFd8B6F581322091C2d75f075Ba30bE5553A", "GALINFT", "GALINFT", "0"},
-        {"0x16eFCA28fDB2AA37862C100a5cB100E9dCcD9061", "MFB", "MEDAL OF BANK", "0"},
-        {"0xBf03AcE65338405773718aAa12A934164d483CeF", "Spurs NFT", "Spurs NFT", "0"},
-        {"0xf184d93D32501EA99d0C398CeCf0b79D439BE39D", "InterstellarHuma", "Interstellar Human", "0"},
-        {"0x182BC0Eff72dA63E46Eda3f3482007f9c008e534", "TajMahal-Rangoli", "TP IN SKIN", "0"},
-        {"0xAE05d5928705e6a378a4DD5468813dF35E20B9A7", "American cultura", "CTC NFT", "0"},
-        {"0x77FD5538080A0E8DA15360CFb80F06b9614202b1", "Disney Parks, Ex", "Disney NFT", "0"},
-        {"0x2F58dc9bf309e9076349a12302F375de7767217c", "CTC Rights", "CTC Rights", "0"},
-        {"0xDBfe087f8F56D81eF7741D65B99D6E7109CfF16a", "CryptobearClub", "CryptobearClub", "0"},
-        {"0x8679a0a5410657457a9C42A51f255b898A2338b2", "ZR", "ZR", "0"},
-        {"0xa530D44EF88311F5536edbaCFF3858bf267b8805", "MoaiStone", "MoaiStone", "0"},
-        {"0x6B67DBee6bbb2A43131a8d53417e64A2C0fA42E2", "S7", "S7", "0"},
-        {"0x176B537758C15B759699298c3e8Fc3e9ECE4bA77", "FGDNFT", "FGDNFT", "0"},
-        {"0x6791925e125047dA63E3D941d9Bf513893396c4F", "BABYOKX NFT", "BABYOKX NFT", "0"},
-        {"0x2e363Ee71835e4445F8C9C161971FeF43f78F341", "STARNFT", "STARNFT", "0"},
-        {"0x2957e94C7011B94a96c900B4a4120c54034319Df", "ZQ NFT", "ZQ NFT", "0"},
-        {"0x3967CbF16bC0eA77f818c17526cEAE9409914bBD", "Spaceman", "Spaceman", "0"},
-        {"0x543eD3424f92F2Ca97cAD10ea81DC9738608843A", "TP Souvenir", "TP NFT Design Comp Souvenir", "0"},
-        {"0x99fffF2605C1f39555f01228835f5d62D0651782", "TP 4th Anniv", "TP 4th Anniv NFT", "0"},
-        {"0xE9c41103649B047fAaAc059b575827A03D8e6A67", "MOVE", "Move2Earn Game", "0"},
-        {"0xDB93875d400b8F2c55E6Eef9104Ed597ea7C73Fb", "LaikaSpaceMan", "LaikaSpaceMan", "0"},
-        {"0x7F16BD0DcA18a29aec78F7D7aCCF01e65b10e9F8", "HTKNFT", "HTKNFT", "0"},
-        {"0xA84719Fe698466BbEC6d56BB88774ab32A505FeF", "Cyborgs", "MAoE", "0"},
-        {"0xA741d195A199Eb4811aDF83C54CC794ccbF8d666", "MateStone", "Stone DAO - MateStone", "0"},
-        {"0xc88751738E147854464694657064Aba814ED1f49", "ZTZNFT", "ZTZ NFT", "0"},
-        {"0x1aAC0C12Be72d8E1fE13Db7a59E0262BD0FB789c", "Adoge NFT", "Amazing Doge NFT", "0"},
-        {"0xEFb872050656d1F3eFeb4643df71B716Bbf812d5", "dino", "tiny dinos", "0"},
-        {"0x24fADCEfd2117719C4078C08b352b22C74542418", "BNFTMBOX01", "Mobox Avatar", "0"},
-        {"0x0d42BA9b368585076CbcA2cCd8C28566edF9f7d6", "Guy", "MetaGuy", "0"},
-        {"0xa7ac54f6dbbd938D122BA1931F159d4Af72D78C3", "ShareNFT", "ShareNFT", "0"},
-        {"0xe085E9462aE0111886c1f9Cd11150FE0c71FA634", "ICT", "Innocent Cats Ticket", "0"},
-        {"0x8516DFB9e40c7cD3f5a1C124a2093B08fD94bBD1", "CUT", "Colorful Unicorn", "0"},
-        {"0x07BB7574e2C1DA332bbf28B6E9cCCF3FF0d13A53", "GIIIO ALIEN", "GIIIO ALIEN", "0"},
-        {"0xE9c9b4C12fd914155F692e42D5810D2307377423", "Violent Rabbit", "Violent Rabbit", "0"},
-        {"0x4f96C189dF8DDF7022dc97c0B4707e1e4FCCb94d", "MF", "Meta Fantasy", "0"},
-        {"0x41171fD68D7B76B03AA6eEB268788046Cffc125c", "BMBDRACOO", "Binance NFT Mystery Box-Dracoo Mystery Box Ticket", "0"},
-        {"0x2dC85b0246976dC830363ced0af54CaEfe2f0b61", "OG", "OPENGATE", "0"},
-        {"0x4E6BE84DAbEaB0bA33Fe68Cb8D77Abb5635c5F8F", "Tranbots", "Bamloff", "0"},
-        {"0xB38CA75b365519A759FC6a9A43f4e0A7Ef6cBAA6", "CATS", "CatCoinYatchClub", "0"},
-        {"0x3dC01bB1bDFf0864C1D0Ea212e982Ac5ea01b08C", "Tower", "Anonverse Tower NFT", "0"},
-        {"0x03285e44943fd5eb6e63f917624ecDE9f3Aee8e4", "TP Skin BSC", "TP Skin BSC - 2022", "0"},
-        {"0x5474a86811c3DFA20c9aDF88bc307d8032863348", "Tiger", "TigerPower", "0"},
-        {"0x60e8b899fE6AEa55cdc2736F3626599E38844c2a", "Genesis Pear Tic", "Genesis Pear Ticket", "0"},
-        {"0xA2297E94A0B03d63c66fc1Ac8De4657b7109e654", "TP Skin 2022(Car", "TP Card 2022", "0"},
-        {"0xB3eCA3CC65deaD0E2E88EdFF035C2Ba6662a71aB", "TP Skin 2022(BG)", "TP BG 2022", "0"},
-        {"0x603D6C11b621Ca0c61ef26169936F569962AF494", "TCHNFT", "TCHNFT", "0"},
-        {"0x9428978304e5c5428741CaC400411f32b6Ee52DE", "Lancelot", "LancelotNFT", "0"},
-        {"0x1B26e0F75c623fE9357dBC6c1871AB745fACcF04", "VIVE", "VIVE Tower", "0"},
-        {"0xE06a72D91Afba61Ee58D25daf9253d3f2e2c7D81", "GAFO", "Mafagafo Avatar", "0"},
-        {"0x04Bc8A2cE6248248fF3f0ba44f29Fc8d05dc34d9", "Background", "TP Skin", "0"},
-        {"0x4858E154A8D38972D237E4070EEAa3B3df9D7474", "Card", "TP Skin", "0"},
-        {"0x6E18913E9eb7952Df2F93aE3337227D99c71962C", "AisShip", "AirShip", "0"},
-        {"0x6453D369c8B6bf8EB441d328C618D5Ac681FDD1C", "HPL", "Happy Land", "0"},
-        {"0x390e09e45d99a7a118C5cB6CBf6b86411cD592fC", "TFBOX", "TAP FANTASY BOX", "0"},
-        {"0x2B8c6b6a8ed08a165f6aB940422967055fDB0B8c", "WTW", "WorkerTown - Workers", "0"},
-        {"0xF2f142c765f303F863f7a9A0D8E24C9de7DcFbA6", "Tyear", "Tyear", "0"},
-        {"0xA1F269e6732E2C12cAc73586aAae5202Bb0e6038", "MetaRim", "MetaRim", "0"},
-        {"0x7dcdefb5F0844619aC16BCd5F36c3014EFa90931", "MdexNft", "MdexNft", "0"},
-        {"0xF16cb5285EA25eB5235536236234aabE32a7Ba10", "DGVT", "DGVerseG1", "0"},
-        {"0xF88fe00946Be60e69E373EA5a09ed2a52729E76f", "OasisDoge", "OasisDoge", "0"},
-        {"0xf87F25bBe35ff85fe4961Cd0B2CeB4E7E67b040C", "SLMP", "Slime Pet", "0"},
-        {"0x0E08E22cB33AFefC903bC0Da689815C82C1D0CAa", "SLML", "Slime Land", "0"},
-        {"0x9ddc83be1e5254669bdb366941C746A86194D61b", "CB", "Cross Bosses", "0"},
-        {"0x8554D6d21E358C37Bd3E466779B4349af4a57E28", "MOGA", "MOGA", "0"},
-        {"0xb00ED7E3671Af2675c551a1C26Ffdcc5b425359b", "BSP", "Biswap Squid Players", "0"},
-        {"0x3019d29f28b758e3Fc227d257ACd5dab2555E949", "SGAME", "Spice Game", "0"},
-        {"0xd7C79AbEb8d8B21e7638A8aADfdcC1438d24B483", "TFSKIN", "TAP FANTASY METAVERSE - SKIN", "0"},
-        {"0xffdd1C2dE9Cc0b70B51ba478d46809ecc3E505eA", "CNFT", "CNFT", "0"},
-        {"0x2Bf5E716181A7Ba31D83c19fA3C3BFDeB4da9F0F", "KARAS", "KaraStar NFT", "0"},
-        {"0x46B0788A48681Cd25BC0c6C0d984A7Da7Cddc9f3", "AtlantisMetavers", "Atlantis Metaverse Genesis Pack", "0"},
-        {"0x416f1D70c1C22608814d9f36c492EfB3Ba8cad4c", "SNFT", "Star Sharks", "0"},
-        {"0x79ad1541E9418f8c79241DFdcD69567539962B55", "SURG", "SURGERS", "0"},
-        {"0xfb1458B3FD2fbf76475058040740E25cB840C95C", "NPET", "chain petNFT", "0"},
-        {"0x1eC94bE5C72CF0E0524D6EcB6E7bD0bA1700BF70", "SYNBC", "MOBLAND Blueprints", "0"},
-        {"0x535FA6279B4a260B42379e05e8BCc0573eD0A70d", "FHTR", "FishingTownRod", "0"},
-        {"0xADa0D90563AD7239D85752d6Fed9Ac1b7c2c1B06", "ELFIN", "elfin", "0"},
-        {"0xF87936A222E61Fc9F500B7cfaf3082A60a7fF08f", "ELFINMYSTERYBOXE", "elfinMysteryboxes", "0"},
-        {"0x13B5816396C5095a145aF6994688e6e53Fda6095", "BLOC", "CyBloc", "0"},
-        {"0xfd2F272C658608A501dA7487b3B8A37EcF4BAbDd", "DKNFT", "Dragon Kart NFT", "0"},
-        {"0x905620540628A4029caf7729b5c780E24Ef3C08F", "OlySportTicket", "Oly Sport Genesis Pack", "0"},
-        {"0xf28995B0ddc314AA7DBfe31aDa4F7a5E09c1364C", "DR", "Drunk Robots", "0"},
-        {"0x6DA72F24c56197Dcf6B8920baCb183F6ccca8b01", "BHC", "BNBHCharacter", "0"},
-        {"0xebFBFD7C41B123500fb16B71C43B400c12B08bE0", "MPNFT", "Monsta Party", "0"},
-        {"0x3d7b0001e03096d3795Fd5D984AD679467546d73", "ARMZv2", "ArmzLegendsV2", "0"},
-        {"0x8460cc2f040828fF59F72d2bD6cc672faFFF1941", "KISS", "Kiss-up State Land", "0"},
-        {"0x05653eabeFc985676ab9AC0E53a38E01F1fcd1Da", "META-5G", "META-5G", "0"},
-        {"0xEEa8bD31DA9A2169C38968958B6DF216381B0f08", "HN", "Hashland NFT", "0"},
-        {"0xD9de8f63EA0F18264fA5C17A8f17e8eA06367649", "SNFT", "StarryNift", "0"},
-        {"0x7b116071D8b062Ca8728a168E620520F5338681d", "FONFT", "FateOrigin NFT", "0"},
-        {"0xD4220B0B196824C2F548a34C47D81737b0F6B5D6", "BRE", "Biswap Robbies Earn", "0"},
-        {"0x05894b0c44F8BB067885f97e53aCBDBe6D9987C1", "Apollox", "Apollox", "0"},
-        {"0x98eb46CbF76B19824105DfBCfa80EA8ED020c6f4", "THH", "Thetan Hero", "0"},
-        {"0x57A7c5d10c3F87f5617Ac1C60DA60082E44D539e", "ALPIES", "Alpies", "0"},
-        {"0x406F9a5779571E2D8ABEFB367Cdc90D848b88471", "SNG", "SpaceXNaut Dog", "0"},
-        {"0xFc7b644D9C719915b6ff6EEd6a81c82DBEfCd6C3", "BRAVE", "DNAxCAT - Brave CAT", "0"},
-        {"0x23B4dBfb5B3AE13142Bb379a9ece574b00Bee390", "EGGCAT", "EGG CAT", "0"},
-        {"0xb444B330555CD03De5BC1Ca3CDdDa2ad85460b7A", "AIRNFT", "AIRNFT", "0"},
-        {"0x252B6d73aFBD35919D80297E86690473AaDf1b62", "BMBRACA", "Binance NFT Mystery Box-RACA", "0"},
-        {"0xc1AaE3039691CB2569dA523E101A5ee58BaeA3C8", "BMBBABY", "Binance NFT Mystery Box-BabySwap", "0"},
-        {"0xE796f4b5253a4b3Edb4Bb3f054c03F147122BACD", "CATGIRLNFT", "Catgirl NFT", "0"},
-        {"0x96D4d7707285d1d55725108f0E93515941B4d547", "MELIORA", "Meliora", "0"},
-        {"0xc942CEee2D86E3e066Ac1f97044E911ced2fe314", "4JPASS", "4JPASS", "0"},
-        {"0x4e781783c1b22e2a571f6f9a5dcd1798646c5eeb", "BMBMOBOX", "Binance NFT Mystery Box-Mobox", "0"},
-        {"0x25c8655d239db8b499f11821a8ef52d2e9a00458", "NFT", "NFT Token", "0"},
-        {"0xe7da8b2286d72009c87b8391e19bb38b2bd42bc3", "BMBBUNNYPARK", "Binance NFT Mystery Box-BunnyPark", "0"},
-        {"0x1ddb2c0897daf18632662e71fdd2dbdc0eb3a9ec", "BRNFT", "Binance Regular NFT", "0"},
-        {"0x2218f0bd337b8be071a20aaf7ff645bd71eae9b9", "BMBJOJO", "Binance NFT Mystery Box-JOJO", "0"},
-        {"0x4861e34f8ced7c8ef762e831412395be74de3bb0", "PDogeXBM", "PocketDoge x BurningMoon", "0"},
-        {"0x1ef8218c822e6e82b95e446b0566e5843ee4bc4b", "YOOSHINFT", "YooShi Family NFT", "0"},
-        {"0x57e6ee4a2d1804fa49fe007674f096f748ac3c40", "DXCTCNFT", "DNAxCAT NFT", "0"},
-        {"0x73096042a5297128e2bB074Bd91450Db58F3B4eA", "KALMY", "Kalmys Universe", "0"},
-        {"0x77F7D480d221E8349ef85Ac42B3EAb965d351e67", "WOFA", "WolfAngers", "0"},
-        {"0x11304895f41C5A9b7fBFb0C4B011A92f1020EF96", "SHITPUNKS", "ShitPunks", "0"},
-        {"0x3da8410e6EF658c06E277a2769816688c37496CF", "BBG", "BornBadGirls", "0"},
-        {"0x44d85770aEa263F9463418708125Cd95e308299B", "BBB", "BornBadBoys", "0"},
-        {"0x5efe6afde61bfdfc3791dfaf738c249d63e867ad", "MURLOC", "Richass Murlocs", "0"},
-        {"0xd805bC1D9E9d4C00F325904ceb156B889b96A92B", "Verse", "MeVerse", "0"},
-        {"0xd43b1f99f13e36487fe050c1410e95df98dd2065", "CakePunk", "CakePunk", "0"},
-        {"0xf7a21ffb762ef2c14d8713b18f5596b4b0b0490a", "TRSRNFT", "treasureland.dego", "0"},
-        {"0x7f5daf18a06433c87bd81ea7ea19976e64100a66", "LOG", "OG NFT", "0"},
-        {"0x69988cd7d86151244e9b2a2a80d0925195055f48", "CMNFTDC", "Cake Monster Diamond Claw NFT", "0"},
-        {"0xf24bf668aa087990f1d40ababf841456e771913c", "MNM", "Metamon", "0"},
-        {"0xA1D27db98c13E53B9481C968fcEfa83c2AfA2fE7", "SILNFT", "SIL NFT", "0"},
-        {"0x0a8901b0E25DEb55A87524f0cC164E9644020EBA", "PS", "Pancake Squad", "0"},
-        {"0x6eca7754007d22d3f557740d06fed4a031befe1e", "NFA", "Non Fungible Apes", "0"},
-        {"0xb45ed70b24e1c45462d04640f3e91db9a7a49713", "JOJONFT", "JOJO NFT", "0"},
-        {"0xcd9d8296c9a8184f4eeba521422002afe735e5f8", "PLUTO", "PLUTO", "0"},
-        {"0x3d4175471cb164541bf811ac041d7d23e712937e", "BSLT", "BenSwap Lottery Ticket", "0"},
-        {"0x8a3acae3cd954fede1b46a6cc79f9189a6c79c56", "PETEGGNFT", "Pet EGG NFT", "0"},
-        {"0xf6401646676a87bbd0fa952fbbe8869516cc541c", "LTXB", "Lootex NFT", "0"},
-        {"0x360673A34cf5055DfC22C53bc063e948A243293B", "CP", "CrossPunks", "0"},
-        {"0xeedb8a865e2908daa203a4b119b52805564e947a", "CocosNFT", "Cocos.Bcx", "0"},
-        {"0x31921e3ab975e0f0dc36ee0972614be204eef9dc", "RugscreenCertifi", "Rugscreen Certificate", "0"},
-        {"0x6ef9f05a4eb8b7d7d89e916f6ef77547ae6ac10c", "BROB", "BonaRobotics", "0"},
-        {"0x8a0c542ba7bbbab7cf3551ffcc546cdc5362d2a1", "Cryptoz", "Cryptoz Cards", "0"},
-        {"0x36633b70eac3d1c98a20a6ecef6033d1077372f5", "GEGO-V2", "gego.dego", "0"},
-        {"0xbe7095dbbe04e8374ea5f9f5b3f30a48d57cb004", "WEAPONNFT", "Weapon NFT", "0"},
-        {"0xa7a9a8156c24c4b0ca910c3ba842d1f1ac7200ef", "KNIGHT", "MoonKnight", "0"},
-        {"0xeba4f91e279aeaaa8af36410aeda5ab6a3993ee2", "ASSET", "citizen finance", "0"},
-        {"0x4eededfe89dad70ab8cbf70e4dd140ff8e6e8ce5", "MOMO", "MoMo Token", "0"},
-        {"0x0000f22ffe0866ffb8834600dad9259cf4956853", "TD", "BSC Name Service (.bnb)", "0"},
-        {"0x509B49d75244f56F0E947C407eB82831A1a9A14B", "HTAG", "Tag Protocol Hashtag NFT", "0"},
-        {"0xc54b96b04aa8828b63cf250408e1084e9f6ac6c8", "SCAPES", "Seascape NFT", "0"},
-        {"0xc3c3b849ed5164fb626c4a4f78e0675907b2c94e", "Samurai Rising", "SamuraiRising", "0"},
-        {"0x3aFa102B264b5f79ce80FED29E0724F922Ba57c7", "PENTAS", "Pentas NFT", "0"},
-        {"0x358ce1ebc87300c3a75ed51411c17ac3a9cfa11c", "CBJ", "CryptoBlades Junk 6191ee", "0"},
-        {"0x124493e991632E5a2AF58116E35d67F5A983afaA", "DRACE", "DeathRoadNFT", "0"},
-        {"0xbfed4765d13ce2e300c09d2d61d2b0163993a99c", "Bada$$", "BabyBadasses.com", "0"},
-        {"0x618dcd507d1dcedaed7df0df54728326fd33d22e", "BEP721", "RealFevr BEP721", "0"},
-        {"0x336bb619f7389ec8b308209244af55561ca38e78", "DP", "Dehero Package", "0"},
-        {"0xeba8b8b0b63a2778e909dfa3a21479b3a80f0e2a", "SKILL", "KAIJU SKILL", "0"},
-        {"0xd7d03512ef86ec24331c1c6455f879011b57b85d", "GLA NFT", "NFT: Galaxy Adventure", "0"},
-        {"0xfae5062520fa4e635d2043818876d1c6ff418ab9", "ALIXNFT", "AlinxNFT", "0"},
-        {"0x7CDB59b7C99B312CBdE1B07b9a4f94ABB5a8BFB9", "featured", "L1ght Heads", "0"},
-        {"0x96ebe2a0a26b9715cbfb38d2c0b01f11c7a8ad93", "PKPEH", "Pet Kingdom Earth", "0"},
-        {"0x41a5d20cd7f20b98124fd34e729b2fc92032a74d", "SHIP", "CryptoBay Ship", "0"},
-        {"0xc6f252c2cdd4087e30608a35c022ce490b58179b", "CBC", "CryptoBlades character", "0"},
-        {"0x5ab19e7091dd208f352f8e727b6dcc6f8abb6275", "N/A", "Plant vs Undead", "0"},
-        {"0xa919cbbd647f0348c12ef409e7f6d4ab8436cf77", "SIDGC", "SPACE ID Gift Card", "0"},
-        {"0xa2391835be0fedce482c8f1f766802d56ef2b4e6", "Creation vouche", "Creation vouche", "0"},
-        {"0xE9a8b9C28dD59C075AbD07D6E01fDc1DaA0657C0", "PHG", "Planet Hares GameItems", "0"},
-        {"0x749ca2666D20d659c25952f8FAa249eC5Ae72189", "Wallet Skin - Th", "Wallet Skin - The Rebirth of NFTs", "0"},
-        {"0xBa57D610785502B766eAB1a802F367958f823860", "Wallet Skin Comp", "Wallet Skin Comp", "0"},
-        {"0xB01a416eAd3D7aC87213860F970EE114d48cF31f", "Wallet Skin Comp", "Wallet Skin Comp", "0"},
-        {"0xD80EdcF7C73B43852dA39497a6B5E9cbA1Edf39e", "UNKNOWN", "Tiny Hero", "0"},
-        {"0x37e678d782d38a75EB16130b39C4ce2d7E3cC808", "UNKNOWN", "Tiny Rune", "0"},
-        {"0x8D5AC44F019Fa9D233d9F0c0A42d4d113eDf0C09", "FiveDegrees", "5Degrees Social Protocol", "0"},
-        {"0x0A3869A27c8Abc87898174710d0A625d9ED76A05", "MELOSNFT", "MELOS Music Token v3", "0"},
-        {"0x398af3f302c8feb4789fc174e735ce70b2fe9a59", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x3dee87a462e1ffe43ba4992ba3aa537a6ca4a14c", "UNKNOWN", "TikiBox", "0"},
-        {"0x684d1639f17f1c13b1b7b439861000f0b920df41", "", "sxqs", "0"},
-        {"0x546d3198fefe4f76ec5f8d534c28fd263468719f", "MNA", "MoonlightAccessories", "0"},
-        {"0x07c87ae43494ce4e25f2d2ee91a280961d3ab99a", "MNG", "MoonlightGift", "0"},
-        {"0x8c9b08d004ed05d3029587949c0a0f972f99f452", "", "VoNFT", "0"},
-        {"0x733b318f24463aa40badc460fae8cfc6397df53b", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xd198fa47a0c3e125d541881196ffacf33218b4cd", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xab58d8fb52baee24027593d324c5e1a2425b8498", "VDOLL", "VICEDOLL", "0"},
-        {"0xb8eb97a1d6393b087eeacb33c3399505a3219d3d", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x4fcbeb919e1fc6406b4fdf8df3e86f46b2a089bd", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x70f8d557b751c5485045eff3697942dc879b8696", "MNG", "MoonlightGift", "0"},
-        {"0x664eb51fdfcb38f42839905eb786ba6f21c4ca85", "MLAT", "MLAccessoriesTest", "0"},
-        {"0xc483fa20bfb3eee80ce25e01d153463bce6bd345", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xd7d520fcf1d4943f47daeb5029ff17e1ec16cf5a", "AI", "DiscordAcces", "0"},
-        {"0xc6186f75c08e60efaad95d291ea4f4953d61264c", "NFWG", "Non-Fungible Wolf Guardian", "0"},
-        {"0x073e2f32224f1d636794ca774f237d1fb53d53ce", "SRS", "Shera Runner Store", "0"},
-        {"0xb0a231a1cba6b4b8cf1fa7bdeb7041465e90d629", "", "Velvet Capital Premium", "0"},
-        {"0x5bd5dd0c3e6ee25250ac8ecff5a85651406b92fa", "MNG", "MoonlightGift", "0"},
-        {"0x55fcd19c08aec229da7f5ee00b5663c0d101249f", "AREV", "Atem Review", "0"},
-        {"0x392da0fbd7dfc6502e0e7594a55840f6a377fc95", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x9651c6caafb18a8244a3f4fd006c0ec67f7e83d0", "MLAT", "MLAccessoriesTest", "0"},
-        {"0x2e4ff65e3de5c0aab8fc9af8ae36b18355ff9873", "", "545ff", "0"},
-        {"0x933dcb93c47d4b2e36bd673d1121f97924033063", "sSugar", "SUGAR_USDT_991*SALTISH", "0"},
-        {"0x833ec6558d0e2ddb076016308abac653ab23792c", "MLAT", "MLAccessoriesTest", "0"},
-        {"0x63f7e33d3d4652079371e22790ed194e97fb7b51", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xc55307711da3cfb47aebaaa3844af1f2605dbc65", "RBLD", "Rebuild Together", "0"},
-        {"0xce81cf318b021ca322d871c8f2083138a39bd3a1", "UNKNOWN", "BnbBuns", "0"},
-        {"0x7cd48e4eba9efec7823213bb2ee3bde92743d77f", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x8cf451d30e099500062c43358e9e1ee0741dbf5c", "NFTOOS", "NFTOOSouvenir", "0"},
-        {"0xe693daf57fb661aa0db0f9aecc7e93d388476540", "sSugar", "SUGAR_BUSD_998*SALTISH", "0"},
-        {"0xee95ff13801ecd1c8cc737e7113a1be417b06d40", "cSugar", "SUGAR_BUSD_998*CARAMEL", "0"},
-        {"0x60f23de021ee57ca03130c0f354a7fe967a2f5f4", "cSugar", "SUGAR_USDT_991*CARAMEL", "0"},
-        {"0xb6782f997448f06bf9ba5f704699beb627c99683", "MLAT", "MLAccessoriesTest", "0"},
-        {"0x5626946324cc64a7934f939a73ce3b4399fb71d0", "DIAMOUND", "FTV Diamound", "0"},
-        {"0x23e877eb1e44b4920a36e0b64df208b38eeb30b7", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x220f742554721764e899ad6e1b82bd548218a1ae", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x0df2e735bd7d661354abf5019fdeaadd512a0615", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xb04530e6273927e63fde51c73648c7e0d90242b0", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x4820618ee37a638d097522b5be1bc42544ed64b1", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x89aea40e4efb8a8ac987be81995451c5bb554012", "PanGu", "PanGu", "0"},
-        {"0x3e634818d0c9bcbd6d22f3d46710e36c14518f4b", "MARVEL", "1 ONZA SPIDERMAR 2017", "0"},
-        {"0x5c7d6712dfaf0cb079d48981781c8705e8417ca0", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x89e33c13893fda68cb6b6e60e4a6be75b5f34ef0", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xd86e2a2431dbe529d60d13c3bb6f75a5f7b1669a", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x658c205fb1f572c48d55387b79976fba2cffacd4", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xaf6d45b21bcc65dcccc2aa7d7be4bf953e38e88a", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x40a5fc85d02561df5fac18fcfb86bcd26b26b8cb", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x5e7c68d50059a3fcab8416fc90053ad7c3e77eb0", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x92c419dbad296196b69243377928660ad61f3f1d", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xd6c703a146ee5389a2fd1dd3e31a81ed59772068", "Genesis Capsules", "Genesis Capsules Phase 1", "0"},
-        {"0x4502e44f30ff3f01911b6f962c9479ac47369f8c", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xdd23988a7330daa836030304f7edc6ba07b6d771", "TNFT", "Ticket NFT", "0"},
-        {"0xa67418db326a3a32a44b5137d53e89cfb4a1e8ee", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x258606a7c34e077144fe9cbb25ac80cf9910c623", "BSC_BAN", "NOW 1155 Demo Tokens", "0"},
-        {"0x5e757188465fec93e8f32d09eb415ec4c1822c7d", "BBQ", "芭比Q", "0"},
-        {"0x567290213f8d3607ed95f812502e1f01bcfbdf4e", "GENESIS", "Dog Owner Genesis", "0"},
-        {"0xd0be25e81f31890c8829a756339ee0490d365676", "NFT GNC", "Tokenized Sustainable Goods & Services", "0"},
-        {"0x39a81b9770a8dd2d43ebc2032b78137bc8732008", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x631d4564cbbb2ac48bdcaeec43ce10e4a1ec5657", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xe47d3f1bc13370ec37a61173a49137e738555910", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xaf790bf3808c693ecd43337952ec58602809bf96", "PL", "Pregnant Love", "0"},
-        {"0x66d9fec0b922df961dc59563b7833c8a97f3929f", "UNKNOWN", "WalkingDoggo MVP Membership", "0"},
-        {"0x7c5b5fff66bc4b7650ea93e980446b77b9cc7345", "POF", "Founder", "0"},
-        {"0xe638316d566a25f488be49ea867b30173d022979", "POF", "Founder", "0"},
-        {"0xebb293408afebfc7dab6fb7708d51a6be3b05684", "NFTC", "NFT_Community", "0"},
-        {"0x64d6d294669f7c2b319d14d159e1d5f11b6090a6", "UNKNOWN", "Dalam Mimpi", "0"},
-        {"0x073a34a558f48bf7075b6e26ac3c8cf3c1412571", "UNKNOWN", "Hungry Crypto Whale", "0"},
-        {"0xa8a5be1a42b3a381e29abcea60ff894bc9d839c0", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x99e48282017884a9f99cc8580757c4cf35e4b2b6", "BU NFT", "BrandUnion", "0"},
-        {"0xb6dc45c4e16b8e80c62f5daeab375e27f6ade009", "DMW NFT", "DMW NFT", "0"},
-        {"0x0dfd8050e4c06242acd3cffd81602c3b0debad77", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x1c9babe876bbe1dd5405972ba27a74e6aa4e58b1", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xf61470682aae3e721c52a1132ddce39986ab15d6", "GRA", "The Global Revomon Association", "0"},
-        {"0xab04c3e0abafe83006ac2b242b5b4d829f934756", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x46fa0fc03aad9b27aaedd11a68810ceb2ea86625", "MNG", "MoonlightGift", "0"},
-        {"0xbc802b61faff6af78f1034c73d8a7ddc1aa76924", "ATH", "el olivar de atenea", "0"},
-        {"0xcc7d86d49a4f89067317e8631df540f0cfbbbdac", "UNKNOWN", "bitcointest", "0"},
-        {"0x3c148104c5dacb45616ad18ae6e577b3f1ee4707", "USDMK", "Bitland Deutsche Mark", "0"},
-        {"0x899b521fd20d6c843121c15862f4289dba5d197b", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xa1ae0e5165516a08c42ab2af6b614e5575bfe100", "PodcastZ", "Podcast ZZC", "0"},
-        {"0x85ea1d5b1a9342a54d8a7de40bc920b07be5ed7a", "NIF", "Unifty", "0"},
-        {"0xe6d98f100df8f2da5b243acbde0cf86102594750", "UNKNOWN", "WoC", "0"},
-        {"0x5cbdd65fe4b00543030cd18261e1f0f44484e434", "UNKNOWN", "test", "0"},
-        {"0x3401e54479bbefb5f97ef68969fef90fd7e2baeb", "UNKNOWN", "bitcoin test", "0"},
-        {"0xfff94fffc3ee00e4615eb04b6f5079ca9710a9f1", "UNKNOWN", "UNKNOWN", "0"},
-        {"0x32f3606caedda17b28ce4e3c18fc59b6d94d6820", "UNKNOWN", "Me", "0"},
-        {"0xcd1747db81f6ea3aee6a6313f2ec9cb68fea61d5", "UNKNOWN", "UNKNOWN", "0"},
-        {"0xde7135cb29b77be162013b8592758a71533796fd", "UNKNOWN", "bitcoin testplus", "0"},
-        {"0x5c28394bfb76cbfe7a6dd73b12a92a743cae28a3", "MNG", "MoonlightGift", "0"}
+        {"0xf21768ccbc73ea5b6fd3c687208a7c2def2d966e", "REEF", "Reef.finance", "18"}
     };
 
     // ETH (200 tokens from TP wallet)
@@ -2048,6 +2060,13 @@ public class ChainAPI {
         {"COVAL", "CircuitsOfValue", "0x3d658390460295fb963f54dc0899cfb1c30776df", "8"},
         {"COW", "CoW Protocol Token", "0xdef1ca1fb7fbcdc777520aa7f396b4e015f497ab", "18"},
         {"CQT", "Covalent Query Token", "0xd417144312dbf50465b1c641d016962017ef6240", "18"},
+        // 补充高共识代币（官方标准主网合约地址）
+        {"ARB", "Arbitrum", "0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1", "18"},
+        {"OP", "Optimism", "0x4200000000000000000000000000000000000042", "18"},
+        {"PEPE", "Pepe", "0x6982508145454Ce325dDbE47a25d0043C938B731", "18"},
+        {"LDO", "Lido DAO", "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32", "18"},
+        {"MKR", "Maker", "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2", "18"},
+        {"SNX", "Synthetix", "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F", "18"},
     };
 
     // MATIC (200 tokens from TP wallet)
@@ -2988,6 +3007,10 @@ public class ChainAPI {
         java.util.List<String[]> tokens = new java.util.ArrayList<>();
         Set<String> seenContracts = new HashSet<>();
         Map<String, Double> prices = getPrices(ctx);
+        // 自定义/测试链上的代币不套用真实价格（避免测试网 USDT 命中主网 USDT 价格）
+        if (isCustomChain(ctx, chain)) {
+            prices = new java.util.HashMap<>();
+        }
 
         // 1. 轻量代币发现：内置热门代币（秒出）
         if (fullDiscovery) {
@@ -3943,6 +3966,11 @@ public class ChainAPI {
     private static int batchBalancesViaMulticall3(Context ctx, String chain, String rpcUrl,
                                                     String walletAddress, java.util.List<String[]> chainTokens,
                                                     java.util.List<String[]> tokens, Map<String, Double> prices) throws Exception {
+        // Multicall3 是 EVM 合约，SOL/TRX 非 EVM 链不支持 eth_call，
+        // 直接抛异常让调用方回退到逐个查询（走 getERC20Balance 里的链原生方法）
+        if (!isEVMChain(chain)) {
+            throw new Exception("非 EVM 链不支持 Multicall3 批量查询，回退逐个查询");
+        }
         int n = chainTokens.size();
         String addrPadded = walletAddress.substring(2).toLowerCase();
         while (addrPadded.length() < 64) addrPadded = "0" + addrPadded;
@@ -4186,6 +4214,180 @@ public class ChainAPI {
         }
 
         return nfts;
+    }
+
+    // ============================================================
+    // 自定义 NFT 存储（按链+钱包地址独立存储，不混入 ERC20 代币列表）
+    // ============================================================
+    private static final String CUSTOM_NFTS_PREFS = "custom_nfts";
+
+    public static void addCustomNFT(Context ctx, String chain, String walletAddress, String contract, String tokenId, String name, String imageUrl) {
+        java.util.List<String[]> list = getCustomNFTs(ctx, chain, walletAddress);
+        for (String[] nft : list) {
+            if (nft[0].equalsIgnoreCase(contract) && nft[1].equals(tokenId)) return;
+        }
+        list.add(new String[]{contract, tokenId, name != null ? name : "", imageUrl != null ? imageUrl : ""});
+        saveCustomNFTs(ctx, chain, walletAddress, list);
+    }
+
+    public static java.util.List<String[]> getCustomNFTs(Context ctx, String chain, String walletAddress) {
+        java.util.List<String[]> list = new java.util.ArrayList<>();
+        try {
+            SharedPreferences prefs = ctx.getSharedPreferences(CUSTOM_NFTS_PREFS, Context.MODE_PRIVATE);
+            String key = chain + "_" + walletAddress.toLowerCase();
+            String json = prefs.getString(key, "");
+            if (!json.isEmpty()) {
+                JSONArray arr = new JSONArray(json);
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONArray nftArr = arr.getJSONArray(i);
+                    list.add(new String[]{
+                        nftArr.optString(0, ""), // contract
+                        nftArr.optString(1, ""), // tokenId
+                        nftArr.optString(2, ""), // name
+                        nftArr.optString(3, "")  // imageUrl
+                    });
+                }
+            }
+        } catch (Exception ignored) {}
+        return list;
+    }
+
+    public static void removeCustomNFT(Context ctx, String chain, String walletAddress, String contract, String tokenId) {
+        java.util.List<String[]> list = getCustomNFTs(ctx, chain, walletAddress);
+        list.removeIf(nft -> nft[0].equalsIgnoreCase(contract) && nft[1].equals(tokenId));
+        saveCustomNFTs(ctx, chain, walletAddress, list);
+    }
+
+    private static void saveCustomNFTs(Context ctx, String chain, String walletAddress, java.util.List<String[]> list) {
+        JSONArray arr = new JSONArray();
+        for (String[] nft : list) {
+            JSONArray nftArr = new JSONArray();
+            nftArr.put(nft[0]);
+            nftArr.put(nft[1]);
+            nftArr.put(nft[2]);
+            nftArr.put(nft[3]);
+            arr.put(nftArr);
+        }
+        String key = chain + "_" + walletAddress.toLowerCase();
+        ctx.getSharedPreferences(CUSTOM_NFTS_PREFS, Context.MODE_PRIVATE)
+            .edit().putString(key, arr.toString()).apply();
+    }
+
+    /**
+     * 查询 ERC721 tokenURI 获取 NFT 元数据（名称/图片）
+     */
+    public static String[] getNFTMetadata(String rpcUrl, String contract, String tokenId) throws Exception {
+        String data = "0xc87b56dd0000000000000000000000000000000000000000000000000000000000000000";
+        // tokenId 可能为十进制或十六进制，按十六进制编码
+        try {
+            java.math.BigInteger tid = new java.math.BigInteger(tokenId);
+            String hex = tid.toString(16);
+            // 补齐 64 位
+            while (hex.length() < 64) hex = "0" + hex;
+            data = "0xc87b56dd" + hex;
+        } catch (Exception e) {
+            throw new Exception("无效的 TokenID");
+        }
+
+        JSONObject body = new JSONObject();
+        body.put("jsonrpc", "2.0");
+        body.put("method", "eth_call");
+        JSONArray params = new JSONArray();
+        JSONObject callObj = new JSONObject();
+        callObj.put("to", contract);
+        callObj.put("data", data);
+        params.put(callObj);
+        params.put("latest");
+        body.put("params", params);
+        body.put("id", 1);
+
+        Request request = new Request.Builder()
+            .url(rpcUrl)
+            .post(RequestBody.create(body.toString(), JSON_TYPE))
+            .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            String resp = response.body() != null ? response.body().string() : "";
+            JSONObject json = new JSONObject(resp);
+            if (json.has("error")) throw new Exception(json.getJSONObject("error").optString("message", "RPC error"));
+            String result = json.getString("result");
+            if (result == null || result.equals("0x")) throw new Exception("无 tokenURI 数据");
+            // 解码 hex 字符串
+            String uriHex = result.substring(2);
+            StringBuilder uri = new StringBuilder();
+            for (int i = 0; i < uriHex.length(); i += 2) {
+                String pair = uriHex.substring(i, i + 2);
+                if (!pair.equals("00")) {
+                    uri.append((char) Integer.parseInt(pair, 16));
+                }
+            }
+            String uriStr = uri.toString();
+            // 如果 URI 是 data:application/json 则直接解析
+            String name = "", image = "";
+            if (uriStr.startsWith("data:application/json")) {
+                String b64 = uriStr.contains("base64,") ? uriStr.substring(uriStr.indexOf("base64,") + 7) : uriStr.substring(uriStr.indexOf(",") + 1);
+                try {
+                    byte[] decoded = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                    JSONObject meta = new JSONObject(new String(decoded, "UTF-8"));
+                    name = meta.optString("name", "");
+                    image = meta.optString("image", "");
+                } catch (Exception ignored) {}
+            } else if (uriStr.startsWith("http://") || uriStr.startsWith("https://")) {
+                // 尝试从 HTTP 获取元数据
+                try {
+                    Request metaReq = new Request.Builder().url(uriStr).header("User-Agent", "Mozilla/5.0").get().build();
+                    try (Response metaResp = client.newCall(metaReq).execute()) {
+                        String metaBody = metaResp.body() != null ? metaResp.body().string() : "";
+                        JSONObject meta = new JSONObject(metaBody);
+                        name = meta.optString("name", "");
+                        image = meta.optString("image", "");
+                    }
+                } catch (Exception ignored) {}
+            }
+            return new String[]{name, image, uriStr};
+        }
+    }
+
+    /**
+     * 查询 ERC721 ownerOf 验证钱包是否拥有该 NFT
+     */
+    public static boolean checkNFTOwnership(String rpcUrl, String contract, String tokenId, String walletAddress) {
+        try {
+            java.math.BigInteger tid = new java.math.BigInteger(tokenId);
+            String hex = tid.toString(16);
+            while (hex.length() < 64) hex = "0" + hex;
+            String data = "0x6352211e" + hex; // ownerOf(bytes32 tokenId)
+
+            JSONObject body = new JSONObject();
+            body.put("jsonrpc", "2.0");
+            body.put("method", "eth_call");
+            JSONArray params = new JSONArray();
+            JSONObject callObj = new JSONObject();
+            callObj.put("to", contract);
+            callObj.put("data", data);
+            params.put(callObj);
+            params.put("latest");
+            body.put("params", params);
+            body.put("id", 1);
+
+            Request request = new Request.Builder()
+                .url(rpcUrl)
+                .post(RequestBody.create(body.toString(), JSON_TYPE))
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                String resp = response.body() != null ? response.body().string() : "";
+                JSONObject json = new JSONObject(resp);
+                if (json.has("error")) return false;
+                String result = json.getString("result");
+                if (result == null || result.equals("0x")) return false;
+                // 解码地址
+                String addrHex = "0x" + result.substring(26);
+                return addrHex.equalsIgnoreCase(walletAddress);
+            }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public static String formatAmount(double amount) {
@@ -4797,32 +4999,64 @@ public class ChainAPI {
     public static String[] getTokenInfo(Context ctx, String chain, String contractAddress) throws Exception {
         if (!isEVMChain(chain)) return null;
 
-        String rpcUrl = WalletManager.getRpcUrl(ctx, chain);
-
-        // Call name()
-        String name = callContractMethod(rpcUrl, contractAddress, "0x06fdde03");
-        // Call symbol()
-        String symbol = callContractMethod(rpcUrl, contractAddress, "0x95d89b41");
-        // Call decimals()
-        String decimalsHex = callContractMethod(rpcUrl, contractAddress, "0x313ce567");
-
-        if (name == null || symbol == null) return null;
-
-        // Parse decimals
-        // 修复：之前 Integer.parseInt(decimalsHex, 16) 未去掉 "0x" 前缀
-        // Integer.parseInt 不接受 "0x" 前缀（只有 Integer.decode 接受），直接抛 NumberFormatException
-        // 被 catch 后回退到默认 18，导致所有自动读取精度的代币都被错误存为 18
-        // 后续 getERC20Balance 用错误精度计算，USDT(6)/USDC(6)/WBTC(8) 等余额显示放大 10^12 倍
-        int decimals = 18;
-        try {
-            if (decimalsHex != null && decimalsHex.length() >= 4 && decimalsHex.startsWith("0x")) {
-                decimals = new java.math.BigInteger(decimalsHex.substring(2), 16).intValue();
-            } else if (decimalsHex != null && decimalsHex.length() >= 2) {
-                decimals = new java.math.BigInteger(decimalsHex, 16).intValue();
+        // 主节点 + 该链全部预设节点，主节点限流/失败时自动切换备用节点重试
+        java.util.List<String> nodeList = new java.util.ArrayList<>();
+        String primary = WalletManager.getRpcUrl(ctx, chain);
+        if (primary != null && !primary.isEmpty() && !nodeList.contains(primary)) nodeList.add(primary);
+        for (NodeManager.NodeEntry entry : NodeManager.getPresets(chain)) {
+            if (entry.url != null && !entry.url.isEmpty() && !nodeList.contains(entry.url)) {
+                nodeList.add(entry.url);
             }
-        } catch (Exception e) {}
+        }
+        // 自定义测试网：追加该链专属回退节点（如 BSC 测试网），保证主节点失败后可切换
+        String[] customFallbacks = getCustomChainFallbackNodes(chain);
+        if (customFallbacks != null) {
+            for (String u : customFallbacks) {
+                if (u != null && !u.isEmpty() && !nodeList.contains(u)) nodeList.add(u);
+            }
+        }
+        Logger.info(ctx, "代币识别", "识别链=" + chain + " 主节点=" + primary + " 备用节点数=" + nodeList.size());
 
-        return new String[]{symbol, name, String.valueOf(decimals)};
+        Exception lastEx = null;
+        for (String rpcUrl : nodeList) {
+            try {
+                // Call name()
+                String name = callContractMethod(rpcUrl, contractAddress, "0x06fdde03");
+                // Call symbol()
+                String symbol = callContractMethod(rpcUrl, contractAddress, "0x95d89b41");
+                // Call decimals()
+                String decimalsHex = callContractMethod(rpcUrl, contractAddress, "0x313ce567");
+
+                if (name == null || symbol == null) {
+                    // 该节点未取到 symbol/name，记为失败继续尝试下一节点
+                    Logger.warning(ctx, "代币识别", "节点 " + rpcUrl + " 未返回 symbol/name（可能限流或该合约无 name()/symbol()）");
+                    lastEx = new Exception("节点未返回 symbol/name: " + rpcUrl);
+                    continue;
+                }
+
+                // Parse decimals
+                // 修复：之前 Integer.parseInt(decimalsHex, 16) 未去掉 "0x" 前缀
+                // Integer.parseInt 不接受 "0x" 前缀（只有 Integer.decode 接受），直接抛 NumberFormatException
+                // 被 catch 后回退到默认 18，导致所有自动读取精度的代币都被错误存为 18
+                // 后续 getERC20Balance 用错误精度计算，USDT(6)/USDC(6)/WBTC(8) 等余额显示放大 10^12 倍
+                int decimals = 18;
+                try {
+                    if (decimalsHex != null && decimalsHex.length() >= 4 && decimalsHex.startsWith("0x")) {
+                        decimals = new java.math.BigInteger(decimalsHex.substring(2), 16).intValue();
+                    } else if (decimalsHex != null && decimalsHex.length() >= 2) {
+                        decimals = new java.math.BigInteger(decimalsHex, 16).intValue();
+                    }
+                } catch (Exception e) {}
+
+                return new String[]{symbol, name, String.valueOf(decimals)};
+            } catch (Exception e) {
+                Logger.warning(ctx, "代币识别", "节点 " + rpcUrl + " 异常: " + e.getMessage());
+                lastEx = e;
+                // 连接/限流异常，继续尝试下一节点
+            }
+        }
+        if (lastEx != null) throw lastEx;
+        return null;
     }
 
     public static String callContractMethod(String rpcUrl, String contract, String data) throws Exception {
@@ -4923,6 +5157,42 @@ public class ChainAPI {
             }
         }
         return -1;
+    }
+
+    /**
+     * 返回某链的内置热门代币列表（来源：TP 钱包热门代币）
+     * 每条格式：{contract, symbol, name, decimals}
+     * 供"热门代币"管理界面展示与搜索使用
+     */
+    public static java.util.List<String[]> getPopularTokens(String chain) {
+        java.util.List<String[]> result = new java.util.ArrayList<>();
+        String[][] arr = null;
+        if ("BNB".equals(chain)) arr = BSC_POPULAR_TOKENS;
+        else if ("ETH".equals(chain)) arr = ETH_POPULAR_TOKENS;
+        else if ("MATIC".equals(chain)) arr = MATIC_POPULAR_TOKENS;
+        else if ("AVAX".equals(chain)) arr = AVAX_POPULAR_TOKENS;
+        else if ("FTM".equals(chain)) arr = FTM_POPULAR_TOKENS;
+        else if ("TRX".equals(chain)) arr = TRX_POPULAR_TOKENS;
+        else if ("ONE".equals(chain)) arr = ONE_POPULAR_TOKENS;
+        if (arr != null) {
+            for (String[] t : arr) {
+                if (t.length >= 4) {
+                    result.add(new String[]{t[0], t[1], t[2], t[3]});
+                }
+            }
+        }
+        // 附加 COMMON_TOKENS 中属于该链的常用代币（{chain, contract, symbol, name, decimals}）
+        for (String[] t : COMMON_TOKENS) {
+            if (t.length >= 5 && chain.equals(t[0])) {
+                String contract = t[1].toLowerCase();
+                boolean dup = false;
+                for (String[] e : result) {
+                    if (e[0].equalsIgnoreCase(contract)) { dup = true; break; }
+                }
+                if (!dup) result.add(new String[]{t[1], t[2], t[3], t[4]});
+            }
+        }
+        return result;
     }
 
     /** 查询代币精度（decimals），优先从合约本身获取，失败时查内置列表，最后默认 18 */

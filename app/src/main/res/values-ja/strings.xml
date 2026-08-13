@@ -61,6 +61,10 @@
     <string name="text_details">%1$s詳細</string>
     <string name="toast_copied">%1$sコピーしました</string>
     <string name="str_create_import_wallet">+ ウォレットの作成/インポート</string>
+    <string name="str_oneclick_import_wallet">ワンクリックでウォレットをインポート</string>
+    <string name="toast_imported_count">%1$d チェーンにインポートしました</string>
+    <string name="toast_no_wallet_reusable">再利用できるメインネットウォレットがありません。先に作成またはインポートしてください。</string>
+    <string name="toast_no_custom_chain">先にカスタム/テストチェーンを追加してください。</string>
     <string name="str_add">+追加</string>
     <string name="str_0_records">0件のレコード</string>
     <string name="str_1_select_the_supplier">1. 以下のサプライヤーを選択します\n2. [キーを取得] をクリックして、サプライヤーの公式 Web サイトに移動して登録します\n3.公式 Web サイトで API キーを生成し、コピーして戻します\n4.キーを入力し、[有効化] をクリックして使用します\n\nAPI キーは暗号化されてローカルに保存され、どのサーバーにもアップロードされません。</string>
@@ -216,6 +220,18 @@
     <string name="text_analysis_failed">解析に失敗しました： 1</string>
     <string name="str_switch_desktop">デスクトップを切り替える</string>
     <string name="str_change_account">アカウントを切り替える</string>
+    <string name="str_dapp_op_history">操作履歴</string>
+    <string name="str_dapp_op_history_hint">このウォレットの DApp 内での操作を表示</string>
+    <string name="title_dapp_op_history">DApp 操作履歴</string>
+    <string name="msg_no_dapp_op_history">操作履歴はありません</string>
+    <string name="btn_clear_history">履歴をクリア</string>
+    <string name="toast_op_history_cleared">操作履歴をクリアしました</string>
+    <string name="str_browse_history">閲覧履歴</string>
+    <string name="msg_no_browser_history">閲覧履歴はありません</string>
+    <string name="msg_no_favorites">お気に入りはありません</string>
+    <string name="btn_clear_browse_history">閲覧履歴をクリア</string>
+    <string name="toast_history_deleted">この記録を削除しました</string>
+    <string name="toast_history_cleared">閲覧履歴をクリアしました</string>
     <string name="text_create_wallet">1文字ウォレットを作成する</string>
     <string name="str_create_new_wallet">新しいウォレットを作成</string>
     <string name="text_create_wallet_2">ウォレットを作成</string>
@@ -400,6 +416,12 @@
     <string name="str_technical_specification">技術指標</string>
     <string name="toast_report_copied">レポートをコピーしました</string>
     <string name="btn_reject">却下</string>
+    <string name="btn_cancel">キャンセル</string>
+    <string name="btn_use_alternative">代替ブリッジを使う</string>
+    <string name="title_alternative_bridges">代替ブリッジを選択</string>
+    <string name="msg_dapp_restricted">この DApp はシステムにより安全でないと判定され、完全にブロックされています。開くことも接続することもできません。\n\n制限されたソース：%1$s</string>
+    <string name="msg_dapp_restricted_incident">【資金喪失のお知らせ】%1$s は深刻なセキュリティインシデントを経験しています：2023年10月にクロスチェーンブリッジのコントラクトがハッキングされ、約2800万ドルの損失。2023年12月にも再び攻撃を受け、約11万ドルの損失。このプラットフォームには重大な資金安全リスクがあることが確認されています。資産の損失を避けるため、ご利用をお控えください。</string>
+    <string name="msg_alternative_bridges">推奨される代替ブリッジ（クロスチェーン）：</string>
     <string name="str_licensing">授権</string>
     <string name="toast_auth_revoked">承認が取り消されました： 1...</string>
     <string name="text_authorization_scan_failed">認証スキャンに失敗しました： 1</string>
@@ -499,6 +521,21 @@
     <string name="toast_failed_to_add">追加に失敗しました: 1</string>
     <string name="title_add_contact">アドレスを追加</string>
     <string name="title_adding_custom_token">カスタムトークンを追加</string>
+    <string name="str_search_token_hint">トークン名/シンボル/コントラクトを検索</string>
+    <string name="btn_restore_hidden_tokens">非表示トークンを復元</string>
+    <string name="str_home_assets">ホーム資産</string>
+    <string name="str_custom_tokens">カスタムトークン</string>
+    <string name="str_popular_tokens">人気トークン</string>
+    <string name="str_add_new_token">新規トークン追加</string>
+    <string name="str_already_added">追加済み</string>
+    <string name="str_remove">削除</string>
+    <string name="str_no_matching_tokens">一致するトークンが見つかりません</string>
+    <string name="str_no_home_assets">ホーム資産はまだありません</string>
+    <string name="str_no_custom_tokens">カスタムトークンはまだありません</string>
+    <string name="str_no_popular_tokens">人気トークンはありません</string>
+    <string name="str_contract_address_hint">コントラクトアドレス（0x...）</string>
+    <string name="str_token_symbol_hint">トークンシンボル（自動認識）</string>
+    <string name="str_token_decimals_hint">小数点桁数（自動入力）</string>
     <string name="title_add_custom_node">カスタムノードを追加</string>
     <string name="str_add_observation_wallet">観察ウォレットを追加</string>
     <string name="str_empty">リセット</string>
@@ -838,6 +875,8 @@
 【重要】このDAppを信頼し、適切な上限を設定してください。
 %2$s</string>
     <string name="disclaimer_whitelist_risk">【免責事項】リンクをホワイトリストに追加することは、すべてのリスクをご自身の判断で負担することを意味します。AIはこのリンク、DApp、またはそのスマートコントラクトの安全性を保証できません。リンクを自らホワイトリストに追加し、AIのセキュリティチェックを回避したことに起因するいかなる資産損失についても、Red Devilチームは一切責任を負いません。</string>
+    <string name="marquee_whitelist_hint">現在の操作はホワイトリスト対象のため、支払いパスワードは不要です。無効にするには、AI自動取引を手動でオフにする必要があります。現在の動作は制御可能な範囲内にあり、AI自動取引をオフにするとAI操作に影響します。</string>
+    <string name="msg_dapp_manual_confirm_prompt">AI自動取引がオフになっています。操作中のDApp：%1$s、数量 %2$s。この手動取引を確認するには支払いパスワードを入力してください。</string>
     <string name="msg_token_blacklisted_send">%1$sはAIによって高リスクトークンと判定され、すべての取引と承認が禁止されています。
 
 続行するには、トークン詳細ページでこのトークンをホワイトリストに追加してください。

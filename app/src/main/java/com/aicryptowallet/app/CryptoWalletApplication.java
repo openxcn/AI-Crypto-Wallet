@@ -46,6 +46,9 @@ public class CryptoWalletApplication extends Application {
         Logger.init(this);
         Logger.system(this, "应用启动", "CryptoWallet v" + getVersionName());
 
+        // 初始化自定义链静态上下文（供 getChainName/getChainSymbol 读取自定义链）
+        ChainAPI.init(this);
+
         // 版本升级时迁移节点配置
         migrateNodeConfig();
     }

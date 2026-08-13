@@ -283,6 +283,38 @@ public class Logger {
     }
 
     /**
+     * 从主日志中删除指定模块的所有记录（保留其他模块日志）。
+     * 行格式：timestamp | level | module | thread | message
+     */
+    public static void removeModuleRecords(Context ctx, final String module) {
+        final Context appCtx = ctx != null ? ctx.getApplicationContext() : null;
+        if (appCtx == null) return;
+        logExecutor.execute(() -> {
+            try {
+                File file = new File(appCtx.getFilesDir(), LOG_FILE);
+                if (!file.exists()) return;
+                List<String> lines = new ArrayList<>();
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        if (line.trim().isEmpty()) continue;
+                        if (line.contains(" | " + module + " | ")) continue;
+                        lines.add(line);
+                    }
+                }
+                try (FileWriter fw = new FileWriter(file)) {
+                    for (String l : lines) {
+                        fw.write(l + "\n");
+                    }
+                }
+                android.util.Log.d(TAG, "已删除模块日志: " + module);
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "删除模块日志失败: " + module, e);
+            }
+        });
+    }
+
+    /**
      * 安全清空文件（在 logExecutor 线程执行，与写入串行化）
      */
     private static void clearFileSafe(String fileName) {

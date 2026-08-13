@@ -220,7 +220,7 @@ public class AgentToolRegistry {
         ),
         new ToolDefinition(
             TOOL_CROSS_CHAIN_SWAP,
-            "打开 Transit Finance 跨链兑换网页，让用户在 DApp 浏览器中手动完成跨链资产兑换。当用户需要在不同链之间兑换原生币或代币时调用，例如 BNB 链 USDT 换成波场链 TRX。调用此工具将直接跳转 https://swap.transit.finance，不在应用内自动签名或广播交易。AI 仍应在调用前通过 ask_user 工具确认：付出链、目标链、付出资产、目标资产（原生币用 'NATIVE'，代币必须给出官方合约地址）、金额和目标地址。如果用户没有目标链钱包，应先调用 open_create_wallet 提醒用户创建。",
+            "打开跨链兑换网页，让用户在 DApp 浏览器中手动完成跨链资产兑换。当用户需要在不同链之间兑换原生币或代币时调用，例如 BNB 链 USDT 换成波场链 TRX。注意：Transit Finance（swap.transit.finance）已被系统禁止，禁止推荐/打开/连接。调用此工具必须先在可用的跨链桥中确认目标桥未被禁用，且不在应用内自动签名或广播交易。AI 仍应在调用前通过 ask_user 工具确认：付出链、目标链、付出资产、目标资产（原生币用 'NATIVE'，代币必须给出官方合约地址）、金额和目标地址。如果用户没有目标链钱包，应先调用 open_create_wallet 提醒用户创建。",
             "{\"type\":\"object\",\"properties\":{\"from_chain\":{\"type\":\"string\",\"description\":\"付出链标识，如 ETH/BNB/SOL/TRX\"},\"to_chain\":{\"type\":\"string\",\"description\":\"目标链标识，如 ETH/BNB/SOL/TRX\"},\"from_token\":{\"type\":\"string\",\"description\":\"付出代币合约地址，原生币用 'NATIVE'\"},\"to_token\":{\"type\":\"string\",\"description\":\"得到代币合约地址，原生币用 'NATIVE'；必须明确该代币所在链和合约地址\"},\"amount\":{\"type\":\"number\",\"description\":\"付出数量（人类可读单位）\"},\"destination_address\":{\"type\":\"string\",\"description\":\"目标链收款地址；如为空则自动查找当前钱包中目标链的地址\"},\"slippage\":{\"type\":\"number\",\"description\":\"滑点百分比，默认 1.5\"},\"operation_desc\":{\"type\":\"string\",\"description\":\"操作描述（用于审计）\"}},\"required\":[\"from_chain\",\"to_chain\",\"from_token\",\"to_token\",\"amount\",\"operation_desc\"]}"
         ),
         new ToolDefinition(
@@ -863,8 +863,8 @@ public class AgentToolRegistry {
         double amount = args.getDouble("amount");
         String operationDesc = args.getString("operation_desc");
 
-        // SafetyGate 校验（用预估 USD 价值，保守按 amount * 当前价）
-        double approxUsd = estimateUsdValue(ctx, chain, amount);
+        // SafetyGate 校验（用预估 USD 价值，按 from_token 自身价格估算，避免误用链原生价）
+        double approxUsd = estimateUsdValue(ctx, chain, fromToken, amount);
         // 修复：之前传固定字符串 "DEX_ROUTER" 导致白名单校验完全失效
         // 现在传真实的目标代币合约地址 toToken（若买原生币则传 "NATIVE" 豁免白名单）
         // 启用白名单确认弹窗：用户决策"加入白名单 / 仅本次允许 / 拒绝"
@@ -945,8 +945,8 @@ public class AgentToolRegistry {
     }
 
     /**
-     * 执行跨链兑换：直接打开 Transit Finance 网页，让用户在 DApp 浏览器中手动完成兑换。
-     * 原自动跨链逻辑（Rango / LI.FI / Stargate）已移除，避免异常报价和链兼容性问题。
+     * 执行跨链兑换：打开替代承兑商（跨链桥）页面，让用户在 DApp 浏览器中手动完成兑换。
+     * Transit Finance 已被系统标记为不安全，禁止 AI 自动使用，故改用替代承兑商。
      */
     private static ToolResult executeCrossChainSwap(Context ctx, JSONObject args, String defaultChain, SafetyGate safetyGate) throws Exception {
         String fromChain = args.optString("from_chain", defaultChain);
@@ -965,10 +965,10 @@ public class AgentToolRegistry {
             toolAuditLine(TOOL_CROSS_CHAIN_SWAP, fromChain + "->" + toChain,
                 fromToken + "->" + toToken + " amount=" + amount, operationDesc), null);
 
-        // 直接弹出 Transit Finance 手动兑换页
-        String transitUrl = "https://swap.transit.finance";
+        // Transit Finance 已被系统限制，改为使用替代承兑商（跨链桥）
+        String bridgeUrl = "https://li.fi";
         Intent intent = new Intent(ctx, DAppBrowserActivity.class);
-        intent.putExtra("url", transitUrl);
+        intent.putExtra("url", bridgeUrl);
         if (!(ctx instanceof android.app.Activity)) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         }
@@ -980,9 +980,9 @@ public class AgentToolRegistry {
         out.put("from_token", fromToken);
         out.put("to_token", toToken);
         out.put("amount", amount);
-        out.put("opened_url", transitUrl);
+        out.put("opened_url", bridgeUrl);
         out.put("status", "manual_page_opened");
-        out.put("note", "已打开 Transit Finance 手动兑换页面，请在 DApp 浏览器中完成操作");
+        out.put("note", "Transit Finance 已被系统限制，已改用替代承兑商 LI.FI (https://li.fi) 打开跨链兑换页面，请在 DApp 浏览器中完成操作。");
         return ToolResult.success(out.toString());
     }
 
@@ -1134,7 +1134,7 @@ public class AgentToolRegistry {
         // 用空 data 转账原生币
         String txHash = trader.executeRawTransaction(ctx, chain, toAddress, "0x", valueWei);
 
-        double approxUsd = estimateUsdValue(ctx, chain, amount);
+        double approxUsd = estimateUsdValue(ctx, chain, "NATIVE", amount);
         safetyGate.onTradeSuccess(approxUsd);
 
         // 保存转账记录到本地（让用户在交易历史中看到 AI 操作）
@@ -1195,10 +1195,28 @@ public class AgentToolRegistry {
         }
     }
 
-    private static double estimateUsdValue(Context ctx, String chain, double amount) {
+    /**
+     * 估算 USD 价值。
+     * @param tokenRef "NATIVE"=链原生币，否则为代币合约地址（解析其自身 symbol 价格）
+     */
+    private static double estimateUsdValue(Context ctx, String chain, String tokenRef, double amount) {
         try {
             java.util.Map<String, Double> prices = ChainAPI.getPrices(ctx);
-            double price = prices.getOrDefault(chain, 0.0);
+            String symbol;
+            if (tokenRef == null || "NATIVE".equalsIgnoreCase(tokenRef)
+                    || "DEX_ROUTER".equalsIgnoreCase(tokenRef)) {
+                // 原生币：用链原生 symbol 价格
+                symbol = ChainAPI.getChainSymbol(chain);
+            } else {
+                // 代币：用代币自身 symbol 价格（避免误用链原生价导致 USD 估算失真）
+                String s = resolveTokenSymbol(ctx, chain, tokenRef);
+                symbol = (s != null && !s.isEmpty()) ? s : ChainAPI.getChainSymbol(chain);
+            }
+            double price = prices.getOrDefault(symbol, 0.0);
+            if (price <= 0) {
+                // 回退到链原生价
+                price = prices.getOrDefault(chain, 0.0);
+            }
             return amount * price;
         } catch (Exception e) {
             return 0;

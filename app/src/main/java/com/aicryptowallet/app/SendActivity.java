@@ -719,22 +719,79 @@ public class SendActivity extends BaseActivity {
      */
     private void promptPaymentPassword(String toAddress, String amountStr) {
         try {
+            // —— 深色精致的密码输入区 ——
+            // 副标题提示
+            TextView tvSub = new TextView(this);
+            tvSub.setText(getString(R.string.msg_please_enter_the_payment));
+            tvSub.setTextColor(0xFF8892B0);
+            tvSub.setTextSize(13);
+
+            // 密码输入框：加大圆点、清晰可见
             final EditText etPwd = new EditText(this);
             etPwd.setInputType(android.text.InputType.TYPE_CLASS_TEXT
                 | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
             etPwd.setHint(getString(R.string.hint_enter_payment_password));
             etPwd.setTextColor(0xFFFFFFFF);
             etPwd.setHintTextColor(0xFF4a4a6a);
-            etPwd.setTextSize(14);
+            etPwd.setTextSize(18);
             etPwd.setSingleLine(true);
+            etPwd.setPadding(0, 12, 0, 12);
+            etPwd.setBackgroundColor(0x00FFFFFF);
+
+            // 小眼睛按钮：切换明文/密文
+            final android.widget.ImageButton btnEye = new android.widget.ImageButton(this);
+            btnEye.setImageResource(R.drawable.ic_eye);
+            btnEye.setBackground(null);
+            btnEye.setContentDescription("显示密码");
+            btnEye.setPadding(8, 8, 8, 8);
+            btnEye.setOnClickListener(v -> {
+                int start = etPwd.getSelectionStart();
+                int end = etPwd.getSelectionEnd();
+                if (etPwd.getInputType() == (android.text.InputType.TYPE_CLASS_TEXT
+                        | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD)) {
+                    etPwd.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                            | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                    btnEye.setImageResource(R.drawable.ic_eye_off);
+                } else {
+                    etPwd.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                            | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                    btnEye.setImageResource(R.drawable.ic_eye);
+                }
+                // 切换后保持光标位置
+                etPwd.setSelection(start, end);
+            });
+
+            // 密码框 + 眼睛并排
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.addView(etPwd, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(btnEye, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+            // 底部细分割线（输入框下缘）
+            final View divider = new View(this);
+            divider.setBackgroundColor(0xFF4a4a6a);
+            LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1);
+            divLp.topMargin = 2;
+
+            // 整体容器
             LinearLayout container = new LinearLayout(this);
             container.setOrientation(LinearLayout.VERTICAL);
-            container.setPadding(48, 32, 48, 16);
-            container.addView(etPwd);
+            container.setPadding(48, 24, 48, 16);
+            container.addView(tvSub, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            container.addView(row, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            container.addView(divider, divLp);
 
-            new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            // 密码错误时抖动输入框
+            java.util.concurrent.atomic.AtomicReference<AlertDialog> dialogRef =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+            AlertDialog dlg = new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                 .setTitle(getString(R.string.title_paypal_password))
-                .setMessage(getString(R.string.msg_please_enter_the_payment))
                 .setView(container)
                 .setPositiveButton(getString(R.string.btn_okay), (d, w) -> {
                     String inputPwd = etPwd.getText().toString();
@@ -743,22 +800,43 @@ public class SendActivity extends BaseActivity {
                         return;
                     }
                     // 后台验证密码（PBKDF2 哈希耗时较高，避免阻塞 UI）
+                    d.dismiss();
                     executor.execute(() -> {
                         boolean ok = WalletManager.verifyPassword(this, inputPwd);
                         handler.post(() -> {
                             if (ok) {
                                 executeTransfer(toAddress, amountStr);
                             } else {
+                                shakeView(container);
                                 Toast.makeText(this, getString(R.string.toast_wrong_password), Toast.LENGTH_LONG).show();
                             }
                         });
                     });
                 })
                 .setNegativeButton(getString(R.string.btn_s_decline), null)
-                .show();
+                .create();
+            dlg.setOnShowListener(d -> {
+                // 统一按钮颜色，贴合主题
+                dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setTextColor(0xFFFF453A);
+                dlg.getButton(AlertDialog.BUTTON_NEGATIVE)
+                    .setTextColor(0xFF8892B0);
+            });
+            dialogRef.set(dlg);
+            dlg.show();
         } catch (Exception e) {
             Toast.makeText(this, getString(R.string.toast_password_verification_failed, e.getMessage()), Toast.LENGTH_LONG).show();
         }
+    }
+
+    /** 输入框抖动动画（密码错误反馈） */
+    private void shakeView(View view) {
+        android.view.animation.TranslateAnimation shake =
+            new android.view.animation.TranslateAnimation(0, 14, 0, 0);
+        shake.setDuration(60);
+        shake.setRepeatMode(android.view.animation.Animation.REVERSE);
+        shake.setRepeatCount(4);
+        view.startAnimation(shake);
     }
 
     /**

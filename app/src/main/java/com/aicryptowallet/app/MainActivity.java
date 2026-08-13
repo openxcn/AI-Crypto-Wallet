@@ -62,7 +62,7 @@ public class MainActivity extends BaseActivity {
         GridLayout grid = findViewById(R.id.chainGrid);
         grid.removeAllViews();
 
-        for (String[] chainInfo : ChainAPI.CHAIN_CONFIG) {
+        for (String[] chainInfo : ChainAPI.getAllChainConfigs(this)) {
             String code = chainInfo[0];
             String name = chainInfo[1];
 

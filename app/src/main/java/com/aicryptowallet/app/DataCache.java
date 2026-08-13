@@ -145,6 +145,16 @@ public class DataCache {
         return getDouble(curPrefs(), KEY_TOTAL_VALUE, 0);
     }
 
+    /** 按钱包地址直接读取缓存总资产（不改变当前钱包指针，供钱包列表展示用） */
+    public double getCachedTotalValue(String address) {
+        return getDouble(prefs(address), KEY_TOTAL_VALUE, 0);
+    }
+
+    /** 按钱包地址读取缓存对应的链（用于校验该缓存是否属于当前选中链） */
+    public String getCachedChain(String address) {
+        return prefs(address).getString(KEY_CHAIN, "");
+    }
+
     public double getCachedNativeBalance() {
         return getDouble(curPrefs(), KEY_NATIVE_BALANCE, 0);
     }

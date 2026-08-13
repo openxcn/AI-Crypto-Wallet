@@ -129,6 +129,14 @@ public class WalletConnectRelay {
     // 缓存的会话请求（等待用户确认）
     private JSONObject pendingSessionProposal;
 
+    /** 是否已收到会话提案（用于兼容方案：避免重复注入/重复弹窗） */
+    private volatile boolean proposalReceived = false;
+
+    /** 是否已收到会话提案 */
+    public boolean isProposalReceived() {
+        return proposalReceived;
+    }
+
     /**
      * 回调接口
      */
@@ -200,6 +208,7 @@ public class WalletConnectRelay {
 
             this.pairingTopic = handshakeTopic;
             this.topic = pairingTopic;
+            this.proposalReceived = false;
 
             Logger.info(appContext, TAG, "URI 完整查询参数: " + queryPart);
             Logger.info(appContext, TAG, "symKey 参数: " + (symKeyHex != null ? symKeyHex.substring(0, Math.min(16, symKeyHex.length())) + "...(len=" + symKeyHex.length() + ")" : "null"));
@@ -416,6 +425,16 @@ public class WalletConnectRelay {
     }
 
     /**
+     * 重新订阅配对 topic（兼容方案：DApp 在钱包订阅前就发布提案，
+     * 中继不重放，需重复订阅以触发 DApp 侧重发或补收中继缓存）
+     */
+    public void resubscribePairingTopic() {
+        if (pairingTopic == null || webSocket == null) return;
+        Logger.info(appContext, TAG, "兼容方案：重新订阅配对 topic=" + pairingTopic);
+        subscribe(pairingTopic);
+    }
+
+    /**
      * 发布消息到主题
      */
     private void publish(String topic, String encryptedMessage, int tag, int ttl) {
@@ -536,6 +555,7 @@ public class WalletConnectRelay {
             // 配对会话转变为正式会话
             this.sessionTopic = msgTopic;
             this.sessionSymKey = pairingSymKey;
+            this.proposalReceived = true;
 
             JSONObject params = payload.optJSONObject("params");
             this.sessionProposal = payload;
