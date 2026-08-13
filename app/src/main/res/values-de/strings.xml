@@ -61,6 +61,10 @@
     <string name="text_details">%1$sDetails</string>
     <string name="toast_copied">%1$sKopiert</string>
     <string name="str_create_import_wallet">+ Wallet erstellen/importieren</string>
+    <string name="str_oneclick_import_wallet">Wallets mit einem Klick importieren</string>
+    <string name="toast_imported_count">In %1$d Kette(n) importiert</string>
+    <string name="toast_no_wallet_reusable">Kein Mainnet-Wallet verfügbar. Bitte erstellen oder importieren Sie zuerst eines.</string>
+    <string name="toast_no_custom_chain">Bitte fügen Sie zuerst eine benutzerdefinierte/Test-Kette hinzu.</string>
     <string name="str_add">+ hinzufügen</string>
     <string name="str_0_records">0 Datensätze</string>
     <string name="str_1_select_the_supplier">1. Wählen Sie unten den Lieferanten aus\n2. Klicken Sie auf „Schlüssel abrufen“, um zur offiziellen Website des Anbieters zur Registrierung zu gelangen\n3. Generieren Sie den API-Schlüssel auf der offiziellen Website und kopieren Sie ihn zurück\n4. Geben Sie den Schlüssel ein und klicken Sie auf „Aktivieren“, um ihn zu verwenden.\n\nDer API-Schlüssel wird verschlüsselt und lokal gespeichert und nicht auf einen Server hochgeladen.</string>
@@ -216,6 +220,12 @@
     <string name="text_analysis_failed">Analyse fehlgeschlagen: 1</string>
     <string name="str_switch_desktop">Desktop wechseln</string>
     <string name="str_change_account">Konto wechseln</string>
+    <string name="str_dapp_op_history">Betriebsprotokoll</string>
+    <string name="str_dapp_op_history_hint">Aktionen dieses Wallets in DApps anzeigen</string>
+    <string name="title_dapp_op_history">DApp-Betriebsprotokoll</string>
+    <string name="msg_no_dapp_op_history">Kein Betriebsprotokoll</string>
+    <string name="btn_clear_history">Protokoll löschen</string>
+    <string name="toast_op_history_cleared">Betriebsprotokoll gelöscht</string>
     <string name="text_create_wallet">1-Buchstaben-Wallet erstellen</string>
     <string name="str_create_new_wallet">Neues Wallet erstellen</string>
     <string name="text_create_wallet_2">Wallet erstellen</string>
@@ -400,6 +410,12 @@
     <string name="str_technical_specification">Spezifikationen</string>
     <string name="toast_report_copied">Bericht kopiert</string>
     <string name="btn_reject">Ablehnen</string>
+    <string name="btn_cancel">Abbrechen</string>
+    <string name="btn_use_alternative">Alternative Bridge verwenden</string>
+    <string name="title_alternative_bridges">Alternative Bridge wählen</string>
+    <string name="msg_dapp_restricted">Dieses DApp wurde vom System als unsicher eingestuft und ist vollständig gesperrt; es kann weder geöffnet noch verbunden werden.\n\nEingeschränkte Quelle: %1$s</string>
+    <string name="msg_dapp_restricted_incident">[Fundverlust-Hinweis] %1$s hat schwere Sicherheitsvorfälle erlitten: im Oktober 2023 wurde sein Cross-Chain-Bridge-Vertrag gehackt, Verlust von etwa 28 Millionen USD; im Dezember 2023 wurde es erneut angegriffen, Verlust von etwa 110.000 USD. Diese Plattform hat nachweislich erhebliche Risiken für die Sicherheit von Geldern. Bitte nicht verwenden, um Vermögensverluste zu vermeiden.</string>
+    <string name="msg_alternative_bridges">Empfohlene alternative Bridges:</string>
     <string name="str_licensing">Autorisierung</string>
     <string name="toast_auth_revoked">Autorisierung widerrufen: 1...</string>
     <string name="text_authorization_scan_failed">Autorisierungsscan fehlgeschlagen: 1</string>
@@ -419,6 +435,12 @@
     <string name="str_remit_to">&lt;x id=&quot;1&quot;/&gt;&lt;x id=&quot;2&quot;/&gt;&lt;x id=&quot;3&quot;/&gt;Empfangsadresse</string>
     <string name="str_income_area">Einkommensbereich</string>
     <string name="str_favorites">Favoriten</string>
+    <string name="str_browse_history">Verlauf</string>
+    <string name="msg_no_browser_history">Kein Browserverlauf</string>
+    <string name="msg_no_favorites">Keine Favoriten</string>
+    <string name="btn_clear_browse_history">Browserverlauf löschen</string>
+    <string name="toast_history_deleted">Datensatz gelöscht</string>
+    <string name="toast_history_cleared">Browserverlauf geleert</string>
     <string name="text_data_source">Datenquelle: 1</string>
     <string name="str_sgd_discovery_and_monitoring">SGD-Erkennung und -Überwachung</string>
     <string name="toast_unable_to_open_external">Externer Browser kann nicht geöffnet werden</string>
@@ -499,6 +521,21 @@
     <string name="toast_failed_to_add">Hinzufügen fehlgeschlagen: 1</string>
     <string name="title_add_contact">Ins Adressbuch</string>
     <string name="title_adding_custom_token">Benutzerdefiniertes Token hinzufügen</string>
+    <string name="str_search_token_hint">Token-Name/Symbol/Adresse suchen</string>
+    <string name="btn_restore_hidden_tokens">Ausgeblendete Token wiederherstellen</string>
+    <string name="str_home_assets">Home-Vermögenswerte</string>
+    <string name="str_custom_tokens">Benutzerdefinierte Tokens</string>
+    <string name="str_popular_tokens">Beliebte Tokens</string>
+    <string name="str_add_new_token">Neues Token hinzufügen</string>
+    <string name="str_already_added">Hinzugefügt</string>
+    <string name="str_remove">Entfernen</string>
+    <string name="str_no_matching_tokens">Keine passenden Tokens gefunden</string>
+    <string name="str_no_home_assets">Noch keine Home-Vermögenswerte</string>
+    <string name="str_no_custom_tokens">Noch keine benutzerdefinierten Tokens</string>
+    <string name="str_no_popular_tokens">Keine beliebten Tokens</string>
+    <string name="str_contract_address_hint">Vertragsadresse (0x...)</string>
+    <string name="str_token_symbol_hint">Token-Symbol (automatisch erkannt)</string>
+    <string name="str_token_decimals_hint">Dezimalstellen (automatisch ausgefüllt)</string>
     <string name="title_add_custom_node">Benutzerdefinierten Knoten hinzufügen</string>
     <string name="str_add_observation_wallet">Beobachtungs-Wallet hinzufügen</string>
     <string name="str_empty">Emptying</string>
@@ -838,6 +875,8 @@ Nach dem Hinzufügen kann die AI:
 【Wichtig】Bitte stellen Sie sicher, dass Sie dieser DApp vertrauen, und setzen Sie ein angemessenes Limit.
 %2$s</string>
     <string name="disclaimer_whitelist_risk">【Haftungsausschluss】Das Hinzufügen eines Links zur Whitelist bedeutet, dass Sie alle Risiken auf eigenes Ermessen übernehmen. Die AI kann die Sicherheit dieses Links, der DApp oder ihrer Smart Contracts nicht garantieren. Das Red Devil Team haftet nicht für jegliche Vermögensverluste, die dadurch entstehen, dass Sie den Link aktiv zur Whitelist hinzufügen und die AI-Sicherheitsprüfungen umgehen.</string>
+    <string name="marquee_whitelist_hint">Aktueller Vorgang ist auf der Whitelist, kein Zahlungspasswort erforderlich. Zum Deaktivieren müssen Sie den AI-Autohandel manuell ausschalten. Das aktuelle Verhalten liegt im kontrollierbaren Bereich; das Ausschalten des AI-Autohandels beeinträchtigt die AI-Operationen.</string>
+    <string name="msg_dapp_manual_confirm_prompt">Der AI-Autohandel ist deaktiviert. Sie bedienen die DApp: %1$s, Betrag %2$s. Bitte geben Sie Ihr Zahlungspasswort ein, um diese manuelle Transaktion zu bestätigen.</string>
     <string name="msg_token_blacklisted_send">%1$s wurde von der AI als Hochrisiko-Token eingestuft; alle Transaktionen und Genehmigungen sind blockiert.
 
 Um fortzufahren, fügen Sie den Token bitte zuerst auf der Token-Detailseite zur Whitelist hinzu.

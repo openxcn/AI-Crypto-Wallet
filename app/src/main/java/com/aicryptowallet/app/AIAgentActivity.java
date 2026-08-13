@@ -96,6 +96,9 @@ public class AIAgentActivity extends BaseActivity {
 
     private volatile boolean isRunning = false;
     private volatile boolean autoTradeEnabled = false;
+    // 标记 Activity 是否已销毁：用于在销毁后仍持久化未完成的 AI 回复，
+    // 避免切换画面时"正在说"的内容丢失（同时跳过对已失效视图的更新防止崩溃）
+    private volatile boolean destroyed = false;
     private volatile String selectedChain = "ETH";
     private final java.util.concurrent.atomic.AtomicReference<String> pendingCreateWalletChain =
         new java.util.concurrent.atomic.AtomicReference<>();
@@ -577,6 +580,10 @@ public class AIAgentActivity extends BaseActivity {
         }
 
         long now = System.currentTimeMillis();
+        // 记录发起时的会话标识：异步回复落地时据此判断用户是否已切换会话，
+        // 防止"在会话A发出的消息，回复却写进会话B"的串会话问题
+        final String sessionToken = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_ACTIVE_SESSION_ID, "");
         appendChatMessage("user", text, now);
         chatHistory.add(new String[]{"user", text, String.valueOf(now)});
         // 写入日志：用户消息
@@ -592,6 +599,9 @@ public class AIAgentActivity extends BaseActivity {
             @Override
             public void onAssistantText(final String segText) {
                 handler.post(() -> {
+                    if (destroyed) return; // 页面已销毁，跳过实时绘制
+                    // 会话守卫：已切换到其他会话则跳过实时绘制，避免中间消息串到新会话界面
+                    if (!sessionToken.equals(currentActiveSessionId())) return;
                     if (!thinkingRemoved.getAndSet(true)) {
                         removeLastThinkingMessage();
                     }
@@ -602,6 +612,9 @@ public class AIAgentActivity extends BaseActivity {
             @Override
             public void onToolStart(final String toolName) {
                 handler.post(() -> {
+                    if (destroyed) return; // 页面已销毁，跳过实时绘制
+                    // 会话守卫：已切换到其他会话则跳过实时绘制
+                    if (!sessionToken.equals(currentActiveSessionId())) return;
                     if (!thinkingRemoved.getAndSet(true)) {
                         removeLastThinkingMessage();
                     }
@@ -628,13 +641,29 @@ public class AIAgentActivity extends BaseActivity {
             }
             final String finalReply = reply;
             handler.post(() -> {
+                // 无论页面是否已销毁，都要把完成的回复持久化，避免切换画面后内容丢失
+                if (agentMemory != null && agentMemory.applySetCommand(finalReply)) {
+                    Logger.info(this, "AI 记忆", "AI 通过 @SET 修改了自身配置");
+                }
+                long aiNow = System.currentTimeMillis();
+                // 会话守卫：若用户已切换到其他会话，不污染当前会话上下文，
+                // 把这条回复写回发起时所在会话的归档，保证"在哪会话发消息就用哪会话上下文、不混淆"
+                if (!sessionToken.equals(currentActiveSessionId())) {
+                    appendReplyToArchivedSession(sessionToken, finalReply, aiNow);
+                    Logger.info(AIAgentActivity.this, "AI 对话", "会话已切换，回复写回原会话归档: " + sessionToken);
+                    return;
+                }
+                chatHistory.add(new String[]{"assistant", finalReply, String.valueOf(aiNow)});
+                Logger.info(AIAgentActivity.this, "AI 对话", "AI: " + finalReply);
+                saveChatHistory();
+
+                // 页面已销毁：只持久化，不再触碰已失效的视图
+                if (destroyed) {
+                    return;
+                }
                 // 移除"思考中"占位（若已被中间消息替换则不再移除）
                 if (!thinkingRemoved.getAndSet(true)) {
                     removeLastThinkingMessage();
-                }
-                // 解析 AI 回复中的 @SET 指令（AI 修改自身记忆）
-                if (agentMemory != null && agentMemory.applySetCommand(finalReply)) {
-                    Logger.info(this, "AI 记忆", "AI 通过 @SET 修改了自身配置");
                 }
                 // 显示给用户的回复（去掉 @SET 指令部分，保持界面干净）
                 String displayReply = finalReply;
@@ -644,13 +673,8 @@ public class AIAgentActivity extends BaseActivity {
                     String before = displayReply.substring(0, setIdx).trim();
                     displayReply = before.isEmpty() ? "已按你的要求修改。" : before;
                 }
-                long aiNow = System.currentTimeMillis();
                 // 最终总结：作为最后一条消息展示（中间步骤已实时回流，无需再拆分）
                 appendChatMessage("assistant", displayReply, aiNow);
-                chatHistory.add(new String[]{"assistant", finalReply, String.valueOf(aiNow)});
-                // 写入日志：AI 回复
-                Logger.info(AIAgentActivity.this, "AI 对话", "AI: " + finalReply);
-                saveChatHistory();
 
                 // 如果本轮工具要求打开创建钱包页，在聊天界面显示快捷按钮
                 String createChain = pendingCreateWalletChain.getAndSet(null);
@@ -1329,6 +1353,47 @@ public class AIAgentActivity extends BaseActivity {
         }
     }
 
+    /** 读取当前活跃会话标识（无则返回空串） */
+    private String currentActiveSessionId() {
+        return getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_ACTIVE_SESSION_ID, "");
+    }
+
+    /**
+     * 把一条 AI 回复追加到指定会话的归档（用于"发起后用户已切换会话"的兜底）：
+     * 找到 id 匹配的归档会话，追加一条 assistant 消息，更新条数与时间，再写回。
+     * 找不到该会话则忽略，避免内容串到其他会话。
+     */
+    private void appendReplyToArchivedSession(String sessionId, String content, long ts) {
+        try {
+            if (sessionId == null || sessionId.isEmpty()) return;
+            List<JSONObject> sessions = loadArchivedSessions();
+            JSONObject target = null;
+            for (JSONObject s : sessions) {
+                if (sessionId.equals(s.optString("id", ""))) {
+                    target = s;
+                    break;
+                }
+            }
+            if (target == null) return; // 原会话已不存在，静默丢弃
+
+            JSONArray messages = target.optJSONArray("messages");
+            if (messages == null) messages = new JSONArray();
+            JSONObject msg = new JSONObject();
+            msg.put("role", "assistant");
+            msg.put("content", content);
+            msg.put("ts", ts);
+            messages.put(msg);
+
+            target.put("messages", messages);
+            target.put("msgCount", messages.length());
+            target.put("lastTs", System.currentTimeMillis());
+            saveSessionToArchive(target, sessionId);
+        } catch (Exception e) {
+            Logger.error(this, "会话管理", "回复写回原会话归档失败", e);
+        }
+    }
+
     /**
      * 读取所有归档会话（按 lastTs 倒序）
      */
@@ -1683,7 +1748,7 @@ public class AIAgentActivity extends BaseActivity {
             "- get_safety_status: 查询安全网关状态\n" +
             "- call_contract_read: 只读合约调用\n" +
             "- swap_tokens: 同链代币兑换（需启用自动交易）\n" +
-            "- cross_chain_swap: 跨链兑换，打开 Transit Finance (https://swap.transit.finance) 内置 DApp 浏览器页面，让用户手动完成兑换；如用户已授权该域名白名单，AI 可进一步用 browser_click / browser_input / browser_evaluate 尝试自动操作页面（需启用自动交易）\n" +
+            "- cross_chain_swap: 跨链兑换，打开替代承兑商（跨链桥）LI.FI (https://li.fi) 内置 DApp 浏览器页面，让用户手动完成兑换。注意：Transit Finance (https://swap.transit.finance) 已被系统彻底禁用，禁止打开、连接或自动操作，也不得向用户推荐；该平台曾发生严重丢币事件（2023年10月跨链桥合约遭攻击损失约2800万美元、2023年12月再度遭攻击损失约11万美元），若用户提及 Transit，请告知其丢币事件并推荐替代承兑商（LI.FI / Jumper / Bungee / Squid / Stargate / deBridge 等）。如用户已授权该域名白名单，AI 可进一步用 browser_click / browser_input / browser_evaluate 尝试自动操作页面（需启用自动交易）\n" +
             "- authorize_cross_chain_buy: 记录用户对跨链自动买入的授权，保存目标链、目标资产和收款地址，后续检测到买入信号可自动执行（需启用自动交易）\n" +
             "- call_contract_write: 合约写入（需启用自动交易）\n" +
             "- approve_token: 代币授权（需启用自动交易）\n" +
@@ -1746,13 +1811,14 @@ public class AIAgentActivity extends BaseActivity {
             "  · 若没有该链钱包，提供两个选项让用户选择：1) 创建该链钱包后买入原生币；2) 在当前链购买该币的包装版本（如 Wrapped TRX），并明确链和合约地址\n" +
             "  · 如果已有该链钱包，询问用户愿意用哪条链/哪种资产购买，或在当前链购买包装版本\n" +
             "- 跨链兑换规则：\n" +
-            "  · 当前跨链兑换通过内置 DApp 浏览器打开 Transit Finance (https://swap.transit.finance)，由用户在页面内手动完成兑换\n" +
-            "  · 若用户希望 AI 尝试自动操作该页面，调用 cross_chain_swap 打开页面后，AI 可调用 request_dapp_whitelist 申请 swap.transit.finance 的白名单授权（需用户确认），授权后在额度内调用 browser_click / browser_input / browser_evaluate 自动操作\n" +
-            "  · 当用户要的是非 EVM 链原生币（如 TRX/SOL/BTC/ADA/NEAR/ATOM/DOT）时，先确认 Transit Finance 是否支持该链；若不支持，应优先询问用户：1) 创建该链钱包后买入原生币；2) 还是在当前链购买该币的包装版本（Wrapped），必须明确链和合约地址\n" +
+            "  · 当前跨链兑换通过内置 DApp 浏览器打开替代承兑商（跨链桥）LI.FI (https://li.fi)，由用户在页面内手动完成兑换\n" +
+            "  · 重要：Transit Finance (https://swap.transit.finance) 已被系统彻底禁用，AI 不得打开、连接、自动操作或推荐 Transit；该平台曾发生严重丢币事件（2023年10月遭攻击损失约2800万美元、2023年12月再次遭攻击损失约11万美元），若用户坚持要使用 Transit，应告知其丢币事件和风险，并推荐替代承兑商（LI.FI / Jumper / Bungee / Squid / Stargate / deBridge 等）\n" +
+            "  · 若用户希望 AI 尝试自动操作该页面，调用 cross_chain_swap 打开页面后，AI 可调用 request_dapp_whitelist 申请 li.fi 的白名单授权（需用户确认），授权后在额度内调用 browser_click / browser_input / browser_evaluate 自动操作\n" +
+            "  · 当用户要的是非 EVM 链原生币（如 TRX/SOL/BTC/ADA/NEAR/ATOM/DOT）时，先确认替代承兑商（LI.FI 等）是否支持该链；若不支持，应优先询问用户：1) 创建该链钱包后买入原生币；2) 还是在当前链购买该币的包装版本（Wrapped），必须明确链和合约地址\n" +
             "  · 跨链兑换前必须调用 ask_user 向用户确认：from_chain、to_chain、from_token（原生币用 'NATIVE'）、to_token（原生币用 'NATIVE'）、amount、destination_address\n" +
             "  · amount 必须是 from_token 的数量；如果用户说'花 X 美金买'，要先换算成对应的 from_token 数量（优先用 USDT 作为 from_token），避免把 1 个 BNB 当成 1 美元\n" +
             "  · 如果用户没有目标链钱包，先调用 open_create_wallet 创建目标链钱包，或让用户提供 destination_address\n" +
-            "  · Transit Finance 页面发起的交易仍受 SafetyGate 额度限制，超出额度需用户手动确认\n" +
+            "  · 替代承兑商（LI.FI 等）页面发起的交易仍受 SafetyGate 额度限制，超出额度需用户手动确认\n" +
             "  · 首次使用跨链功能会强制显示系统级风险提示弹窗，用户必须确认后才能继续\n" +
             "  · AI 自动交易（买入和卖出）会扣除 0.5% 手续费，持有红魔 NFT 可免手续费\n" +
             "- 如果用户意图、目标链或目标合约地址不明确，必须调用 ask_user 确认，禁止自行猜测\n" +
@@ -2652,6 +2718,7 @@ public class AIAgentActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        destroyed = true; // 标记销毁：未完成的回复仍会持久化，但不再绘制到视图
         try {
             // 解绑 SafetyGate 的 Activity 引用，避免内存泄漏
             if (safetyGate != null) {
@@ -2666,8 +2733,10 @@ public class AIAgentActivity extends BaseActivity {
             if (executor != null) {
                 executor.shutdownNow();
             }
+            // 聊天线程不强制中断：避免正在生成的 AI 回复被掐断而丢失
+            // （其 handler 回调已通过 destroyed 标志跳过视图更新，只做持久化）
             if (chatExecutor != null) {
-                chatExecutor.shutdownNow();
+                chatExecutor.shutdown();
             }
             // 清理 Handler
             if (handler != null) {

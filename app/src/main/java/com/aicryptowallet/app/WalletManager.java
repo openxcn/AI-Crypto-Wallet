@@ -538,9 +538,27 @@ public class WalletManager {
 
     public static void addCustomToken(Context ctx, String chain, String symbol, String name, String contract, String decimals) {
         String existing = getPrefs(ctx).getString(KEY_CUSTOM_TOKENS + "_" + chain, "");
-        String newToken = symbol + "|" + name + "|" + contract + "|" + decimals;
-        String updated = existing.isEmpty() ? newToken : existing + ";" + newToken;
-        getPrefs(ctx).edit().putString(KEY_CUSTOM_TOKENS + "_" + chain, updated).commit();
+        // 去重：同一合约已存在则用新信息覆盖，避免重复添加
+        StringBuilder sb = new StringBuilder();
+        boolean found = false;
+        if (!existing.isEmpty()) {
+            for (String token : existing.split(";")) {
+                String[] parts = token.split("\\|");
+                if (parts.length >= 3 && parts[2].equalsIgnoreCase(contract)) {
+                    // 覆盖已有记录
+                    sb.append(symbol).append("|").append(name).append("|").append(contract).append("|").append(decimals);
+                    found = true;
+                } else {
+                    if (sb.length() > 0) sb.append(";");
+                    sb.append(token);
+                }
+            }
+        }
+        if (!found) {
+            if (sb.length() > 0) sb.append(";");
+            sb.append(symbol).append("|").append(name).append("|").append(contract).append("|").append(decimals);
+        }
+        getPrefs(ctx).edit().putString(KEY_CUSTOM_TOKENS + "_" + chain, sb.toString()).commit();
     }
 
     public static void removeCustomToken(Context ctx, String chain, String contract) {
@@ -712,6 +730,57 @@ public class WalletManager {
         list.add(w);
         saveWalletList(ctx, list);
         setActiveWalletId(ctx, w.id);
+    }
+
+    /**
+     * 为新链（如测试链）自动创建钱包，复用已有主链钱包的助记词/私钥。
+     * 助记词私钥与主链完全一致，因此派生的地址也一致，可直接沿用之前的主链钱包。
+     * 若已存在同链钱包则跳过；若没有可复用私钥的既有钱包，则返回 null。
+     */
+    public static WalletInfo addWalletForNewChain(Context ctx, String name, String chain) {
+        migrateIfNeeded(ctx);
+        List<WalletInfo> all = getAllWallets(ctx);
+
+        // 该链已有钱包则不重复添加
+        for (WalletInfo w : all) {
+            if (chain.equals(w.chain)) return w;
+        }
+
+        // 找一个可复用私钥的既有钱包（HD 或导入，非观察）
+        WalletInfo source = null;
+        for (WalletInfo w : all) {
+            if (!w.isWatchOnly() && w.mnemonicEnc != null && !w.mnemonicEnc.isEmpty()) {
+                source = w;
+                break;
+            }
+        }
+        if (source == null) return null;
+
+        String decrypted = decryptMnemonic(source.mnemonicEnc);
+        if (decrypted == null || decrypted.isEmpty()) return null;
+
+        String address;
+        if ("imported".equals(source.type)) {
+            address = deriveAddressFromPrivateKey(decrypted, chain);
+        } else {
+            address = deriveAddress(decrypted, chain);
+        }
+        if (address == null || address.isEmpty()) return null;
+
+        WalletInfo w = new WalletInfo();
+        w.id = UUID.randomUUID().toString();
+        w.name = (name != null && !name.isEmpty()) ? name : source.name;
+        w.address = address;
+        w.chain = chain;
+        w.type = source.type;          // 沿用 HD 或导入
+        w.mnemonicEnc = source.mnemonicEnc; // 共享同一助记词/私钥
+        w.password = source.password;  // 共享同一密码
+        w.backedUp = source.backedUp;
+
+        all.add(w);
+        saveWalletList(ctx, all);
+        setActiveWalletId(ctx, w.id);
+        return w;
     }
 
     public static PrivateKey getPrivateKey(String mnemonic, String chain) {

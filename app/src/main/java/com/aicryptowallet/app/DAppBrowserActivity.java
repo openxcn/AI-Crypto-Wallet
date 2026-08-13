@@ -3,6 +3,7 @@ package com.aicryptowallet.app;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -45,8 +46,11 @@ public class DAppBrowserActivity extends BaseActivity {
     private WebView webView;
     private EditText etUrl;
     private ProgressBar progressBar;
-    private ScrollView bookmarksContainer;
+    private NoScrollInterceptScrollView bookmarksContainer;
     private LinearLayout dappGrid;
+    private LinearLayout crossChainGrid;
+    private TextView tvTabHot, tvTabCross;
+    private TextView tvTitleHot, tvTitleCross;
     private SafetyGate safetyGate;
     private DAppWhitelistManager whitelistManager;
     private WalletConnectRelay walletConnectRelay;
@@ -189,9 +193,18 @@ public class DAppBrowserActivity extends BaseActivity {
         progressBar = findViewById(R.id.progressBar);
         bookmarksContainer = findViewById(R.id.bookmarksContainer);
         dappGrid = findViewById(R.id.dappGrid);
+        crossChainGrid = findViewById(R.id.crossChainGrid);
+        tvTabHot = findViewById(R.id.tvTabHot);
+        tvTabCross = findViewById(R.id.tvTabCross);
+        tvTitleHot = findViewById(R.id.tvTitleHot);
+        tvTitleCross = findViewById(R.id.tvTitleCross);
+        setupHomeTabs();
+        setupUrlHistoryDropdown();
 
         // 初始化安全网关（DApp 发起的交易也必须经过校验）
         safetyGate = new SafetyGate(this, new TradeAuthManager(this), new RiskManager(this));
+        // 绑定 Activity 引用，用于 DApp 交易白名单确认弹窗（否则无法弹窗会直接拒绝）
+        safetyGate.attachActivity(this);
         whitelistManager = new DAppWhitelistManager(this);
         currentWalletAddress = WalletManager.getWalletAddress(this);
 
@@ -237,6 +250,11 @@ public class DAppBrowserActivity extends BaseActivity {
         super.onResume();
         sInstance = this;
 
+        // 重新绑定安全网关 Activity（onPause 已解绑）
+        if (safetyGate != null) {
+            safetyGate.attachActivity(this);
+        }
+
         // 检测钱包切换并通知 DApp
         String newAddress = WalletManager.getWalletAddress(this);
         if (currentWalletAddress != null && !currentWalletAddress.equalsIgnoreCase(newAddress)) {
@@ -272,6 +290,10 @@ public class DAppBrowserActivity extends BaseActivity {
         if (latch != null) {
             latch.result[0] = WhitelistDialogResult.noUi();
             latch.latch.countDown();
+        }
+        // 解绑安全网关 Activity，避免暂停期间弹窗失败或内存泄漏
+        if (safetyGate != null) {
+            safetyGate.detachActivity();
         }
     }
 
@@ -345,6 +367,8 @@ public class DAppBrowserActivity extends BaseActivity {
                 if (etUrl != null) etUrl.setText(url);
                 if (bookmarksContainer != null) bookmarksContainer.setVisibility(View.GONE);
                 webView.setVisibility(View.VISIBLE);
+                // 更新白名单滚动提示（根据当前 DApp 是否在白名单显示/隐藏）
+                updateWhitelistMarquee();
             }
 
             @Override
@@ -369,6 +393,8 @@ public class DAppBrowserActivity extends BaseActivity {
                 lastPageFinishTime = now;
                 
                 Logger.info(DAppBrowserActivity.this, "DApp浏览器", "onPageFinished: " + url);
+                // 记录浏览历史（仅主页面，http/https）
+                DAppHistoryManager.recordVisit(DAppBrowserActivity.this, url, view.getTitle());
                 // 更新标签页标题（供 browser_list_tabs 返回）
                 String pageTitle = view.getTitle();
                 if (pageTitle != null && !pageTitle.isEmpty()) {
@@ -795,7 +821,42 @@ public class DAppBrowserActivity extends BaseActivity {
             dialog.dismiss();
         });
 
+        // 操作记录
+        view.findViewById(R.id.btnDappOpHistory).setOnClickListener(v -> {
+            showDAppOpHistoryDialog();
+            dialog.dismiss();
+        });
+
         dialog.show();
+    }
+
+    /**
+     * 展示 DApp 操作记录弹窗。
+     * 记录来源：DAppOpHistory.record() 在连接/交易/签名等操作点写入的专用文件。
+     */
+    private void showDAppOpHistoryDialog() {
+        java.util.List<String> records = DAppOpHistory.load(this);
+        if (records == null || records.isEmpty()) {
+            new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+                .setTitle(getString(R.string.title_dapp_op_history))
+                .setMessage(getString(R.string.msg_no_dapp_op_history))
+                .setPositiveButton(getString(R.string.btn_got_it), null)
+                .show();
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String r : records) {
+            sb.append(r).append("\n");
+        }
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_dapp_op_history))
+            .setMessage(sb.toString().trim())
+            .setPositiveButton(getString(R.string.btn_got_it), null)
+            .setNeutralButton(getString(R.string.btn_clear_history), (d, w) -> {
+                DAppOpHistory.clear(this);
+                Toast.makeText(this, getString(R.string.toast_op_history_cleared), Toast.LENGTH_SHORT).show();
+            })
+            .show();
     }
 
     private static final String PREFS_DAPP_FAVORITES = "dapp_favorites_prefs";
@@ -854,6 +915,12 @@ public class DAppBrowserActivity extends BaseActivity {
             return;
         }
         url = url.trim();
+        // 受限 DApp（如 Transit）彻底禁止打开，告知丢币事件并推荐替代承兑商
+        if (isBlockedDApp(resolveOrigin(url))) {
+            Logger.info(this, "DApp连接", "尝试打开受限DApp，彻底禁止 origin=" + url);
+            showBlockedDAppDialog(resolveOrigin(url), null);
+            return;
+        }
         // 已带协议头
         if (url.startsWith("http://") || url.startsWith("https://")) {
             addTab(url, this);
@@ -884,23 +951,7 @@ public class DAppBrowserActivity extends BaseActivity {
         webView.setVisibility(View.GONE);
         bookmarksContainer.setVisibility(View.VISIBLE);
 
-        String[][] dapps = {
-            // 跨链桥/跨链兑换
-            {"Transit", "https://swap.transit.finance", "T"},
-            {"Stargate", "https://stargate.finance", "S"},
-            {"deBridge", "https://debridge.finance", "dB"},
-            {"Across", "https://app.across.to", "A"},
-            {"Orbiter", "https://www.orbiter.finance", "O"},
-            {"Hop", "https://app.hop.exchange", "H"},
-            {"Synapse", "https://synapseprotocol.com", "Sy"},
-            {"cBridge", "https://cbridge.celer.network", "cB"},
-            {"Wormhole", "https://portalbridge.com", "W"},
-            {"LI.FI", "https://li.fi", "LI"},
-            {"Bungee", "https://bungee.exchange", "Bu"},
-            {"Rango", "https://app.rango.exchange", "R"},
-            {"Squid", "https://app.squidrouter.com", "Sq"},
-            {"Relay", "https://relay.link", "Re"},
-            {"Jumper", "https://jumper.exchange", "J"},
+        String[][] hotDapps = {
             // DEX
             {"PancakeSwap", "https://pancakeswap.finance", "P"},
             {"Uniswap", "https://app.uniswap.org", "U"},
@@ -924,13 +975,269 @@ public class DAppBrowserActivity extends BaseActivity {
             {"BscScan", "https://bscscan.com", "Bsc"}
         };
 
+        renderDappList(dappGrid, hotDapps);
+    }
+
+    /** 跨链 tab：跨链桥 DApp */
+    private void loadCrossChainBookmarks() {
+        webView.setVisibility(View.GONE);
+        bookmarksContainer.setVisibility(View.VISIBLE);
+
+        String[][] crossDapps = {
+            {"Stargate", "https://stargate.finance", "S"},
+            {"deBridge", "https://debridge.finance", "dB"},
+            {"Across", "https://app.across.to", "A"},
+            {"Orbiter", "https://www.orbiter.finance", "O"},
+            {"Hop", "https://app.hop.exchange", "H"},
+            {"Synapse", "https://synapseprotocol.com", "Sy"},
+            {"cBridge", "https://cbridge.celer.network", "cB"},
+            {"Wormhole", "https://portalbridge.com", "W"},
+            {"LI.FI", "https://li.fi", "LI"},
+            {"Bungee", "https://bungee.exchange", "Bu"},
+            {"Rango", "https://app.rango.exchange", "R"},
+            {"Squid", "https://app.squidrouter.com", "Sq"},
+            {"Relay", "https://relay.link", "Re"},
+            {"Jumper", "https://jumper.exchange", "J"}
+        };
+
+        renderDappList(crossChainGrid, crossDapps);
+    }
+
+    /** 渲染一组 DApp 标签（支持长按删除） */
+    private void renderDappList(LinearLayout grid, String[][] dapps) {
+        if (grid == null) return;
+        grid.removeAllViews();
         for (String[] dapp : dapps) {
+            final String dappUrl = dapp[1];
+            // 已通过长按删除的热门 DApp 不再显示
+            if (isDAppHidden(dappUrl)) continue;
             View item = getLayoutInflater().inflate(R.layout.item_dapp, null);
             ((TextView) item.findViewById(R.id.tvDappIcon)).setText(dapp[2]);
             ((TextView) item.findViewById(R.id.tvDappName)).setText(dapp[0]);
-            item.setOnClickListener(v -> loadUrl(dapp[1]));
-            dappGrid.addView(item);
+            item.setOnClickListener(v -> loadUrl(dappUrl));
+            // 长按热门 DApp 标签可删除（持久保存，重启后不再显示）
+            item.setOnLongClickListener(v -> {
+                confirmHideDapp(dapp[0], dappUrl);
+                return true;
+            });
+            grid.addView(item);
         }
+    }
+
+    /** 长按热门 DApp 标签 → 确认后隐藏并移除 */
+    private void confirmHideDapp(final String name, final String url) {
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.str_popular))
+            .setMessage("确定删除热门 DApp「" + name + "」吗？删除后不再显示。")
+            .setCancelable(true)
+            .setPositiveButton(getString(R.string.str_confirm), (d, w) -> {
+                hideDapp(url);
+                Toast.makeText(this, getString(R.string.toast_history_deleted), Toast.LENGTH_SHORT).show();
+                // 重建当前可见的列表（热门 或 跨链）
+                if (crossChainGrid != null && crossChainGrid.getVisibility() == View.VISIBLE) {
+                    loadCrossChainBookmarks();
+                } else {
+                    loadDAppBookmarks();
+                }
+            })
+            .setNegativeButton(getString(R.string.btn_reject), null)
+            .show();
+    }
+
+    private static final String PREFS_HIDDEN_DAPPS = "hidden_dapps_prefs";
+    private static final String PREF_KEY_HIDDEN = "hidden_urls";
+
+    private boolean isDAppHidden(String url) {
+        if (url == null || url.isEmpty()) return false;
+        java.util.Set<String> hidden = getSharedPreferences(PREFS_HIDDEN_DAPPS, Context.MODE_PRIVATE)
+            .getStringSet(PREF_KEY_HIDDEN, new java.util.HashSet<String>());
+        return hidden.contains(url);
+    }
+
+    private void hideDapp(String url) {
+        if (url == null || url.isEmpty()) return;
+        SharedPreferences prefs = getSharedPreferences(PREFS_HIDDEN_DAPPS, Context.MODE_PRIVATE);
+        java.util.Set<String> hidden = new java.util.HashSet<>(
+            prefs.getStringSet(PREF_KEY_HIDDEN, new java.util.HashSet<String>()));
+        hidden.add(url);
+        prefs.edit().putStringSet(PREF_KEY_HIDDEN, hidden).apply();
+    }
+
+    /** 首页 热门/跨链 tab 切换 */
+    private void setupHomeTabs() {
+        if (tvTabHot == null || tvTabCross == null) return;
+        tvTabHot.setOnClickListener(v -> {
+            switchDappHomeTab(0);
+            loadDAppBookmarks();
+        });
+        tvTabCross.setOnClickListener(v -> {
+            switchDappHomeTab(1);
+            loadCrossChainBookmarks();
+        });
+    }
+
+    /** tab=0 热门，tab=1 跨链 */
+    private void switchDappHomeTab(int tab) {
+        setTabStyle(tvTabHot, tab == 0);
+        setTabStyle(tvTabCross, tab == 1);
+
+        boolean hot = tab == 0;
+        boolean cross = tab == 1;
+        setVisible(tvTitleHot, hot);
+        setVisible(dappGrid, hot);
+        setVisible(tvTitleCross, cross);
+        setVisible(crossChainGrid, cross);
+    }
+
+    private void setTabStyle(TextView tv, boolean active) {
+        if (tv == null) return;
+        tv.setBackgroundResource(active ? R.drawable.trade_tab_active : 0);
+        tv.setTextColor(active ? 0xFFFFFFFF : 0xFF6E6E7A);
+        tv.setTypeface(null, active ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+    }
+
+    private void setVisible(View v, boolean visible) {
+        if (v != null) v.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    /** 网页输入框聚焦时下拉展示浏览记录 */
+    private void setupUrlHistoryDropdown() {
+        if (etUrl == null) return;
+        etUrl.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                showUrlHistoryDropdown();
+            } else {
+                dismissUrlHistoryDropdown();
+            }
+        });
+        etUrl.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                if (etUrl.hasFocus()) showUrlHistoryDropdown();
+            }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+        });
+    }
+
+    private android.widget.PopupWindow urlHistoryPopup;
+
+    /** 在输入框下方弹出浏览记录列表 */
+    private void showUrlHistoryDropdown() {
+        java.util.List<DAppHistoryManager.HistoryEntry> history = DAppHistoryManager.load(this);
+        if (history.isEmpty()) {
+            dismissUrlHistoryDropdown();
+            return;
+        }
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundColor(0xFF1a1a2e);
+        int pad = (int) (10 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad, pad, pad);
+
+        for (final DAppHistoryManager.HistoryEntry e : history) {
+            String host = hostOf(e.url);
+            TextView title = new TextView(this);
+            title.setText(inlineTitle(e.title, host));
+            title.setTextColor(0xFFFFFFFF);
+            title.setTextSize(13);
+            title.setSingleLine(true);
+            title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            title.setPadding(pad, 0, pad, 0);
+            title.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, (int)(44*getResources().getDisplayMetrics().density), 1f));
+
+            TextView del = new TextView(this);
+            del.setText("☓");
+            del.setTextColor(0xFFFF4757);
+            del.setTextSize(16);
+            del.setGravity(android.view.Gravity.CENTER);
+            del.setLayoutParams(new android.widget.LinearLayout.LayoutParams((int)(48*getResources().getDisplayMetrics().density), (int)(44*getResources().getDisplayMetrics().density)));
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackground(generateRowBg());
+            row.setPadding(0, (int)(4*getResources().getDisplayMetrics().density), 0, (int)(4*getResources().getDisplayMetrics().density));
+            row.addView(title);
+            row.addView(del);
+
+            title.setOnClickListener(v -> {
+                dismissUrlHistoryDropdown();
+                etUrl.setText(e.url);
+                loadUrl(e.url);
+            });
+            del.setOnClickListener(v -> {
+                DAppHistoryManager.delete(this, e.url);
+                Toast.makeText(this, getString(R.string.toast_history_deleted), Toast.LENGTH_SHORT).show();
+                showUrlHistoryDropdown();
+            });
+            container.addView(row);
+        }
+
+        // 底部：清空浏览记录
+        TextView clearBtn = new TextView(this);
+        clearBtn.setText(getString(R.string.btn_clear_browse_history));
+        clearBtn.setTextColor(0xFFFF4757);
+        clearBtn.setTextSize(13);
+        clearBtn.setGravity(android.view.Gravity.CENTER);
+        clearBtn.setPadding(pad, (int)(14*getResources().getDisplayMetrics().density), pad, (int)(14*getResources().getDisplayMetrics().density));
+        clearBtn.setBackground(generateRowBg());
+        clearBtn.setOnClickListener(v -> {
+            DAppHistoryManager.clear(this);
+            dismissUrlHistoryDropdown();
+            Toast.makeText(this, getString(R.string.toast_history_cleared), Toast.LENGTH_SHORT).show();
+        });
+        container.addView(clearBtn);
+
+        urlHistoryPopup = new android.widget.PopupWindow(container,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        urlHistoryPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x33000000));
+        urlHistoryPopup.setOutsideTouchable(true);
+        urlHistoryPopup.setElevation(8 * getResources().getDisplayMetrics().density);
+        urlHistoryPopup.showAsDropDown(etUrl, 0, 0);
+    }
+
+    private void dismissUrlHistoryDropdown() {
+        if (urlHistoryPopup != null && urlHistoryPopup.isShowing()) {
+            urlHistoryPopup.dismiss();
+        }
+        urlHistoryPopup = null;
+    }
+
+    private android.graphics.drawable.Drawable generateRowBg() {
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(0xFF1a1a2e);
+        g.setStroke(1, 0xFF2a2a3e);
+        g.setCornerRadius(8 * getResources().getDisplayMetrics().density);
+        return g;
+    }
+
+    private View emptyHint(String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(0xFF6E6E7A);
+        tv.setTextSize(13);
+        tv.setPadding(0, 16, 0, 16);
+        return tv;
+    }
+
+    private String hostOf(String url) {
+        try {
+            return new java.net.URI(url).getHost();
+        } catch (Exception e) {
+            return url;
+        }
+    }
+
+    private String initialFor(String host) {
+        if (host == null || host.isEmpty()) return "?";
+        char c = host.charAt(0);
+        return Character.isLetterOrDigit(c) ? String.valueOf(Character.toUpperCase(c)) : "?";
+    }
+
+    private String inlineTitle(String title, String host) {
+        if (title != null && !title.isEmpty()) return title;
+        return host;
     }
 
     /**
@@ -955,6 +1262,7 @@ public class DAppBrowserActivity extends BaseActivity {
                 case "ARB": return "0xa4b1";
                 case "OP": return "0xa";
                 case "BASE": return "0x2105";
+                case "BSC-TESTNET": return "0x61"; // BSC 测试网 chainId=97
                 default: return "0x1";
             }
         }
@@ -1191,9 +1499,27 @@ public class DAppBrowserActivity extends BaseActivity {
                         break;
                     case "wallet_switchEthereumChain":
                     case "wallet_addEthereumChain":
-                        // DApp 请求切换/添加链：直接 resolve，让页面继续使用当前链
+                        // DApp 请求切换/添加链：解析 chainId 并切换到对应链，确保后续交易使用正确 chainId
+                        try {
+                            JSONArray params = new JSONArray(paramsJson);
+                            if (params.length() > 0) {
+                                JSONObject chainObj = params.getJSONObject(0);
+                                String chainIdHex = chainObj.optString("chainId", "");
+                                String newChain = getChainCodeByChainId(chainIdHex);
+                                if (newChain != null) {
+                                    WalletManager.setChain(DAppBrowserActivity.this, newChain);
+                                    Logger.info(DAppBrowserActivity.this, "DApp连接",
+                                        "DApp 请求切换链成功，已切换到: " + newChain + " (" + chainIdHex + ")");
+                                } else {
+                                    Logger.info(DAppBrowserActivity.this, "DApp连接",
+                                        "DApp 请求切换链，未找到对应链，保持当前链: " + chainIdHex);
+                                }
+                            }
+                        } catch (Exception e) {
+                            Logger.error(DAppBrowserActivity.this, "DApp连接", "链切换处理失败: " + e.getMessage(), e);
+                        }
+                        // 无论是否切换成功都放行，让页面继续使用当前链
                         resolveCallback(callbackId, "null");
-                        Logger.info(DAppBrowserActivity.this, "DApp连接", "DApp 请求切换/添加链，已放行: " + method);
                         break;
                     case "eth_sendTransaction":
                         handleSendTransaction(paramsJson, callbackId);
@@ -1237,17 +1563,33 @@ public class DAppBrowserActivity extends BaseActivity {
     private static final String KEY_PREFIX_ORIGIN = "auth_origin_";
     private static final String KEY_PREFIX_WALLET = "auth_wallet_";
     private String currentOrigin = "";
+    private android.widget.TextView tvWhitelistMarquee;
 
     /**
      * 违背去中心化思想的 DApp 黑名单
      * 命中后一律禁止连接，并弹出提示
      */
     private static final Set<String> BLOCKED_DAPP_ORIGINS = new HashSet<>(Arrays.asList(
-        // 示例：可在此添加具体域名，如 "https://example.com"
+        // Transit 已被系统标记为不安全，禁止 AI 自动使用；用户若坚持使用需弹窗警告
+        "https://swap.transit.finance"
     ));
     private static final Set<String> BLOCKED_DAPP_KEYWORDS = new HashSet<>(Arrays.asList(
-        // 示例：可在此添加关键词，如 "cex", "kyc"
+        // 关键词命中也会拦截，避免 Transit 变体域名/子域名绕过
+        "transit.finance"
     ));
+
+    // 用户坚持使用受限 DApp 时可选的替代承兑商（跨链桥），均为本钱包可连接的
+    private static final String[][] ALTERNATIVE_BRIDGES = {
+        {"LI.FI", "https://li.fi"},
+        {"Jumper", "https://jumper.exchange"},
+        {"Bungee", "https://bungee.exchange"},
+        {"Squid", "https://app.squidrouter.com"},
+        {"Stargate", "https://stargate.finance"},
+        {"deBridge", "https://debridge.finance"},
+        {"Across", "https://app.across.to"},
+        {"Wormhole", "https://portalbridge.com"},
+        {"Rango", "https://app.rango.exchange"}
+    };
 
     /**
      * 处理 eth_requestAccounts / eth_accounts
@@ -1277,6 +1619,7 @@ public class DAppBrowserActivity extends BaseActivity {
         // eth_requestAccounts：检查是否已授权
         if (isDAppAuthorized(origin, address)) {
             Logger.info(this, "DApp连接", "已授权，自动连接 origin=" + origin);
+            DAppOpHistory.record(this, origin, DAppOpHistory.OP_CONNECT, "已授权，自动连接", true);
             resolveCallback(callbackId, "[\"" + address + "\"]");
             // 触发 accountsChanged 通知 DApp
             notifyAccountsChanged(address);
@@ -1295,6 +1638,7 @@ public class DAppBrowserActivity extends BaseActivity {
                     // 持久化授权
                     authorizeDApp(origin, address);
                     Logger.info(this, "DApp连接", "用户授权连接 origin=" + origin);
+                    DAppOpHistory.record(this, origin, DAppOpHistory.OP_CONNECT, "用户授权连接钱包", true);
                     resolveCallback(callbackId, "[\"" + address + "\"]");
                     notifyAccountsChanged(address);
                     Toast.makeText(this, getString(R.string.toast_wallet_connected), Toast.LENGTH_SHORT).show();
@@ -1327,19 +1671,73 @@ public class DAppBrowserActivity extends BaseActivity {
     }
 
     /**
-     * 弹出黑名单 DApp 禁止连接提示
+     * 弹出受限 DApp 提示（彻底禁止）
+     * 受限 DApp（如 Transit）禁止打开与连接，告知用户其丢币/安全事件，并推荐替代承兑商。
      */
     private void showBlockedDAppDialog(String origin, String callbackId) {
         uiHandler.post(() -> {
+            // 组装替代承兑商列表文案
+            StringBuilder alt = new StringBuilder();
+            for (String[] b : ALTERNATIVE_BRIDGES) {
+                alt.append("  · ").append(b[0]).append("  ").append(extractHost(b[1])).append("\n");
+            }
+
             new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                 .setTitle(getString(R.string.title_connection_blocked))
-                .setMessage(getString(R.string.msg_this_dapp_violates_the, origin))
-                .setPositiveButton(getString(R.string.btn_got_it), (d, w) -> {
-                    rejectCallback(callbackId, "该 DApp 已被系统禁止连接");
+                .setMessage(getString(R.string.msg_dapp_restricted, origin)
+                    + "\n\n" + getString(R.string.msg_dapp_restricted_incident, extractHost(origin))
+                    + "\n\n" + getString(R.string.msg_alternative_bridges) + "\n" + alt)
+                .setPositiveButton(getString(R.string.btn_use_alternative), (d, w) -> {
+                    if (callbackId != null) rejectCallback(callbackId, "用户选择使用替代承兑商");
+                    openAlternativeBridgeChooser();
                 })
-                .setOnCancelListener(d -> rejectCallback(callbackId, "该 DApp 已被系统禁止连接"))
+                .setNegativeButton(getString(R.string.btn_got_it), (d, w) -> {
+                    if (callbackId != null) rejectCallback(callbackId, "该 DApp 已被系统禁止连接");
+                })
+                .setOnCancelListener(d -> {
+                    if (callbackId != null) rejectCallback(callbackId, "该 DApp 已被系统禁止连接");
+                })
                 .show();
         });
+    }
+
+    /**
+     * 打开替代承兑商选择弹窗
+     */
+    private void openAlternativeBridgeChooser() {
+        String[] names = new String[ALTERNATIVE_BRIDGES.length];
+        for (int i = 0; i < ALTERNATIVE_BRIDGES.length; i++) {
+            names[i] = ALTERNATIVE_BRIDGES[i][0] + "  " + extractHost(ALTERNATIVE_BRIDGES[i][1]);
+        }
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_alternative_bridges))
+            .setItems(names, (d, which) -> {
+                loadUrl(ALTERNATIVE_BRIDGES[which][1]);
+            })
+            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .show();
+    }
+
+    /**
+     * 从完整 URL 提取主机名
+     */
+    private String extractHost(String url) {
+        try {
+            android.net.Uri uri = android.net.Uri.parse(url);
+            String host = uri.getHost();
+            return host != null ? host : url;
+        } catch (Exception e) {
+            return url;
+        }
+    }
+
+    private String resolveOrigin(String url) {
+        if (url == null || url.isEmpty()) return "";
+        String u = url.trim();
+        if (!u.startsWith("http://") && !u.startsWith("https://")) {
+            u = "https://" + u;
+        }
+        return extractOrigin(u);
     }
 
     /**
@@ -1398,6 +1796,37 @@ public class DAppBrowserActivity extends BaseActivity {
     }
 
     /**
+     * 根据 chainId（hex）解析钱包链标识；支持内置链与自定义 BSC 测试网。
+     * @return 链 code，找不到返回 null（保持当前链）
+     */
+    private String getChainCodeByChainId(String chainIdHex) {
+        if (chainIdHex == null || chainIdHex.isEmpty()) return null;
+        try {
+            long chainId = Long.decode(chainIdHex.trim());
+            switch ((int) chainId) {
+                case 1: return "ETH";
+                case 56: return "BNB";
+                case 97: return "BSC-TESTNET"; // BSC 测试网
+                case 137: return "MATIC";
+                case 43114: return "AVAX";
+                case 250: return "FTM";
+                case 42161: return "ARB";
+                case 10: return "OP";
+                case 8453: return "BASE";
+                default:
+                    // 若用户已添加同 chainId 的自定义链则切换到它
+                    for (ChainAPI.CustomChain cc : ChainAPI.getCustomChains(this)) {
+                        if (cc.code != null && cc.code.equalsIgnoreCase("BSC-TESTNET")
+                            && chainId == 97) return cc.code;
+                    }
+                    return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * 处理 eth_sendTransaction - DApp 请求发送交易
      * 必须经过 SafetyGate 校验；若 DApp 已加入白名单且在额度内，自动放行。
      */
@@ -1430,11 +1859,22 @@ public class DAppBrowserActivity extends BaseActivity {
                 "DApp 交易 to=" + to + " value=" + valueWei + " data=" + data.substring(0, Math.min(50, data.length())),
                 txUsdValue);
             if (!safetyCheck.allowed) {
+                // 因"AI 自动交易未开启"被拦截：转入用户手动支付密码确认，而非直接失败。
+                // 这样用户手动在 DApp 里操作时，关闭 AI 自动交易也能通过输密码正常交易。
+                if (safetyCheck.reason != null && safetyCheck.reason.contains("AI 自动交易未开启")) {
+                    Logger.info(this, "DApp交易", "AI 自动交易已关闭，转入手动支付密码确认 origin=" + originDomain + " usd=" + txUsdValue);
+                    showDAppManualPasswordConfirm(to, data, valueWei, callbackId);
+                    return;
+                }
+                DAppOpHistory.record(this, originDomain, DAppOpHistory.OP_TRANSACTION,
+                    "安全网关拦截: " + safetyCheck.reason, false);
                 rejectCallback(callbackId, "安全网关拦截: " + safetyCheck.reason);
                 return;
             }
 
             Logger.info(this, "DApp交易", "白名单自动放行 origin=" + originDomain + " usd=" + txUsdValue);
+            DAppOpHistory.record(this, originDomain, DAppOpHistory.OP_TRANSACTION,
+                "发起交易 to=" + to + " value=" + valueWei + " usd=" + txUsdValue, true);
             executeDAppTransaction(to, data, valueWei, callbackId);
         } catch (Exception e) {
             rejectCallback(callbackId, "解析交易参数失败: " + e.getMessage());
@@ -1455,6 +1895,105 @@ public class DAppBrowserActivity extends BaseActivity {
     }
 
     /**
+     * 手动支付密码确认：当 AI 自动交易关闭时，用户在 DApp 里的手动操作
+     * 通过输入支付密码来确认交易，验证通过后执行。
+     */
+    private void showDAppManualPasswordConfirm(final String to, final String data,
+                                               final BigInteger valueWei, final String callbackId) {
+        uiHandler.post(() -> {
+            try {
+                LinearLayout container = new LinearLayout(this);
+                container.setOrientation(LinearLayout.VERTICAL);
+                container.setPadding(48, 24, 48, 16);
+
+                TextView tvSub = new TextView(this);
+                tvSub.setText(getString(R.string.msg_dapp_manual_confirm_prompt,
+                    getCurrentDomain(), valueWei));
+                tvSub.setTextColor(0xFF8892B0);
+                tvSub.setTextSize(13);
+                tvSub.setLineSpacing(0, 1.2f);
+                container.addView(tvSub, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(0, 12, 0, 0);
+
+                TextView tvLabel = new TextView(this);
+                tvLabel.setText(getString(R.string.title_paypal_password));
+                tvLabel.setTextColor(0xFFFFFFFF);
+                tvLabel.setTextSize(14);
+                row.addView(tvLabel, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+                final EditText etPwd = new EditText(this);
+                etPwd.setSingleLine(true);
+                etPwd.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                    | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                etPwd.setHint(getString(R.string.toast_password));
+                etPwd.setTextColor(0xFFFFFFFF);
+                etPwd.setHintTextColor(0xFF4a4a6a);
+                etPwd.setTextSize(14);
+                row.addView(etPwd, new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+                LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1);
+                divLp.setMargins(0, 12, 0, 0);
+                View divider = new View(this);
+                divider.setBackgroundColor(0x22FFFFFF);
+                container.addView(row, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                container.addView(divider, divLp);
+
+                final java.util.concurrent.atomic.AtomicReference<AlertDialog> dialogRef =
+                    new java.util.concurrent.atomic.AtomicReference<>();
+
+                AlertDialog dlg = new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+                    .setTitle(getString(R.string.title_paypal_password))
+                    .setView(container)
+                    .setPositiveButton(getString(R.string.btn_okay), (d, w) -> {
+                        String inputPwd = etPwd.getText().toString();
+                        if (inputPwd.isEmpty()) {
+                            Toast.makeText(this, getString(R.string.toast_password), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        d.dismiss();
+                        // 后台验证密码（PBKDF2 哈希耗时较高，避免阻塞 UI）
+                        txExecutor.execute(() -> {
+                            boolean ok = WalletManager.verifyPassword(this, inputPwd);
+                            uiHandler.post(() -> {
+                                if (ok) {
+                                    Logger.action(this, "DApp交易", "手动支付密码验证通过，执行交易", null);
+                                    executeDAppTransaction(to, data, valueWei, callbackId);
+                                } else {
+                                    Toast.makeText(this, getString(R.string.toast_wrong_password), Toast.LENGTH_LONG).show();
+                                    // 密码错误时关闭弹窗并拒绝本次请求
+                                    rejectCallback(callbackId, "密码错误，交易已取消");
+                                }
+                            });
+                        });
+                    })
+                    .setNegativeButton(getString(R.string.btn_s_decline), (d, w) -> {
+                        d.dismiss();
+                        rejectCallback(callbackId, "用户取消交易");
+                    })
+                    .create();
+                dlg.setOnShowListener(d -> {
+                    dlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(0xFFFF453A);
+                    dlg.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(0xFF8892B0);
+                });
+                dialogRef.set(dlg);
+                dlg.show();
+            } catch (Exception e) {
+                Logger.error(this, "DApp交易", "手动密码确认弹窗失败: " + e.getMessage(), e);
+                rejectCallback(callbackId, "确认弹窗失败: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
      * 执行 DApp 交易（签名+广播）
      */
     private void executeDAppTransaction(String to, String data, BigInteger valueWei, String callbackId) {
@@ -1465,10 +2004,14 @@ public class DAppBrowserActivity extends BaseActivity {
                 String txHash = trader.executeRawTransaction(this, chain, to, data, valueWei);
                 safetyGate.onTradeSuccess(0);
                 Logger.action(this, "DApp交易", "广播成功 hash=" + txHash, null);
+                DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_TRANSACTION,
+                    "交易广播成功 hash=" + txHash, true);
                 resolveCallback(callbackId, "\"" + txHash + "\"");
             } catch (Exception e) {
                 Logger.error(this, "DApp交易", "广播失败: " + e.getMessage(), e);
                 safetyGate.onTradeFailure();
+                DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_TRANSACTION,
+                    "交易广播失败: " + e.getMessage(), false);
                 rejectCallback(callbackId, "交易失败: " + e.getMessage());
             }
         });
@@ -1487,6 +2030,7 @@ public class DAppBrowserActivity extends BaseActivity {
                 rejectCallback(callbackId, getString(R.string.msg_address_mismatch));
                 return;
             }
+            DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_SIGN, "personal_sign 签名请求", true);
 
             uiHandler.post(() -> {
                 new AlertDialog.Builder(this)
@@ -1514,6 +2058,7 @@ public class DAppBrowserActivity extends BaseActivity {
                 rejectCallback(callbackId, getString(R.string.msg_address_mismatch));
                 return;
             }
+            DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_SIGN_TYPED, "eth_signTypedData_v4 结构化签名请求", true);
 
             uiHandler.post(() -> {
                 new AlertDialog.Builder(this)
@@ -1554,9 +2099,11 @@ public class DAppBrowserActivity extends BaseActivity {
                     org.web3j.utils.Numeric.toHexStringNoPrefixZeroPadded(new BigInteger(1, sig.getS()), 64) +
                     org.web3j.utils.Numeric.toHexStringNoPrefixZeroPadded(vBigInt, 2);
                 Logger.action(this, "DApp签名", "签名完成", null);
+                DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_SIGN, "消息签名完成", true);
                 resolveCallback(callbackId, "\"" + sigHex + "\"");
             } catch (Exception e) {
                 Logger.error(this, "DApp签名", "签名失败: " + e.getMessage(), e);
+                DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_SIGN, "签名失败: " + e.getMessage(), false);
                 rejectCallback(callbackId, "签名失败: " + e.getMessage());
             }
         });
@@ -1591,8 +2138,11 @@ public class DAppBrowserActivity extends BaseActivity {
                     String respBody = resp.body() != null ? resp.body().string() : "";
                     JSONObject json = new JSONObject(respBody);
                     if (json.has("error")) {
+                        DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_RPC,
+                            method + " 调用失败: " + json.getJSONObject("error").optString("message", "RPC error"), false);
                         rejectCallback(callbackId, json.getJSONObject("error").optString("message", "RPC error"));
                     } else {
+                        DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_RPC, method + " 调用成功", true);
                         Object result = json.opt("result");
                         String resultStr;
                         if (result == null) {
@@ -1608,6 +2158,7 @@ public class DAppBrowserActivity extends BaseActivity {
                     }
                 }
             } catch (Exception e) {
+                DAppOpHistory.record(this, getCurrentDomain(), DAppOpHistory.OP_RPC, method + " 调用异常: " + e.getMessage(), false);
                 rejectCallback(callbackId, "RPC 调用失败: " + e.getMessage());
             }
         });
@@ -1895,7 +2446,51 @@ public class DAppBrowserActivity extends BaseActivity {
                 Logger.info(this, "WalletConnect", "复用桥接WebSocket，即时订阅配对topic");
             }
             walletConnectRelay.connect(uri, existingWs);
+            // 兼容方案：DApp 在钱包订阅前就发布了 sessionPropose，中继不重放。
+            // 定时从桥接缓存中拉取配对 topic 的 irn_publish 提案并注入，弥补时序差。
+            startProposalPolling();
         }
+    }
+
+    /**
+     * 兼容方案：轮询等待配对 topic 的会话提案。
+     * DApp 生成配对 URI 后立即发布 wc_sessionPropose，而钱包订阅成功晚于发布，
+     * WalletConnect 中继不会给后订阅者重放消息。这里从桥接缓存 + 主动重订阅两条路
+     * 兜底，确保钱包能收到提案并弹出连接确认。
+     */
+    private void startProposalPolling() {
+        final long[] attempt = {0};
+        final long maxAttempts = 20; // 约 10 秒
+        final String pairingTopic = walletConnectRelay != null ? walletConnectRelay.getPairingTopic() : null;
+        if (pairingTopic == null) return;
+
+        final Runnable poller = new Runnable() {
+            @Override
+            public void run() {
+                if (walletConnectRelay == null) return;
+                if (walletConnectRelay.isProposalReceived()) return; // 已收到提案，停止轮询
+
+                // 通道1：从桥接缓存中拿 DApp 发出的 irn_publish 提案
+                if (walletJsInterface != null) {
+                    String injected = walletJsInterface.getLastPublishForTopic(pairingTopic);
+                    if (injected != null && !walletConnectRelay.isProposalReceived()) {
+                        Logger.info(DAppBrowserActivity.this, "WalletConnect", "兼容方案：轮询到缓存提案，注入钱包");
+                        walletConnectRelay.handleRelayMessage(injected);
+                    }
+                }
+
+                // 通道2：主动重订阅配对 topic，触发中继补发/重放
+                if (!walletConnectRelay.isProposalReceived()) {
+                    walletConnectRelay.resubscribePairingTopic();
+                }
+
+                attempt[0]++;
+                if (!walletConnectRelay.isProposalReceived() && attempt[0] < maxAttempts) {
+                    uiHandler.postDelayed(this, 500);
+                }
+            }
+        };
+        uiHandler.postDelayed(poller, 300);
     }
 
     /**
@@ -2342,8 +2937,14 @@ public class DAppBrowserActivity extends BaseActivity {
             "    var cb = callbacks[id];\n" +
             "    if (!cb) return;\n" +
             "    delete callbacks[id];\n" +
-            "    if (ok) cb.resolve(result);\n" +
-            "    else cb.reject(new Error(error || 'unknown error'));\n" +
+            "    if (ok) { cb.resolve(result); return; }\n" +
+            "    // 构造 EIP-1193 标准错误，携带 code 字段，避免 ethers v6 报 'could not coalesce error'\n" +
+            "    var msg = error || 'unknown error';\n" +
+            "    var err = new Error(msg);\n" +
+            "    err.code = -32000; // 通用 RPC 错误\n" +
+            "    err.message = msg;\n" +
+            "    err.data = msg;\n" +
+            "    cb.reject(err);\n" +
             "  };\n" +
             "  var listeners = {};\n" +
             "  var provider = {\n" +
@@ -2518,6 +3119,25 @@ public class DAppBrowserActivity extends BaseActivity {
         return whitelistManager.isWhitelisted(domain);
     }
 
+    /** 根据当前 DApp 是否在白名单，控制滚动提示字幕的显示 */
+    private void updateWhitelistMarquee() {
+        if (tvWhitelistMarquee == null) {
+            tvWhitelistMarquee = findViewById(R.id.tvWhitelistMarquee);
+        }
+        if (tvWhitelistMarquee == null) return;
+        boolean whitelisted = isCurrentDAppWhitelisted();
+        if (whitelisted) {
+            tvWhitelistMarquee.setText(R.string.marquee_whitelist_hint);
+            tvWhitelistMarquee.setVisibility(View.VISIBLE);
+            // 启动横向滚动
+            tvWhitelistMarquee.setSelected(true);
+            tvWhitelistMarquee.requestFocus();
+        } else {
+            tvWhitelistMarquee.setSelected(false);
+            tvWhitelistMarquee.setVisibility(View.GONE);
+        }
+    }
+
     /** 检查当前 DApp 是否允许指定 AI 操作 */
     private boolean isCurrentOperationAllowed(String operation) {
         String domain = getCurrentDomain();
@@ -2676,7 +3296,24 @@ public class DAppBrowserActivity extends BaseActivity {
         result[0] = WhitelistDialogResult.noUi();
         whitelistLatchRef.set(new WhitelistDialogLatch(latch, result));
 
-        uiHandler.post(() -> {
+        uiHandler.post(() -> showAiWhitelistDialogWithRetry(domain, details, result, latch, 0));
+
+        try {
+            latch.await(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            whitelistLatchRef.set(null);
+        }
+        return result[0];
+    }
+
+    /** AI 白名单 Activity 弹窗，失败自动重试（解决"弹不出/要再点一次"） */
+    private void showAiWhitelistDialogWithRetry(String domain, String details,
+                                                final WhitelistDialogResult[] result,
+                                                final CountDownLatch latch, final int attempt) {
+        final int MAX_ATTEMPTS = 4;
+        try {
             new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                 .setTitle(getString(R.string.title_ai_applies_for_dapp))
                 .setMessage(details)
@@ -2694,16 +3331,15 @@ public class DAppBrowserActivity extends BaseActivity {
                     latch.countDown();
                 })
                 .show();
-        });
-
-        try {
-            latch.await(60, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            whitelistLatchRef.set(null);
+        } catch (Exception e) {
+            Logger.warning(this, "DApp白名单弹窗", "弹窗显示失败(第" + (attempt + 1) + "次): " + e.getMessage());
+            if (attempt + 1 < MAX_ATTEMPTS) {
+                uiHandler.postDelayed(() -> showAiWhitelistDialogWithRetry(domain, details, result, latch, attempt + 1), 400);
+            } else {
+                result[0] = WhitelistDialogResult.noUi();
+                latch.countDown();
+            }
         }
-        return result[0];
     }
 
     /** 系统级悬浮窗弹窗：可在后台显示，阻塞最多 60 秒 */

@@ -110,6 +110,26 @@
         android:progressTint="#667eea"
         android:visibility="gone" />
 
+    <!-- 白名单滚动提示（仅当前 DApp 在白名单时显示） -->
+    <TextView
+        android:id="@+id/tvWhitelistMarquee"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:background="#331818"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:scrollHorizontally="true"
+        android:textColor="#f59e0b"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone" />
+
     <!-- WebView -->
     <WebView
         android:id="@+id/webView"
@@ -118,13 +138,13 @@
         android:layout_weight="1" />
 
     <!-- DApp Bookmarks (shown when on home page) -->
-    <ScrollView
-        android:id="@+id/bookmarksContainer"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:visibility="gone">
+    <com.aicryptowallet.app.NoScrollInterceptScrollView
+            android:id="@+id/bookmarksContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -132,7 +152,41 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- 发现 / 我的 切换 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/card_background"
+                android:padding="4dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tvTabHot"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/str_popular"
+                    android:textColor="#ffffff"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/trade_tab_active" />
+
+                <TextView
+                    android:id="@+id/tvTabCross"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/str_cross_chain"
+                    android:textColor="#6E6E7A"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
             <TextView
+                android:id="@+id/tvTitleHot"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/str_popular"
@@ -146,6 +200,25 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
+
+            <!-- 跨链：跨链桥 DApp -->
+            <TextView
+                android:id="@+id/tvTitleCross"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/str_cross_chain"
+                android:textColor="#ffffff"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/crossChainGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
         </LinearLayout>
-    </ScrollView>
+    </com.aicryptowallet.app.NoScrollInterceptScrollView>
 </LinearLayout>

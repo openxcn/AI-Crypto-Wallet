@@ -19,7 +19,7 @@ public class LocaleManager {
     private static final String KEY_LANGUAGE = "selected_language";
 
     // 与 showLanguageDialog 中选项顺序保持一致
-    public static final String[] SUPPORTED_LANGUAGES = {"简体中文", "English", "日本語", "Deutsch"};
+    public static final String[] SUPPORTED_LANGUAGES = {"简体中文", "繁體中文", "English", "日本語", "Deutsch"};
 
     /**
      * 获取持久化的语言标签（显示名），默认简体中文
@@ -48,6 +48,8 @@ public class LocaleManager {
                 return Locale.JAPANESE;
             case "Deutsch":
                 return Locale.GERMAN;
+            case "繁體中文":
+                return Locale.TRADITIONAL_CHINESE;
             case "简体中文":
             default:
                 return Locale.SIMPLIFIED_CHINESE;

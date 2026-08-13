@@ -136,5 +136,24 @@
                 android:textColor="#2997F4"
                 android:textSize="16sp" />
         </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnOneClickImport"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/card_background"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/str_oneclick_import_wallet"
+                android:textColor="#2997F4"
+                android:textSize="16sp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

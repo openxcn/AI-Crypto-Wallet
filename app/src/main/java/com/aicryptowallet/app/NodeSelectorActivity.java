@@ -160,8 +160,8 @@ public class NodeSelectorActivity extends BaseActivity {
 
         // Ping + block height in background
         executor.execute(() -> {
-            long latency = NodeManager.pingNode(nodeUrl);
-            long blockHeight = NodeManager.getBlockHeight(nodeUrl);
+            long latency = NodeManager.pingNodeSafe(chain, nodeUrl);
+            long blockHeight = NodeManager.getBlockHeightSafe(chain, nodeUrl);
 
             handler.post(() -> {
                 if (latency > 0) {

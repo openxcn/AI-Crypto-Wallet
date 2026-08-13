@@ -115,10 +115,9 @@ public class NodeManager {
             new NodeEntry("Harmony 官方", "https://api.harmony.one")
         });
         NODE_PRESETS.put("SOL", new NodeEntry[]{
-            new NodeEntry("TP自建(推荐,中国直连330ms)", "https://sol.mytokenpocket.vip"),
-            new NodeEntry("PublicNode SOL", "https://solana-rpc.publicnode.com"),
-            new NodeEntry("Helius", "https://mainnet.helius-rpc.com"),
-            new NodeEntry("Solana 官方", "https://api.mainnet-beta.solana.com")
+            new NodeEntry("TP自建1(中国直连)", "https://solana1.mytokenpocket.vip"),
+            new NodeEntry("Solana 官方", "https://api.mainnet-beta.solana.com"),
+            new NodeEntry("Solana 官方CDN", "https://api.mainnet.solana.com")
         });
         NODE_PRESETS.put("TRX", new NodeEntry[]{
             new NodeEntry("TronGrid", "https://api.trongrid.io"),
@@ -181,6 +180,12 @@ public class NodeManager {
         if (!custom.isEmpty()) return custom;
         String selected = prefs.getString("selected_" + chain, "");
         if (!selected.isEmpty()) return selected;
+        // 仅对自定义链（内置链配置里不存在）使用自定义链自身 RPC，
+        // 内置链保持原有 getPresets 逻辑完全不变，避免影响任何内置链的节点选择
+        if (ChainAPI.getDefaultRpc(chain).isEmpty()) {
+            String customChainRpc = ChainAPI.getDefaultRpc(ctx, chain);
+            if (customChainRpc != null && !customChainRpc.isEmpty()) return customChainRpc;
+        }
         NodeEntry[] presets = getPresets(chain);
         return presets.length > 0 ? presets[0].url : "";
     }
@@ -247,15 +252,84 @@ public class NodeManager {
         }
     }
 
+    // 非 EVM 链（不能用 eth_blockNumber 测速）的链集合
+    private static boolean isNonEvmChain(String chain) {
+        if (chain == null) return false;
+        switch (chain) {
+            case "SOL":
+            case "TRX":
+            case "SUI":
+            case "APT":
+            case "ADA":
+            case "NEAR":
+            case "ATOM":
+            case "DOT":
+            case "ALGO":
+            case "ICP":
+            case "XTZ":
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /**
-     * 获取区块高度（通过 eth_blockNumber）
+     * 链感知测速：EVM 链用 eth_blockNumber，非 EVM 链用对应原生方法。
+     * 修复：SOL/TRX 等链不支持 eth_blockNumber，旧逻辑永远返回 -1（显示"超时"），
+     * 但实际余额查询（getTokenAccountsByOwner 等）是通的，导致节点设置误报"连不上"。
+     * @param chain 链标识（SOL/TRX/ETH/BNB...）
+     * @param rpcUrl 节点 URL
+     * @return 延迟毫秒，-1 表示失败/超时
+     */
+    public static long pingNodeSafe(String chain, String rpcUrl) {
+        if (!isNonEvmChain(chain)) {
+            return pingNode(rpcUrl);
+        }
+        try {
+            long start = System.currentTimeMillis();
+            JSONObject body = new JSONObject();
+            body.put("jsonrpc", "2.0");
+            body.put("id", 1);
+            body.put("method", "getHealth");
+            body.put("params", new JSONArray());
+
+            Request request = new Request.Builder()
+                .url(rpcUrl)
+                .post(RequestBody.create(body.toString(), JSON_TYPE))
+                .build();
+
+            try (Response response = PING_CLIENT.newCall(request).execute()) {
+                long elapsed = System.currentTimeMillis() - start;
+                if (response.isSuccessful() && response.body() != null) {
+                    String resp = response.body().string();
+                    // SOL: {"result":"ok"}；其他链若返回 result 也视为可用
+                    if (resp.contains("result")) return elapsed;
+                }
+                return -1;
+            }
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * 获取区块高度（通过 eth_blockNumber），非 EVM 链用对应原生方法。
      */
     public static long getBlockHeight(String rpcUrl) {
+        return getBlockHeightSafe(null, rpcUrl);
+    }
+
+    /**
+     * 链感知区块高度：EVM 链用 eth_blockNumber，SOL 用 getSlot。
+     * 避免非 EVM 链调用 eth_blockNumber 报错导致统一显示失败。
+     */
+    public static long getBlockHeightSafe(String chain, String rpcUrl) {
         try {
             JSONObject body = new JSONObject();
             body.put("jsonrpc", "2.0");
             body.put("id", 1);
-            body.put("method", "eth_blockNumber");
+            String method = ("SOL".equals(chain)) ? "getSlot" : "eth_blockNumber";
+            body.put("method", method);
             body.put("params", new JSONArray());
 
             Request request = new Request.Builder()
@@ -268,8 +342,13 @@ public class NodeManager {
                     String resp = response.body().string();
                     JSONObject json = new JSONObject(resp);
                     if (json.has("result")) {
-                        String hex = json.getString("result");
-                        return Long.parseLong(hex.substring(2), 16);
+                        String result = json.getString("result");
+                        if ("SOL".equals(chain)) {
+                            // SOL getSlot 返回十进制数字
+                            return Long.parseLong(result);
+                        }
+                        // EVM eth_blockNumber 返回 0x 十六进制
+                        return Long.parseLong(result.substring(2), 16);
                     }
                 }
                 return -1;
@@ -286,7 +365,7 @@ public class NodeManager {
     public static String findFirstAvailableNode(String chain) {
         NodeEntry[] presets = getPresets(chain);
         for (NodeEntry entry : presets) {
-            if (pingNode(entry.url) > 0) return entry.url;
+            if (pingNodeSafe(chain, entry.url) > 0) return entry.url;
         }
         return presets.length > 0 ? presets[0].url : "";
     }
@@ -311,7 +390,7 @@ public class NodeManager {
         for (NodeEntry entry : presets) {
             PING_EXECUTOR.execute(() -> {
                 try {
-                    long latency = pingNode(entry.url);
+                    long latency = pingNodeSafe(chain, entry.url);
                     if (latency > 0) {
                         // CAS 更新最小延迟
                         long current;

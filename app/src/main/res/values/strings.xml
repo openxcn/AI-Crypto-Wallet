@@ -61,6 +61,10 @@
     <string name="text_details">%1$s 详情</string>
     <string name="toast_copied">%1$s已复制</string>
     <string name="str_create_import_wallet">+ 创建 / 导入钱包</string>
+    <string name="str_oneclick_import_wallet">一键导入可用钱包</string>
+    <string name="toast_imported_count">已为 %1$d 条链导入主链钱包</string>
+    <string name="toast_no_wallet_reusable">没有可复用的主链钱包，请先创建或导入钱包</string>
+    <string name="toast_no_custom_chain">请先添加自定义/测试链</string>
     <string name="str_add">+ 添加</string>
     <string name="str_0_records">0 条记录</string>
     <string name="str_1_select_the_supplier">1. 选择下方供应商\n2. 点击「获取 Key」跳转到供应商官网注册\n3. 在官网生成 API Key 后复制回来\n4. 填入 Key 后点击「激活」即可使用\n\nAPI Key 会加密存储在本机，不会上传到任何服务器。</string>
@@ -216,6 +220,18 @@
     <string name="text_analysis_failed">分析失败: %1$s</string>
     <string name="str_switch_desktop">切换桌面</string>
     <string name="str_change_account">切换账号</string>
+    <string name="str_dapp_op_history">操作记录</string>
+    <string name="str_dapp_op_history_hint">查看本钱包在 DApp 内的操作</string>
+    <string name="title_dapp_op_history">DApp 操作记录</string>
+    <string name="msg_no_dapp_op_history">暂无操作记录</string>
+    <string name="btn_clear_history">清空记录</string>
+    <string name="toast_op_history_cleared">操作记录已清空</string>
+    <string name="str_browse_history">浏览记录</string>
+    <string name="msg_no_browser_history">暂无浏览记录</string>
+    <string name="msg_no_favorites">暂无收藏</string>
+    <string name="btn_clear_browse_history">清空浏览记录</string>
+    <string name="toast_history_deleted">已删除该记录</string>
+    <string name="toast_history_cleared">浏览记录已清空</string>
     <string name="text_create_wallet">创建 %1$s 钱包</string>
     <string name="str_create_new_wallet">创建新钱包</string>
     <string name="text_create_wallet_2">创建钱包</string>
@@ -404,6 +420,12 @@
     <string name="str_technical_specification">技术指标</string>
     <string name="toast_report_copied">报告已复制</string>
     <string name="btn_reject">拒绝</string>
+    <string name="btn_cancel">取消</string>
+    <string name="btn_use_alternative">使用替代承兑商</string>
+    <string name="title_alternative_bridges">选择替代承兑商</string>
+    <string name="msg_dapp_restricted">该 DApp 已被系统标记为不安全并彻底禁止，无法打开或连接。\n\n受限来源：%1$s</string>
+    <string name="msg_dapp_restricted_incident">【丢币事件告知】%1$s 曾发生严重安全事件：2023年10月其跨链桥合约遭黑客攻击，损失约 2800 万美元；2023年12月再度遭攻击损失约 11 万美元。该平台已被证实存在重大资金安全隐患，请勿使用，以免资产遭受损失。</string>
+    <string name="msg_alternative_bridges">建议使用以下替代承兑商（跨链桥）：</string>
     <string name="str_licensing">授权</string>
     <string name="toast_auth_revoked">授权已撤销: %1$s...</string>
     <string name="text_authorization_scan_failed">授权扫描失败: %1$s</string>
@@ -503,6 +525,22 @@
     <string name="toast_failed_to_add">添加失败: %1$s</string>
     <string name="title_add_contact">添加联系人</string>
     <string name="title_adding_custom_token">添加自定义代币</string>
+    <!-- 代币管理弹窗（参考 TP/小狐狸） -->
+    <string name="str_search_token_hint">搜索代币名称/符号/合约地址</string>
+    <string name="btn_restore_hidden_tokens">恢复已隐藏的代币</string>
+    <string name="str_home_assets">首页资产</string>
+    <string name="str_custom_tokens">自定义代币</string>
+    <string name="str_popular_tokens">热门代币</string>
+    <string name="str_add_new_token">新增代币</string>
+    <string name="str_already_added">已添加</string>
+    <string name="str_remove">移除</string>
+    <string name="str_no_matching_tokens">未找到匹配的代币</string>
+    <string name="str_no_home_assets">暂无首页资产</string>
+    <string name="str_no_custom_tokens">暂无自定义代币</string>
+    <string name="str_no_popular_tokens">暂无热门代币</string>
+    <string name="str_contract_address_hint">合约地址（0x...）</string>
+    <string name="str_token_symbol_hint">代币符号（光标置于此处自动识别）</string>
+    <string name="str_token_decimals_hint">小数位（识别合约后自动填入）</string>
     <string name="title_add_custom_node">添加自定义节点</string>
     <string name="str_add_observation_wallet">添加观察钱包</string>
     <string name="str_empty">清空</string>
@@ -521,6 +559,36 @@
     <string name="btn_got_it">知道了</string>
     <string name="str_miner_fee">矿工费</string>
     <string name="msg_confirm_delete">确定删除「%1$s」？</string>
+    <!-- 自定义链 -->
+    <string name="title_add_custom_chain">添加自定义链</string>
+    <string name="str_chain_code">链代码</string>
+    <string name="str_chain_display_name">链名称</string>
+    <string name="str_rpc_node">RPC 节点</string>
+    <string name="str_native_symbol">原生符号</string>
+    <string name="str_decimals">小数位</string>
+    <string name="str_is_evm_chain">EVM 兼容链</string>
+    <string name="toast_please_fill_all_fields">请填写所有必填字段</string>
+    <string name="toast_custom_chain_added">自定义链 %1$s 已添加</string>
+    <string name="title_edit_custom_chain">编辑自定义链</string>
+    <string name="toast_custom_chain_updated">自定义链 %1$s 已更新</string>
+    <string name="toast_builtin_chain_not_editable">内置链不可编辑，仅可编辑自定义测试链</string>
+    <string name="btn_add_bsc_testnet">标准币安测试网</string>
+    <string name="toast_bsc_testnet_exists">标准币安测试网已存在，已为您切换</string>
+    <!-- NFT -->
+    <string name="str_add_nft">添加 NFT</string>
+    <string name="str_contract_address">合约地址</string>
+    <string name="str_nft_token_id">Token ID</string>
+    <string name="str_nft_add">添加 NFT</string>
+    <string name="toast_enter_contract_address">请输入合约地址</string>
+    <string name="toast_enter_token_id">请输入 Token ID</string>
+    <string name="toast_nft_added">NFT 已添加</string>
+    <string name="toast_nft_ownership_check_failed">验证失败，请确认钱包拥有该 NFT</string>
+    <string name="toast_nft_invalid_contract">无效的合约地址</string>
+    <string name="toast_non_evm_chain">当前链不支持手动添加 NFT</string>
+    <string name="str_nft_owned">已拥有</string>
+    <string name="toast_nft_remove">NFT 已移除</string>
+    <string name="msg_confirm_delete_nft">确定移除该 NFT？</string>
+    <string name="toast_rpc_not_available">RPC 节点不可用</string>
     <string name="msg_confirm_hide_asset">确定在资产列表中隐藏 %1$s 吗？\n（不会影响链上资产，仅本地不显示）</string>
     <string name="msg_confirm_revoke_auth">确定撤销 %1$s 对 %2$s... 的授权吗？</string>
     <string name="msg_are_you_sure_you">确定要删除这个会话吗？删除后无法恢复。</string>
@@ -842,6 +910,8 @@
 【重要】请确保你信任该 DApp，并设置合理的额度上限。
 %2$s</string>
     <string name="disclaimer_whitelist_risk">【免责声明】将链接加入白名单即视为您自主承担全部风险。AI 无法保证该链接、DApp 或其智能合约的安全性，因您主动将该链接加入白名单、绕过 AI 安全检测而导致的任何资产损失，红魔团队概不负责。</string>
+    <string name="marquee_whitelist_hint">当前操作为白名单，无需支付密码，如需关闭，需要您手动关闭AI自动交易，但当前行为在可控范围内，如关闭AI自动交易，将影响AI操作</string>
+    <string name="msg_dapp_manual_confirm_prompt">AI 自动交易未开启。您正在操作 DApp：%1$s，交易数量 %2$s。请输入支付密码确认本次手动交易。</string>
     <string name="msg_token_blacklisted_send">%1$s 已被 AI 标记为高风险代币，已禁止所有交易和授权操作。
 
 如需继续操作，请先在代币详情页将该代币加入白名单。

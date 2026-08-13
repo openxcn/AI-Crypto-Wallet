@@ -81,7 +81,7 @@ public class AssetOverviewActivity extends BaseActivity {
                         wad.chain = chain;
 
                         double nativeBalance = ChainAPI.getNativeBalance(this, chain, w.address);
-                        double nativePrice = prices.getOrDefault(chain, 0.0);
+                        double nativePrice = ChainAPI.resolveNativePrice(prices, this, chain);
                         double nativeValue = nativeBalance * nativePrice;
                         wad.nativeBalance = nativeBalance;
                         wad.nativeValue = nativeValue;
@@ -119,7 +119,7 @@ public class AssetOverviewActivity extends BaseActivity {
                                 if (token.length < 4) continue;
                                 try {
                                     double balance = Double.parseDouble(token[2]);
-                                    double price = prices.getOrDefault(token[0], 0.0);
+                                    double price = ChainAPI.resolveTokenPrice(prices, this, wad.chain, token[0]);
                                     double value = balance * price;
                                     if (value > 0.01) { // 忽略极小金额
                                         TokenAsset ta = new TokenAsset();

@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
+import android.view.WindowManager;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +46,7 @@ public class SafetyGate {
     private static final String KEY_CIRCUIT_BREAKER_UNTIL = "circuit_breaker_until";
     private static final String KEY_WHITELIST = "contract_whitelist";
     private static final String KEY_DAILY_TRADE_VOLUME = "daily_trade_volume";
+    private static final String KEY_LAST_RESET_VERSION = "last_reset_version";
 
     // 默认熔断阈值
     public static final int MAX_CONSECUTIVE_LOSSES = 3;       // 连续 3 次亏损熔断
@@ -297,10 +301,20 @@ public class SafetyGate {
      * 同步弹窗：询问用户是否将代币加入白名单
      * 调用线程（Agent 后台线程）会被 CountDownLatch 阻塞，直到用户在 UI 线程做出选择
      * 超时 60 秒自动拒绝，避免 Agent 卡死
+     *
+     * 可靠性策略（解决"弹窗不及时/弹不出、要再点一次"问题）：
+     * 1. 已获悬浮窗权限 → 用系统级悬浮窗弹窗（任意层级都能显示，哪怕 App 在后台）
+     * 2. 否则 → 用宿主 Activity 弹窗，若因窗口未就绪而失败则自动重试几次
      */
     private WhitelistConfirmDecision showWhitelistConfirmDialog(String contract, String tokenSymbol, String operationDesc) {
+        // 优先系统悬浮窗：最可靠，不受 Activity 窗口焦点影响
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(ctx)) {
+            Logger.info(ctx, "安全网关", "使用系统悬浮窗弹白名单确认: " + contract);
+            return showOverlayWhitelistConfirmDialog(contract, tokenSymbol, operationDesc);
+        }
+
         if (hostActivity == null || hostActivity.isFinishing() || hostActivity.isDestroyed()) {
-            Logger.warning(ctx, "安全网关", "无可用 Activity，无法弹窗，拒绝交易: " + contract);
+            Logger.warning(ctx, "安全网关", "无可用 Activity 且无悬浮窗权限，拒绝交易: " + contract);
             return WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
         }
 
@@ -308,9 +322,28 @@ public class SafetyGate {
         final WhitelistConfirmDecision[] decision = new WhitelistConfirmDecision[1];
         decision[0] = WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
 
+        final String message = buildWhitelistMessage(contract, tokenSymbol, operationDesc);
+
+        uiHandler.post(() -> showActivityWhitelistConfirmWithRetry(message, decision, latch, 0));
+
+        try {
+            // 最多等待 60 秒，避免 Agent 永久卡死
+            if (!latch.await(60, TimeUnit.SECONDS)) {
+                Logger.warning(ctx, "安全网关", "白名单确认弹窗超时 60s，自动拒绝: " + contract);
+                return WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
+        }
+        return decision[0];
+    }
+
+    /** 组装白名单确认弹窗文案 */
+    private String buildWhitelistMessage(String contract, String tokenSymbol, String operationDesc) {
         String displaySymbol = (tokenSymbol != null && !tokenSymbol.isEmpty()) ? tokenSymbol : "未知名代币";
-        String shortContract = contract.substring(0, 10) + "..." + contract.substring(contract.length() - 6);
-        String message = "AI 准备买入代币：\n\n"
+        String shortContract = safelyShorten(contract);
+        return "AI 准备买入代币：\n\n"
             + "  代币符号: " + displaySymbol + "\n"
             + "  合约地址: " + shortContract + "\n"
             + "  操作描述: " + operationDesc + "\n\n"
@@ -319,10 +352,76 @@ public class SafetyGate {
             + "• 加入白名单并继续：以后该代币 AI 可自动买入\n"
             + "• 仅本次允许：本次买入但不加入白名单\n"
             + "• 拒绝：取消本次交易";
+    }
+
+    /** 安全缩短合约地址（防越界） */
+    private String safelyShorten(String contract) {
+        if (contract == null || contract.isEmpty()) return "";
+        if (contract.length() <= 16) return contract;
+        return contract.substring(0, 10) + "..." + contract.substring(contract.length() - 6);
+    }
+
+    /**
+     * 在宿主 Activity 上弹白名单确认框，失败自动重试（最多 4 次，间隔 400ms）。
+     * 解决首次因窗口未就绪/失焦导致 BadTokenException 而"弹不出"的问题。
+     */
+    private void showActivityWhitelistConfirmWithRetry(final String message,
+                                                       final WhitelistConfirmDecision[] decision,
+                                                       final CountDownLatch latch, final int attempt) {
+        final int MAX_ATTEMPTS = 4;
+        Activity act = hostActivity;
+        if (act == null || act.isFinishing() || act.isDestroyed()) {
+            decision[0] = WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
+            latch.countDown();
+            return;
+        }
+        try {
+            new AlertDialog.Builder(act)
+                .setTitle(ctx.getString(R.string.title_transaction_whitelist_confirmation))
+                .setMessage(message)
+                .setPositiveButton(ctx.getString(R.string.label_join_the_whitelist_and_continue), (DialogInterface d, int w) -> {
+                    decision[0] = WhitelistConfirmDecision.ADD_AND_CONTINUE;
+                    latch.countDown();
+                })
+                .setNeutralButton(ctx.getString(R.string.label_allowed_this_time_only), (DialogInterface d, int w) -> {
+                    decision[0] = WhitelistConfirmDecision.ONCE_ALLOW;
+                    latch.countDown();
+                })
+                .setNegativeButton(ctx.getString(R.string.btn_reject), (DialogInterface d, int w) -> {
+                    decision[0] = WhitelistConfirmDecision.DENY;
+                    latch.countDown();
+                })
+                .setOnCancelListener(d -> {
+                    decision[0] = WhitelistConfirmDecision.DENY;
+                    latch.countDown();
+                })
+                .setCancelable(false)
+                .show();
+        } catch (Exception e) {
+            Logger.warning(ctx, "安全网关", "弹窗显示失败(第" + (attempt + 1) + "次): " + e.getMessage());
+            if (attempt + 1 < MAX_ATTEMPTS) {
+                uiHandler.postDelayed(() -> showActivityWhitelistConfirmWithRetry(message, decision, latch, attempt + 1), 400);
+            } else {
+                decision[0] = WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
+                latch.countDown();
+            }
+        }
+    }
+
+    /**
+     * 系统级悬浮窗白名单确认弹窗：可在后台/任意层级显示，最可靠。
+     */
+    private WhitelistConfirmDecision showOverlayWhitelistConfirmDialog(String contract, String tokenSymbol, String operationDesc) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final WhitelistConfirmDecision[] decision = new WhitelistConfirmDecision[1];
+        decision[0] = WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
+
+        final String message = buildWhitelistMessage(contract, tokenSymbol, operationDesc);
 
         uiHandler.post(() -> {
             try {
-                new AlertDialog.Builder(hostActivity)
+                AlertDialog dialog = new AlertDialog.Builder(
+                        new android.view.ContextThemeWrapper(ctx, R.style.AlertDialogCustom))
                     .setTitle(ctx.getString(R.string.title_transaction_whitelist_confirmation))
                     .setMessage(message)
                     .setPositiveButton(ctx.getString(R.string.label_join_the_whitelist_and_continue), (DialogInterface d, int w) -> {
@@ -342,18 +441,25 @@ public class SafetyGate {
                         latch.countDown();
                     })
                     .setCancelable(false)
-                    .show();
+                    .create();
+                if (dialog.getWindow() != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+                    } else {
+                        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                    }
+                }
+                dialog.show();
             } catch (Exception e) {
-                Logger.error(ctx, "安全网关", "弹窗显示失败: " + e.getMessage(), e);
+                Logger.error(ctx, "安全网关", "悬浮窗白名单确认弹窗失败: " + e.getMessage(), e);
                 decision[0] = WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
                 latch.countDown();
             }
         });
 
         try {
-            // 最多等待 60 秒，避免 Agent 永久卡死
             if (!latch.await(60, TimeUnit.SECONDS)) {
-                Logger.warning(ctx, "安全网关", "白名单确认弹窗超时 60s，自动拒绝: " + contract);
+                Logger.warning(ctx, "安全网关", "悬浮窗白名单确认弹窗超时 60s，自动拒绝: " + contract);
                 return WhitelistConfirmDecision.TIMEOUT_OR_NO_UI;
             }
         } catch (InterruptedException e) {
@@ -531,10 +637,33 @@ public class SafetyGate {
     }
 
     /**
-     * 检查并重置每日统计（跨天时自动重置）
+     * 检查并重置每日统计
+     * 1. 应用升级时清空历史统计（修复历史版本 USD 估算 bug 导致的脏计数）
+     * 2. 本地时区跨天时重置（原逻辑用 UTC 天数，会导致跨天不重置）
      */
     private void checkAndResetDailyStats() {
-        long today = System.currentTimeMillis() / (1000 * 60 * 60 * 24);
+        // 1. 应用升级即重置：清除被历史 bug 污染的每日交易计数/金额
+        try {
+            int versionCode = ctx.getPackageManager()
+                .getPackageInfo(ctx.getPackageName(), 0).versionCode;
+            int lastVersion = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_LAST_RESET_VERSION, -1);
+            if (lastVersion != versionCode) {
+                ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(KEY_LAST_RESET_VERSION, versionCode)
+                    .putInt(KEY_DAILY_TRADE_COUNT, 0)
+                    .putFloat(KEY_DAILY_TRADE_VOLUME, 0)
+                    .putLong(KEY_DAILY_STATS_DATE, localDayEpoch())
+                    .putLong(KEY_CIRCUIT_BREAKER_UNTIL, 0)
+                    .apply();
+                Logger.info(ctx, "安全网关", "检测到应用升级(" + lastVersion + "->" + versionCode + ")，已重置每日统计并解除熔断");
+                return;
+            }
+        } catch (Exception ignore) {}
+
+        // 2. 本地时区跨天重置
+        long today = localDayEpoch();
         long savedDay = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getLong(KEY_DAILY_STATS_DATE, today);
         if (today != savedDay) {
@@ -546,6 +675,16 @@ public class SafetyGate {
                 .apply();
             Logger.info(ctx, "安全网关", "跨天重置每日统计");
         }
+    }
+
+    /** 本地时区当天 0 点的时间戳（用于每日统计的跨天判断） */
+    private long localDayEpoch() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
     }
 
     /**

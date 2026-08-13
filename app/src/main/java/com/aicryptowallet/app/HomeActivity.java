@@ -13,7 +13,9 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -80,6 +82,8 @@ public class HomeActivity extends BaseActivity {
     private ScrollView tabAssets, tabTrade, tabSettings;
     private LinearLayout tabDiscover;
     private LinearLayout gridMine;
+    private android.widget.PopupWindow discoverHistoryPopup;
+    private LinearLayout gridFav;
     private androidx.swiperefreshlayout.widget.SwipeRefreshLayout assetsSwipeRefresh;
     private LinearLayout marketListContainer;
     private LinearLayout manualRecordsContainer;
@@ -127,6 +131,8 @@ public class HomeActivity extends BaseActivity {
     private final ExecutorService marketExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService aiRecordsExecutor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
+    // 新增代币表单自动识别去重：避免多个触发源（焦点/回车/文本变化）重复联网
+    private volatile boolean tokenDetectInFlight = false;
     // 资产加载任务去重：已有任务在执行时，新请求只记录待刷新，不重复排队清空列表
     private volatile boolean isLoadingAssets = false;
     private volatile boolean pendingAssetRefresh = false;
@@ -674,6 +680,11 @@ public class HomeActivity extends BaseActivity {
         if (tabDeFiTab != null) tabDeFiTab.setOnClickListener(v -> switchAssetSubTab(1));
         if (tabNftTab != null) tabNftTab.setOnClickListener(v -> switchAssetSubTab(2));
         if (tabApprovalsTab != null) tabApprovalsTab.setOnClickListener(v -> switchAssetSubTab(3));
+        // 添加 NFT 按钮
+        TextView btnAddNft = findViewById(R.id.btnAddNft);
+        if (btnAddNft != null) {
+            btnAddNft.setOnClickListener(v -> showAddNFTDialog());
+        }
     }
 
     private void switchAssetSubTab(int tab) {
@@ -792,9 +803,25 @@ public class HomeActivity extends BaseActivity {
         if (nftContentArea == null || nftListContainer == null) return;
         executor.execute(() -> {
             try {
-                String address = WalletManager.getWalletAddress(this);
-                String chain = WalletManager.getChain(this);
+                final String address = WalletManager.getWalletAddress(this);
+                final String chain = WalletManager.getChain(this);
                 java.util.List<String[]> nfts = ChainAPI.getNFTList(this, chain, address);
+                // 合并自定义 NFT（按链+钱包独立存储，不混入 ERC20 代币列表）
+                java.util.List<String[]> customNfts = ChainAPI.getCustomNFTs(this, chain, address);
+                for (String[] cn : customNfts) {
+                    // 自定义 NFT 格式: [contract, tokenId, name, imageUrl]
+                    // 转为 DeBank 兼容格式: [contractId, name, tokenId, collectionName, imageUrl, floorPrice]
+                    String cName = (cn[2] != null && !cn[2].isEmpty()) ? cn[2] : ("NFT #" + cn[1]);
+                    nfts.add(new String[]{
+                        cn[0],                     // contract
+                        cName,                     // name
+                        cn[1],                     // tokenId
+                        cn[0].substring(0, Math.min(10, cn[0].length())) + "...", // collectionName简写
+                        cn[3],                     // imageUrl
+                        "$0.00",                   // 无地板价
+                        "custom"                   // 标记为自定义
+                    });
+                }
                 handler.post(() -> {
                     View nfc = nftListContainer;
                     if (!(nfc instanceof LinearLayout)) return;
@@ -819,6 +846,23 @@ public class HomeActivity extends BaseActivity {
                             if (imageUrl != null && !imageUrl.isEmpty()) {
                                 ImageView iv = item.findViewById(R.id.ivNftImage);
                                 if (iv != null) loadNftImage(iv, imageUrl);
+                            }
+                            // 自定义 NFT 支持长按删除
+                            if (nft.length > 6 && "custom".equals(nft[6])) {
+                                final String contract = nft[0];
+                                final String tokenId = nft[2];
+                                item.setOnLongClickListener(v2 -> {
+                                    new AlertDialog.Builder(HomeActivity.this, R.style.AlertDialogCustom)
+                                        .setTitle(getString(R.string.msg_confirm_delete_nft))
+                                        .setPositiveButton(getString(R.string.btn_tambah), (d, w) -> {
+                                            ChainAPI.removeCustomNFT(HomeActivity.this, chain, address, contract, tokenId);
+                                            Toast.makeText(HomeActivity.this, getString(R.string.toast_nft_remove), Toast.LENGTH_SHORT).show();
+                                            loadNftTabData();
+                                        })
+                                        .setNegativeButton(getString(R.string.btn_s_decline), null)
+                                        .show();
+                                    return true;
+                                });
                             }
                             container.addView(item);
                         }
@@ -1560,6 +1604,21 @@ public class HomeActivity extends BaseActivity {
                 }
                 return false;
             });
+            // 搜索框获取焦点时弹出浏览历史下拉
+            etSearch.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    showDiscoverHistoryDropdown(etSearch, HomeActivity.this::openSearchHistory);
+                } else {
+                    dismissDiscoverHistoryDropdown();
+                }
+            });
+            etSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+                @Override public void afterTextChanged(android.text.Editable s) {
+                    if (etSearch.hasFocus()) showDiscoverHistoryDropdown(etSearch, HomeActivity.this::openSearchHistory);
+                }
+                @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            });
         }
         if (btnScan != null) btnScan.setOnClickListener(v -> {
             Logger.action(this, "UI操作", "扫码", null);
@@ -1568,38 +1627,38 @@ public class HomeActivity extends BaseActivity {
 
         final TextView tabHot = findViewById(R.id.tabDiscoverHot);
         final TextView tabExplore = findViewById(R.id.tabDiscoverExplore);
-        final TextView tabMine = findViewById(R.id.tabDiscoverMine);
+        final TextView tabFav = findViewById(R.id.tabDiscoverFav);
         final LinearLayout gridHot = findViewById(R.id.dappGridHot);
         final LinearLayout gridExplore = findViewById(R.id.dappGridExplore);
-        gridMine = findViewById(R.id.dappGridMine);
-        if (tabHot != null && tabExplore != null && tabMine != null) {
+        gridFav = findViewById(R.id.dappGridFav);
+        if (tabHot != null && tabExplore != null && tabFav != null) {
             View.OnClickListener tabSwitcher = v -> {
                 if (v == tabHot) Logger.action(this, "UI操作", "发现-热门", null);
                 else if (v == tabExplore) Logger.action(this, "UI操作", "发现-跨链", null);
-                else if (v == tabMine) Logger.action(this, "UI操作", "发现-我的", null);
+                else if (v == tabFav) Logger.action(this, "UI操作", "发现-收藏", null);
                 int activeColor = 0xFFFFFFFF;
                 int inactiveColor = 0xFF6E6E7A;
                 int activeSize = 20;
                 int inactiveSize = 18;
                 tabHot.setTextColor(v == tabHot ? activeColor : inactiveColor);
                 tabExplore.setTextColor(v == tabExplore ? activeColor : inactiveColor);
-                tabMine.setTextColor(v == tabMine ? activeColor : inactiveColor);
+                tabFav.setTextColor(v == tabFav ? activeColor : inactiveColor);
                 tabHot.setTextSize(v == tabHot ? activeSize : inactiveSize);
                 tabExplore.setTextSize(v == tabExplore ? activeSize : inactiveSize);
-                tabMine.setTextSize(v == tabMine ? activeSize : inactiveSize);
+                tabFav.setTextSize(v == tabFav ? activeSize : inactiveSize);
                 tabHot.setTypeface(null, v == tabHot ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
                 tabExplore.setTypeface(null, v == tabExplore ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-                tabMine.setTypeface(null, v == tabMine ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+                tabFav.setTypeface(null, v == tabFav ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
                 if (gridHot != null) gridHot.setVisibility(v == tabHot ? View.VISIBLE : View.GONE);
                 if (gridExplore != null) gridExplore.setVisibility(v == tabExplore ? View.VISIBLE : View.GONE);
-                if (gridMine != null) {
-                    gridMine.setVisibility(v == tabMine ? View.VISIBLE : View.GONE);
-                    if (v == tabMine) refreshMineDApps();
+                if (gridFav != null) {
+                    gridFav.setVisibility(v == tabFav ? View.VISIBLE : View.GONE);
+                    if (v == tabFav) refreshFavoriteDApps();
                 }
             };
             tabHot.setOnClickListener(tabSwitcher);
             tabExplore.setOnClickListener(tabSwitcher);
-            tabMine.setOnClickListener(tabSwitcher);
+            tabFav.setOnClickListener(tabSwitcher);
         } else {
             Logger.error(this, "HomeActivity", "initDiscoverTab: discover tabs are null", null);
         }
@@ -1721,6 +1780,170 @@ public class HomeActivity extends BaseActivity {
             Logger.action(this, "UI操作", "AI资讯", null);
             Toast.makeText(this, getString(R.string.toast_on_chain_intelligence_in), Toast.LENGTH_SHORT).show();
         });
+    }
+
+    /** 刷新【收藏】Tab：读取收藏的 DApp 并填充网格 */
+    private void refreshFavoriteDApps() {
+        if (gridFav == null) return;
+        gridFav.removeAllViews();
+        java.util.List<String[]> favs = loadFavoriteDApps();
+        if (favs.isEmpty()) {
+            TextView tvEmpty = new TextView(this);
+            tvEmpty.setText(getString(R.string.msg_no_favorites));
+            tvEmpty.setTextColor(0xFF6E6E7A);
+            tvEmpty.setTextSize(14);
+            tvEmpty.setGravity(android.view.Gravity.CENTER);
+            tvEmpty.setPadding(0, dpToPx(40), 0, 0);
+            gridFav.addView(tvEmpty, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            return;
+        }
+        String[][] dapps = new String[favs.size()][4];
+        for (int i = 0; i < favs.size(); i++) {
+            dapps[i][0] = favs.get(i)[0]; // 名称/域名
+            dapps[i][1] = favs.get(i)[1].substring(0, 1); // 首字符图标
+            dapps[i][2] = "dapp_icon_bg_dark";
+            dapps[i][3] = favs.get(i)[1]; // url
+        }
+        populateDAppGrid(gridFav, dapps);
+    }
+
+    /** 读取收藏的 DApp 列表，返回 [名称, url] */
+    private java.util.List<String[]> loadFavoriteDApps() {
+        java.util.List<String[]> result = new java.util.ArrayList<>();
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("dapp_favorites_prefs", MODE_PRIVATE);
+            java.util.Map<String, ?> all = prefs.getAll();
+            if (all == null) return result;
+            for (java.util.Map.Entry<String, ?> entry : all.entrySet()) {
+                String key = entry.getKey();
+                if (key.startsWith("url_")) {
+                    String origin = key.substring(4);
+                    String url = String.valueOf(entry.getValue());
+                    if (url == null || url.isEmpty()) continue;
+                    String name = origin;
+                    try {
+                        String host = new java.net.URI(url).getHost();
+                        if (host != null && !host.isEmpty()) name = host;
+                        // 去掉 www. 前缀
+                        if (name.startsWith("www.")) name = name.substring(4);
+                    } catch (Exception ignored) {}
+                    result.add(new String[]{name, url});
+                }
+            }
+        } catch (Exception e) {
+            Logger.error(this, "HomeActivity", "loadFavoriteDApps error: " + e.getMessage(), e);
+        }
+        return result;
+    }
+
+    /** 发现页搜索框点击历史项，打开对应 URL */
+    private void openSearchHistory(String url) {
+        dismissDiscoverHistoryDropdown();
+        if (url == null || url.isEmpty()) return;
+        try {
+            Intent intent = new Intent(HomeActivity.this, DAppBrowserActivity.class);
+            intent.putExtra("url", url);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, getString(R.string.toast_failed_to_open_ai, e.getMessage()), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** 发现页搜索框下拉浏览历史 */
+    private void showDiscoverHistoryDropdown(EditText anchor, java.util.function.Consumer<String> onPick) {
+        java.util.List<DAppHistoryManager.HistoryEntry> history = DAppHistoryManager.load(this);
+        if (discoverHistoryPopup != null && discoverHistoryPopup.isShowing()) {
+            discoverHistoryPopup.dismiss();
+        }
+        if (history.isEmpty()) {
+            discoverHistoryPopup = null;
+            return;
+        }
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundColor(0xFF1a1a2e);
+        int pad = (int) (10 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad, pad, pad);
+
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(0xFF1a1a2e);
+        bg.setStroke(1, 0xFF2a2a3e);
+        bg.setCornerRadius(8 * getResources().getDisplayMetrics().density);
+
+        for (final DAppHistoryManager.HistoryEntry e : history) {
+            String host;
+            try {
+                host = new java.net.URI(e.url).getHost();
+            } catch (Exception ex) {
+                host = e.url;
+            }
+            String title = (e.title != null && !e.title.isEmpty()) ? e.title : host;
+            TextView titleTv = new TextView(this);
+            titleTv.setText(title);
+            titleTv.setTextColor(0xFFFFFFFF);
+            titleTv.setTextSize(13);
+            titleTv.setSingleLine(true);
+            titleTv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            titleTv.setPadding(pad, 0, pad, 0);
+            titleTv.setLayoutParams(new LinearLayout.LayoutParams(0, (int)(44*getResources().getDisplayMetrics().density), 1f));
+
+            TextView del = new TextView(this);
+            del.setText("☓");
+            del.setTextColor(0xFFFF4757);
+            del.setTextSize(16);
+            del.setGravity(android.view.Gravity.CENTER);
+            del.setLayoutParams(new LinearLayout.LayoutParams((int)(48*getResources().getDisplayMetrics().density), (int)(44*getResources().getDisplayMetrics().density)));
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackground(bg);
+            row.setPadding(0, (int)(4*getResources().getDisplayMetrics().density), 0, (int)(4*getResources().getDisplayMetrics().density));
+            row.addView(titleTv);
+            row.addView(del);
+
+            titleTv.setOnClickListener(v -> {
+                dismissDiscoverHistoryDropdown();
+                onPick.accept(e.url);
+            });
+            del.setOnClickListener(v -> {
+                DAppHistoryManager.delete(this, e.url);
+                Toast.makeText(this, getString(R.string.toast_history_deleted), Toast.LENGTH_SHORT).show();
+                showDiscoverHistoryDropdown(anchor, onPick);
+            });
+            container.addView(row);
+        }
+
+        // 底部：清空浏览记录
+        TextView clearBtn = new TextView(this);
+        clearBtn.setText(getString(R.string.btn_clear_browse_history));
+        clearBtn.setTextColor(0xFFFF4757);
+        clearBtn.setTextSize(13);
+        clearBtn.setGravity(android.view.Gravity.CENTER);
+        clearBtn.setPadding(pad, (int)(14*getResources().getDisplayMetrics().density), pad, (int)(14*getResources().getDisplayMetrics().density));
+        clearBtn.setBackground(bg);
+        clearBtn.setOnClickListener(v -> {
+            DAppHistoryManager.clear(this);
+            dismissDiscoverHistoryDropdown();
+            Toast.makeText(this, getString(R.string.toast_history_cleared), Toast.LENGTH_SHORT).show();
+        });
+        container.addView(clearBtn);
+
+        discoverHistoryPopup = new android.widget.PopupWindow(container,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT, false);
+        discoverHistoryPopup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x33000000));
+        discoverHistoryPopup.setOutsideTouchable(true);
+        discoverHistoryPopup.setElevation(8 * getResources().getDisplayMetrics().density);
+        discoverHistoryPopup.showAsDropDown(anchor, 0, 0);
+    }
+
+    private void dismissDiscoverHistoryDropdown() {
+        if (discoverHistoryPopup != null && discoverHistoryPopup.isShowing()) {
+            discoverHistoryPopup.dismiss();
+        }
+        discoverHistoryPopup = null;
     }
 
     /** 动态填充 DApp 网格 */
@@ -2163,21 +2386,285 @@ public class HomeActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 添加代币管理弹窗（参考 TP 钱包 / MetaMask 小狐狸）
+     * 顶部搜索框 + 三个分页：首页资产 / 自定义代币 / 热门代币
+     */
     private void showAddTokenDialog() {
         String chain = WalletManager.getChain(this);
-        if (!ChainAPI.isEVM(chain)) {
+        // 使用带 Context 的 isEVM，识别用户自定义的 EVM 测试链
+        if (!ChainAPI.isEVM(this, chain)) {
             Toast.makeText(this, getString(R.string.toast_the_current_chain_does_2), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        View view = getLayoutInflater().inflate(R.layout.dialog_add_token, null);
-        EditText etContract = view.findViewById(R.id.etContractAddress);
-        EditText etSymbol = view.findViewById(R.id.etTokenSymbol);
-        EditText etName = view.findViewById(R.id.etTokenName);
-        EditText etDecimals = view.findViewById(R.id.etTokenDecimals);
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_tokens_manage, null);
+        EditText etSearch = view.findViewById(R.id.etTokenSearch);
+        TextView tabHome = view.findViewById(R.id.tabHomeAssets);
+        TextView tabCustom = view.findViewById(R.id.tabCustomTokens);
+        TextView tabPopular = view.findViewById(R.id.tabPopularTokens);
+        LinearLayout container = view.findViewById(R.id.tokenManageContainer);
+        TextView btnRestoreHidden = view.findViewById(R.id.btnRestoreHidden);
+
+        tabHome.setText(getString(R.string.str_home_assets));
+        tabCustom.setText(getString(R.string.str_custom_tokens));
+        tabPopular.setText(getString(R.string.str_popular_tokens));
+
+        final String curChain = chain;
+        final int[] section = {0};
+
+        // 渲染当前分页（每次重新读取最新数据，保证增删后即时生效）
+        Runnable render = () -> renderTokenSection(container, section[0], etSearch.getText().toString(), curChain);
+
+        // 先创建弹窗，供"恢复隐藏代币"按钮关闭当前弹窗使用
+        final AlertDialog manageDialog = new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setView(view)
+            .setNegativeButton(getString(R.string.btn_off), null)
+            .show();
+
+        btnRestoreHidden.setOnClickListener(v -> {
+            // 先关闭当前管理弹窗，再打开隐藏代币恢复弹窗，避免二次弹窗叠加
+            manageDialog.dismiss();
+            showManageHiddenDialog();
+        });
+
+        tabHome.setOnClickListener(v -> switchTokenTab(section, 0, tabHome, tabCustom, tabPopular, render));
+        tabCustom.setOnClickListener(v -> switchTokenTab(section, 1, tabHome, tabCustom, tabPopular, render));
+        tabPopular.setOnClickListener(v -> switchTokenTab(section, 2, tabHome, tabCustom, tabPopular, render));
+
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(Editable s) { render.run(); }
+        });
+
+        setTokenTabStyle(tabHome, true);
+        setTokenTabStyle(tabCustom, false);
+        setTokenTabStyle(tabPopular, false);
+        render.run();
+        Logger.actionResult(this, "UI操作", "添加代币", "管理弹窗已打开");
+    }
+
+    private void switchTokenTab(int[] section, int target, TextView tabHome, TextView tabCustom, TextView tabPopular, Runnable render) {
+        section[0] = target;
+        setTokenTabStyle(tabHome, target == 0);
+        setTokenTabStyle(tabCustom, target == 1);
+        setTokenTabStyle(tabPopular, target == 2);
+        render.run();
+    }
+
+    private void setTokenTabStyle(TextView tv, boolean selected) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(8);
+        bg.setColor(selected ? 0xffe53935 : 0x00000000);
+        tv.setBackground(bg);
+        tv.setTextColor(selected ? 0xffffffff : 0xff8892b0);
+    }
+
+    /** 渲染当前分页的代币列表 */
+    private void renderTokenSection(LinearLayout container, int section, String query, String chain) {
+        container.removeAllViews();
+        String q = query == null ? "" : query.trim().toLowerCase();
+
+        // 每次读取最新数据，保证增删后即时生效
+        Set<String> hidden = getHiddenTokens(chain);
+        Map<String, String[]> customBy = new HashMap<>();
+        List<String[]> customList = new ArrayList<>();
+        for (String[] t : WalletManager.getCustomTokens(this, chain)) {
+            if (t.length >= 3) {
+                customList.add(t);
+                customBy.put(t[2].toLowerCase(), t);
+            }
+        }
+        List<String[]> homeList = new ArrayList<>();
+        dataCache.setCurrentWallet(WalletManager.getWalletAddress(this));
+        try {
+            for (String[] token : dataCache.getCachedTokens()) {
+                String contract = token.length > 4 ? token[4] : "";
+                if (contract.isEmpty()) continue; // 原生币跳过
+                if (hidden.contains(contract.toLowerCase())) continue;
+                homeList.add(token);
+            }
+        } catch (Exception ignore) {}
+
+        if (section == 0) {
+            // 首页资产：已显示在资产列表里的代币，可点击移除（隐藏）
+            boolean any = false;
+            for (String[] t : homeList) {
+                String sym = t.length > 0 ? t[0] : "";
+                String nm = t.length > 1 ? t[1] : "";
+                String contract = t.length > 4 ? t[4] : "";
+                if (!q.isEmpty() && !(sym.toLowerCase().contains(q)
+                        || nm.toLowerCase().contains(q) || contract.toLowerCase().contains(q))) continue;
+                any = true;
+                tokenActionRow(container, sym, nm, contract, getString(R.string.str_remove), true,
+                    () -> { hideToken(chain, contract); renderTokenSection(container, section, query, chain); });
+            }
+            if (!any) emptyTokenText(container, q.isEmpty() ? getString(R.string.str_no_home_assets) : getString(R.string.str_no_matching_tokens));
+        } else if (section == 1) {
+            // 自定义代币：顶部"新增代币"入口 + 自定义代币列表
+            addNewTokenButton(container, chain);
+            boolean any = false;
+            for (String[] t : customList) {
+                String sym = t.length > 0 ? t[0] : "";
+                String nm = t.length > 1 ? t[1] : "";
+                String contract = t.length > 2 ? t[2] : "";
+                if (!q.isEmpty() && !(sym.toLowerCase().contains(q)
+                        || nm.toLowerCase().contains(q) || contract.toLowerCase().contains(q))) continue;
+                any = true;
+                tokenActionRow(container, sym, nm, contract, getString(R.string.str_remove), true,
+                    () -> {
+                        WalletManager.removeCustomToken(this, chain, contract);
+                        Toast.makeText(this, getString(R.string.toast_hidden), Toast.LENGTH_SHORT).show();
+                        loadAssets();
+                        renderTokenSection(container, section, query, chain);
+                    });
+            }
+            if (!any) emptyTokenText(container, q.isEmpty() ? getString(R.string.str_no_custom_tokens) : getString(R.string.str_no_matching_tokens));
+        } else {
+            // 热门代币：内置热门列表，未添加显示"+"，已添加显示"已添加"
+            List<String[]> popular = ChainAPI.getPopularTokens(chain);
+            boolean any = false;
+            for (String[] t : popular) {
+                String contract = t.length > 0 ? t[0] : "";
+                String sym = t.length > 1 ? t[1] : "";
+                String nm = t.length > 2 ? t[2] : "";
+                String dec = t.length > 3 ? t[3] : "18";
+                if (!q.isEmpty() && !(sym.toLowerCase().contains(q)
+                        || nm.toLowerCase().contains(q) || contract.toLowerCase().contains(q))) continue;
+                any = true;
+                boolean added = customBy.containsKey(contract.toLowerCase());
+                if (added) {
+                    tokenActionRow(container, sym, nm, contract, getString(R.string.str_already_added), false, null);
+                } else {
+                    final String fs = sym, fn = nm, fdec = dec;
+                    tokenActionRow(container, sym, nm, contract, "+", true,
+                        () -> {
+                            WalletManager.addCustomToken(this, chain, fs, fn, contract, fdec);
+                            Toast.makeText(this, getString(R.string.toast_was_added, fs), Toast.LENGTH_SHORT).show();
+                            loadAssets();
+                            renderTokenSection(container, section, query, chain);
+                        });
+                }
+            }
+            if (!any) emptyTokenText(container, q.isEmpty() ? getString(R.string.str_no_popular_tokens) : getString(R.string.str_no_matching_tokens));
+        }
+    }
+
+    /** 代币行：左侧符号/名称/合约，右侧动作按钮 */
+    private void tokenActionRow(LinearLayout container, String symbol, String name, String contract,
+                                String actionText, boolean enabled, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackground(getResources().getDrawable(R.drawable.card_background));
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        rp.bottomMargin = 10;
+        row.setLayoutParams(rp);
+        row.setPadding(16, 14, 10, 14);
+
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        textCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        TextView tvSym = new TextView(this);
+        tvSym.setText(symbol);
+        tvSym.setTextColor(0xffffffff);
+        tvSym.setTextSize(14);
+        tvSym.setTypeface(Typeface.DEFAULT_BOLD);
+        textCol.addView(tvSym);
+        TextView tvSub = new TextView(this);
+        tvSub.setText(name + "\n" + (contract != null ? contract : ""));
+        tvSub.setTextColor(0xff8892b0);
+        tvSub.setTextSize(11);
+        textCol.addView(tvSub);
+        row.addView(textCol);
+
+        TextView btn = new TextView(this);
+        btn.setText(actionText);
+        btn.setTextSize(13);
+        btn.setPadding(28, 12, 28, 12);
+        btn.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(8);
+        if (enabled) {
+            btn.setTextColor(0xffffffff);
+            bg.setColor(0xffe53935);
+            btn.setBackground(bg);
+            btn.setOnClickListener(v -> { if (onClick != null) onClick.run(); });
+        } else {
+            btn.setTextColor(0xff8892b0);
+            bg.setColor(0xff232342);
+            btn.setBackground(bg);
+        }
+        row.addView(btn);
+        container.addView(row);
+    }
+
+    /** 新增代币按钮（自定义代币分页顶部） */
+    private void addNewTokenButton(LinearLayout container, String chain) {
+        TextView btn = new TextView(this);
+        btn.setText(getString(R.string.str_add_new_token) + "  +");
+        btn.setTextColor(0xffffffff);
+        btn.setTextSize(14);
+        btn.setGravity(Gravity.CENTER);
+        btn.setPadding(0, 16, 0, 16);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(8);
+        bg.setColor(0xffe53935);
+        btn.setBackground(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = 12;
+        btn.setLayoutParams(lp);
+        btn.setOnClickListener(v -> showAddTokenForm(chain));
+        container.addView(btn);
+    }
+
+    private void emptyTokenText(LinearLayout container, String msg) {
+        TextView tv = new TextView(this);
+        tv.setText(msg);
+        tv.setTextColor(0xff8892b0);
+        tv.setTextSize(13);
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(24, 40, 24, 40);
+        container.addView(tv);
+    }
+
+    /**
+     * 新增代币表单（参考 MetaMask / TP）：合约地址 + 代币符号 + 代币精度
+     * 光标点入"代币符号"输入框时自动从合约识别 symbol 与 decimals
+     */
+    private void showAddTokenForm(String chain) {
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_token_form, null);
+        EditText etContract = view.findViewById(R.id.etFContract);
+        EditText etSymbol = view.findViewById(R.id.etFSymbol);
+        EditText etDecimals = view.findViewById(R.id.etFDecimals);
+
+        // 光标进入代币符号输入框 → 自动识别该合约的 symbol + decimals
+        etSymbol.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) autoDetectTokenInfo(chain, etContract, etSymbol, etDecimals);
+        });
+        // 合约输入框回车 → 也触发识别
+        etContract.setOnEditorActionListener((v, actionId, event) -> {
+            autoDetectTokenInfo(chain, etContract, etSymbol, etDecimals);
+            return false;
+        });
+        // 合约地址输入完整（合法）时自动识别，不依赖焦点变化
+        // autoDetectTokenInfo 内部会先校验地址合法性且已填则跳过，因此不会重复联网
+        etContract.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(Editable s) {
+                autoDetectTokenInfo(chain, etContract, etSymbol, etDecimals);
+            }
+        });
 
         new AlertDialog.Builder(this, R.style.AlertDialogCustom)
-            .setTitle(getString(R.string.title_add_tokens_pound, ChainAPI.getChainName(chain)))
+            .setTitle(getString(R.string.title_adding_custom_token))
             .setView(view)
             .setPositiveButton(getString(R.string.btn_tambah), (dialog, which) -> {
                 String contract = etContract.getText().toString().trim();
@@ -2189,37 +2676,27 @@ public class HomeActivity extends BaseActivity {
                     Toast.makeText(this, getString(R.string.toast_incorrect_contract_address_format), Toast.LENGTH_SHORT).show();
                     return;
                 }
-                final String[] fields = new String[]{
-                    etSymbol.getText().toString().trim(),
-                    etName.getText().toString().trim(),
-                    etDecimals.getText().toString().trim()
-                };
+                final String symbol = etSymbol.getText().toString().trim();
+                final String decimals = etDecimals.getText().toString().trim();
 
                 executor.execute(() -> {
                     try {
-                        String symbol = fields[0];
-                        String name = fields[1];
-                        String decimalsStr = fields[2];
-                        if (symbol.isEmpty() || name.isEmpty() || decimalsStr.isEmpty()) {
-                            String[] info = ChainAPI.getTokenInfo(this, chain, contract);
-                            if (info == null) {
-                                handler.post(() -> Toast.makeText(this, getString(R.string.toast_unable_to_read_contract), Toast.LENGTH_LONG).show());
-                                return;
-                            }
-                            if (symbol.isEmpty()) symbol = info[0];
-                            if (name.isEmpty()) name = info[1];
-                            if (decimalsStr.isEmpty()) decimalsStr = info[2];
+                        String[] info = ChainAPI.getTokenInfo(this, chain, contract);
+                        String s = symbol;
+                        String n = symbol;
+                        String d = decimals;
+                        if (info != null) {
+                            if (s.isEmpty()) s = info[0];
+                            if (n.isEmpty()) n = info[1];
+                            if (d.isEmpty()) d = info[2];
                         }
-                        if (symbol.isEmpty()) symbol = "TOKEN";
-                        if (name.isEmpty()) name = symbol;
-                        if (decimalsStr.isEmpty()) decimalsStr = "18";
-
-                        final String finalSymbol = symbol;
-                        final String finalName = name;
-                        final String finalDecimals = decimalsStr;
-                        WalletManager.addCustomToken(this, chain, finalSymbol, finalName, contract, finalDecimals);
+                        if (s.isEmpty()) s = "TOKEN";
+                        if (n.isEmpty()) n = s;
+                        if (d.isEmpty()) d = "18";
+                        final String fs = s, fn = n, fdec = d;
+                        WalletManager.addCustomToken(this, chain, fs, fn, contract, fdec);
                         handler.post(() -> {
-                            Toast.makeText(this, getString(R.string.toast_was_added, finalSymbol), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, getString(R.string.toast_was_added, fs), Toast.LENGTH_SHORT).show();
                             loadAssets();
                         });
                     } catch (Exception e) {
@@ -2229,7 +2706,112 @@ public class HomeActivity extends BaseActivity {
             })
             .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
-        Logger.actionResult(this, "UI操作", "添加代币", "弹窗已打开");
+        Logger.actionResult(this, "UI操作", "新增代币表单", "已打开");
+    }
+
+    /** 从合约自动识别 symbol 与 decimals，填入表单 */
+    private void autoDetectTokenInfo(String chain, EditText etContract, EditText etSymbol, EditText etDecimals) {
+        final String contract = etContract.getText().toString().trim();
+        if (contract.isEmpty()) return;
+        if (!WalletManager.isValidAddress(contract, chain)) return;
+        // 两项都已填，无需识别
+        if (!etSymbol.getText().toString().trim().isEmpty()
+                && !etDecimals.getText().toString().trim().isEmpty()) return;
+        // 已有识别任务在跑，跳过，避免重复联网
+        if (tokenDetectInFlight) return;
+        tokenDetectInFlight = true;
+        Logger.info(this, "代币识别", "自动识别合约 " + contract + " 的 symbol/decimals");
+        executor.execute(() -> {
+            try {
+                final String[] info = ChainAPI.getTokenInfo(this, chain, contract);
+                handler.post(() -> {
+                    tokenDetectInFlight = false;
+                    if (info == null) {
+                        Logger.info(this, "代币识别", "合约 " + contract + " 识别失败或该合约不支持 symbol()/decimals()");
+                        return;
+                    }
+                    Logger.info(this, "代币识别", "合约 " + contract + " 识别结果 symbol=" + info[0] + " name=" + info[1] + " decimals=" + info[2]);
+                    if (etSymbol.getText().toString().trim().isEmpty() && info[0] != null) {
+                        etSymbol.setText(info[0]);
+                    }
+                    if (etDecimals.getText().toString().trim().isEmpty() && info[2] != null) {
+                        etDecimals.setText(info[2]);
+                    }
+                });
+            } catch (Exception ignored) {
+                handler.post(() -> tokenDetectInFlight = false);
+            }
+        });
+    }
+
+    /** 弹出添加 NFT 对话框（独立于 ERC20 代币添加） */
+    private void showAddNFTDialog() {
+        final String chain = WalletManager.getChain(this);
+        // 使用带 Context 的 isEVM，识别用户自定义的 EVM 测试链
+        if (!ChainAPI.isEVM(this, chain)) {
+            Toast.makeText(this, getString(R.string.toast_non_evm_chain), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_nft, null);
+        EditText etContract = view.findViewById(R.id.etNftContract);
+        EditText etTokenId = view.findViewById(R.id.etNftTokenId);
+
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.str_add_nft))
+            .setView(view)
+            .setPositiveButton(getString(R.string.btn_tambah), (dialog, which) -> {
+                String contract = etContract.getText().toString().trim();
+                String tokenId = etTokenId.getText().toString().trim();
+                if (contract.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.toast_enter_contract_address), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (tokenId.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.toast_enter_token_id), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!WalletManager.isValidAddress(contract, chain)) {
+                    Toast.makeText(this, getString(R.string.toast_nft_invalid_contract), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                final String fContract = contract.toLowerCase();
+                final String fTokenId = tokenId;
+                executor.execute(() -> {
+                    try {
+                        String rpcUrl = ChainAPI.getRpcUrlStatic(this, chain);
+                        if (rpcUrl == null || rpcUrl.isEmpty()) {
+                            handler.post(() -> Toast.makeText(HomeActivity.this, getString(R.string.toast_rpc_not_available), Toast.LENGTH_SHORT).show());
+                            return;
+                        }
+                        // 验证钱包是否拥有该 NFT
+                        String address = WalletManager.getWalletAddress(this);
+                        boolean owned = ChainAPI.checkNFTOwnership(rpcUrl, fContract, fTokenId, address);
+                        if (!owned) {
+                            handler.post(() -> Toast.makeText(HomeActivity.this, getString(R.string.toast_nft_ownership_check_failed), Toast.LENGTH_LONG).show());
+                            return;
+                        }
+                        // 获取元数据
+                        String name = "NFT #" + fTokenId;
+                        String imageUrl = "";
+                        try {
+                            String[] meta = ChainAPI.getNFTMetadata(rpcUrl, fContract, fTokenId);
+                            if (meta != null) {
+                                if (meta[0] != null && !meta[0].isEmpty()) name = meta[0];
+                                if (meta[1] != null && !meta[1].isEmpty()) imageUrl = meta[1];
+                            }
+                        } catch (Exception ignored) {}
+                        ChainAPI.addCustomNFT(HomeActivity.this, chain, address, fContract, fTokenId, name, imageUrl);
+                        handler.post(() -> {
+                            Toast.makeText(HomeActivity.this, getString(R.string.toast_nft_added), Toast.LENGTH_SHORT).show();
+                            loadNftTabData();
+                        });
+                    } catch (Exception e) {
+                        handler.post(() -> Toast.makeText(HomeActivity.this, getString(R.string.toast_nft_ownership_check_failed), Toast.LENGTH_LONG).show());
+                    }
+                });
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
     }
 
     /**
@@ -2315,6 +2897,7 @@ public class HomeActivity extends BaseActivity {
         TextView btnAddWalletToChain = view.findViewById(R.id.btnAddWalletToChain);
         View btnClose = view.findViewById(R.id.btnCloseWalletSheet);
         View btnCreateWallet = view.findViewById(R.id.btnCreateWallet);
+        View btnOneClickImport = view.findViewById(R.id.btnOneClickImport);
 
         // 底部半屏弹窗
         BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.BottomSheetDialog);
@@ -2335,6 +2918,30 @@ public class HomeActivity extends BaseActivity {
             startActivity(intent);
         });
 
+        // 一键导入可用钱包：把主链已有钱包批量导入到所有已添加的自定义/测试链
+        btnOneClickImport.setOnClickListener(v -> {
+            Logger.action(this, "UI操作", "钱包弹窗-一键导入可用钱包", null);
+            List<ChainAPI.CustomChain> customs = ChainAPI.getCustomChains(this);
+            if (customs.isEmpty()) {
+                Toast.makeText(this, getString(R.string.toast_no_custom_chain), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            int imported = 0;
+            for (ChainAPI.CustomChain cc : customs) {
+                WalletManager.WalletInfo reused = WalletManager.addWalletForNewChain(this, cc.name, cc.code);
+                if (reused != null) imported++;
+            }
+            if (imported > 0) {
+                Logger.info(this, "链管理", "一键导入可用钱包完成，成功导入 " + imported + " 条链");
+                Toast.makeText(this, getString(R.string.toast_imported_count, imported), Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                showWalletSwitcher();
+            } else {
+                Logger.info(this, "链管理", "一键导入可用钱包：无可复用主链钱包或无待导入链");
+                Toast.makeText(this, getString(R.string.toast_no_wallet_reusable), Toast.LENGTH_SHORT).show();
+            }
+        });
+
         // 加载所有钱包
         List<WalletManager.WalletInfo> wallets = WalletManager.getAllWallets(this);
         String activeId = WalletManager.getActiveWalletId(this);
@@ -2350,6 +2957,13 @@ public class HomeActivity extends BaseActivity {
                 chainWallets.put(chain, list);
             }
             list.add(w);
+        }
+
+        // 将自定义链也添加到侧栏（即使没有钱包也始终显示）
+        for (ChainAPI.CustomChain cc : ChainAPI.getCustomChains(this)) {
+            if (!chainWallets.containsKey(cc.code)) {
+                chainWallets.put(cc.code, new ArrayList<>());
+            }
         }
 
         // 如果当前链没有钱包，默认选第一个有钱包的链
@@ -2455,24 +3069,81 @@ public class HomeActivity extends BaseActivity {
                 walletListContainer.removeAllViews();
                 List<WalletManager.WalletInfo> cw = chainWallets.get(chain);
                 if (cw != null) {
-                    renderWalletCards(walletListContainer, cw, activeId, dialog);
+                    renderWalletCards(walletListContainer, cw, activeId, chain, dialog);
                 }
+            });
+
+            // 长按自定义链图标：编辑链（名称/网址/代币/小数位/EVM参数）
+            chainItem.setOnLongClickListener(cv -> {
+                for (ChainAPI.CustomChain cc : ChainAPI.getCustomChains(this)) {
+                    if (cc.code.equals(chain)) {
+                        dialog.dismiss();
+                        Logger.action(this, "UI操作", "钱包弹窗-长按链图标", chain);
+                        showEditCustomChainDialog(cc.code);
+                        return true;
+                    }
+                }
+                Toast.makeText(this, getString(R.string.toast_builtin_chain_not_editable), Toast.LENGTH_SHORT).show();
+                return true;
             });
 
             chainBarContainer.addView(chainItem);
         }
 
+        // 添加自定义链按钮（侧栏底部）
+        View divider = new View(this);
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(32, 1);
+        divLp.setMargins(0, 8, 0, 8);
+        divider.setLayoutParams(divLp);
+        divider.setBackgroundColor(0x33FFFFFF);
+        chainBarContainer.addView(divider);
+
+        TextView addChainBtn = new TextView(this);
+        addChainBtn.setText("+");
+        addChainBtn.setTextColor(0xFF2997F4);
+        addChainBtn.setTextSize(26);
+        addChainBtn.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, iconSize + 24);
+        btnLp.setMargins(0, 4, 0, 4);
+        addChainBtn.setLayoutParams(btnLp);
+        addChainBtn.setClickable(true);
+        addChainBtn.setFocusable(true);
+        addChainBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddCustomChainDialog();
+        });
+        chainBarContainer.addView(addChainBtn);
+
+        // 一键添加标准币安测试网按钮（内置正确参数，自动复用主链钱包）
+        TextView addTestnetBtn = new TextView(this);
+        addTestnetBtn.setText(getString(R.string.btn_add_bsc_testnet));
+        addTestnetBtn.setTextColor(0xFF2997F4);
+        addTestnetBtn.setTextSize(14);
+        addTestnetBtn.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams testnetLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, iconSize + 16);
+        testnetLp.setMargins(0, 4, 0, 4);
+        addTestnetBtn.setLayoutParams(testnetLp);
+        addTestnetBtn.setClickable(true);
+        addTestnetBtn.setFocusable(true);
+        addTestnetBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            addStandardBscTestnet();
+        });
+        chainBarContainer.addView(addTestnetBtn);
+
         // 构建右侧钱包卡片
         List<WalletManager.WalletInfo> selectedWallets = chainWallets.get(selectedChain[0]);
         if (selectedWallets != null) {
-            renderWalletCards(walletListContainer, selectedWallets, activeId, dialog);
+            renderWalletCards(walletListContainer, selectedWallets, activeId, selectedChain[0], dialog);
         }
 
         dialog.show();
     }
 
     private void renderWalletCards(LinearLayout container, List<WalletManager.WalletInfo> wallets,
-                                   String activeId, BottomSheetDialog dialog) {
+                                   String activeId, String chain, BottomSheetDialog dialog) {
         for (WalletManager.WalletInfo w : wallets) {
             View card = getLayoutInflater().inflate(R.layout.item_wallet_switcher, null);
             TextView tvName = card.findViewById(R.id.tvWalletItemName);
@@ -2486,8 +3157,8 @@ public class HomeActivity extends BaseActivity {
             tvCheck.setVisibility(w.id.equals(activeId) ? View.VISIBLE : View.GONE);
 
             // 链品牌色背景卡片
-            String chain = w.chain != null ? w.chain : "ETH";
-            int chainColor = Color.parseColor(ChainAPI.getChainColor(chain));
+            String wChain = w.chain != null ? w.chain : "ETH";
+            int chainColor = Color.parseColor(ChainAPI.getChainColor(wChain));
             GradientDrawable cardBg = new GradientDrawable();
             cardBg.setShape(GradientDrawable.RECTANGLE);
             cardBg.setCornerRadius(dpToPx(14));
@@ -2517,14 +3188,18 @@ public class HomeActivity extends BaseActivity {
                 tvType.setVisibility(View.GONE);
             }
 
-            // 余额：当前钱包显示缓存值，其他显示 0
-            if (w.id.equals(activeId)) {
-                dataCache.setCurrentWallet(w.id);
-                double total = dataCache.getCachedTotalValue();
-                tvBalance.setText(CurrencyManager.formatFiat(this, total));
-            } else {
-                tvBalance.setText(CurrencyManager.formatFiat(this, 0));
+            // 余额：每个钱包显示它自己在当前选中链上的缓存总资产（不考虑多链）
+            // 缓存按钱包地址存储，且只保存该钱包所属链的资产；钱包按 w.chain 分组，
+            // 因此传入的 chain 即该钱包当前所在链。
+            double cardTotal = 0;
+            if (dataCache.hasValidCache(w.address)) {
+                // 仅当缓存确实属于当前选中链时才展示，避免跨链数据串台
+                String cachedChain = dataCache.getCachedChain(w.address);
+                if (chain != null && chain.equals(cachedChain)) {
+                    cardTotal = dataCache.getCachedTotalValue(w.address);
+                }
             }
+            tvBalance.setText(CurrencyManager.formatFiat(this, cardTotal));
 
             card.setOnClickListener(v2 -> {
                 Logger.action(HomeActivity.this, "UI操作", "钱包弹窗-切换钱包", null);
@@ -2759,13 +3434,14 @@ public class HomeActivity extends BaseActivity {
         EditText etAddress = view.findViewById(R.id.etWatchAddress);
         Spinner spChain = view.findViewById(R.id.spWatchChain);
 
-        // 链选择下拉
-        String[] chainSymbols = new String[ChainAPI.CHAIN_CONFIG.length];
-        String[] chainDisplayNames = new String[ChainAPI.CHAIN_CONFIG.length];
+        // 链选择下拉（含自定义链）
+        String[][] allChains = ChainAPI.getAllChainConfigs(this);
+        String[] chainSymbols = new String[allChains.length];
+        String[] chainDisplayNames = new String[allChains.length];
         int defaultIdx = 0;
-        for (int i = 0; i < ChainAPI.CHAIN_CONFIG.length; i++) {
-            chainSymbols[i] = ChainAPI.CHAIN_CONFIG[i][0];
-            chainDisplayNames[i] = ChainAPI.CHAIN_CONFIG[i][0] + "  " + ChainAPI.CHAIN_CONFIG[i][1];
+        for (int i = 0; i < allChains.length; i++) {
+            chainSymbols[i] = allChains[i][0];
+            chainDisplayNames[i] = allChains[i][0] + "  " + allChains[i][1];
             if (chainSymbols[i].equals("BNB")) defaultIdx = i;
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -2808,6 +3484,157 @@ public class HomeActivity extends BaseActivity {
                 loadWalletInfo();
                 loadAssets();
                 updateAIStatusCard();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    /** 弹出添加自定义链表单 */
+    private void showAddCustomChainDialog() {
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_custom_chain, null);
+        EditText etCode = view.findViewById(R.id.etChainCode);
+        EditText etName = view.findViewById(R.id.etChainName);
+        EditText etRpc = view.findViewById(R.id.etChainRpc);
+        EditText etSymbol = view.findViewById(R.id.etChainSymbol);
+        EditText etDecimals = view.findViewById(R.id.etChainDecimals);
+        android.widget.CheckBox cbIsEVM = view.findViewById(R.id.cbIsEVM);
+
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_add_custom_chain))
+            .setView(view)
+            .setPositiveButton(getString(R.string.btn_tambah), (dialog, which) -> {
+                String code = etCode.getText().toString().trim().toUpperCase();
+                String name = etName.getText().toString().trim();
+                String rpc = etRpc.getText().toString().trim();
+                String symbol = etSymbol.getText().toString().trim();
+                String decimalsStr = etDecimals.getText().toString().trim();
+
+                if (code.isEmpty() || name.isEmpty() || rpc.isEmpty() || symbol.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.toast_please_fill_all_fields), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                int decimals = 18;
+                try { decimals = Integer.parseInt(decimalsStr); } catch (Exception ignored) {}
+
+                ChainAPI.CustomChain cc = new ChainAPI.CustomChain();
+                cc.code = code;
+                cc.name = name;
+                cc.rpc = rpc;
+                cc.symbol = symbol;
+                cc.decimals = decimals;
+                cc.isEVM = cbIsEVM.isChecked();
+
+                ChainAPI.addCustomChain(this, cc);
+                Toast.makeText(this, getString(R.string.toast_custom_chain_added, code), Toast.LENGTH_SHORT).show();
+
+                // 自动为新链（如测试链）复用已有主链钱包：同一助记词/私钥，直接沿用之前的主链钱包
+                WalletManager.WalletInfo reused = WalletManager.addWalletForNewChain(this, name, code);
+                if (reused != null) {
+                    Logger.info(this, "链管理", "为自定义链 " + code + " 自动创建钱包，复用主链助记词，地址=" + reused.getShortAddress());
+                } else {
+                    Logger.info(this, "链管理", "自定义链 " + code + " 无既有钱包可复用，需用户手动创建");
+                }
+
+                // 重新打开钱包切换器刷新
+                showWalletSwitcher();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    /** 一键添加标准币安测试网：内置正确参数，自动复用主链钱包 */
+    private void addStandardBscTestnet() {
+        final String code = "BSC-TESTNET";
+        final String name = "币安智能链测试网";
+        final String rpc = "https://bsc-testnet-rpc.publicnode.com";
+        final String symbol = "tBNB";
+
+        // 已存在则直接切换使用
+        for (ChainAPI.CustomChain cc : ChainAPI.getCustomChains(this)) {
+            if (cc.code.equals(code)) {
+                WalletManager.setChain(this, code);
+                Toast.makeText(this, getString(R.string.toast_bsc_testnet_exists), Toast.LENGTH_SHORT).show();
+                loadAssets();
+                return;
+            }
+        }
+
+        ChainAPI.CustomChain cc = new ChainAPI.CustomChain();
+        cc.code = code;
+        cc.name = name;
+        cc.rpc = rpc;
+        cc.symbol = symbol;
+        cc.decimals = 18;
+        cc.isEVM = true;
+        ChainAPI.addCustomChain(this, cc);
+        Toast.makeText(this, getString(R.string.toast_custom_chain_added, code), Toast.LENGTH_SHORT).show();
+
+        // 复用已有主链钱包：同一助记词/私钥，直接沿用之前的主链钱包
+        WalletManager.WalletInfo reused = WalletManager.addWalletForNewChain(this, name, code);
+        if (reused != null) {
+            Logger.info(this, "链管理", "一键添加标准币安测试网，复用主链助记词，地址=" + reused.getShortAddress());
+        } else {
+            Logger.info(this, "链管理", "标准币安测试网无既有钱包可复用，需用户手动创建");
+        }
+
+        WalletManager.setChain(this, code);
+        loadAssets();
+    }
+
+    /** 编辑自定义链（长按链图标触发），复用创建表单，预填当前值 */
+    private void showEditCustomChainDialog(String code) {
+        ChainAPI.CustomChain cc = null;
+        for (ChainAPI.CustomChain c : ChainAPI.getCustomChains(this)) {
+            if (c.code.equals(code)) { cc = c; break; }
+        }
+        if (cc == null) return;
+        final ChainAPI.CustomChain original = cc;
+
+        View view = getLayoutInflater().inflate(R.layout.dialog_add_custom_chain, null);
+        EditText etCode = view.findViewById(R.id.etChainCode);
+        EditText etName = view.findViewById(R.id.etChainName);
+        EditText etRpc = view.findViewById(R.id.etChainRpc);
+        EditText etSymbol = view.findViewById(R.id.etChainSymbol);
+        EditText etDecimals = view.findViewById(R.id.etChainDecimals);
+        android.widget.CheckBox cbIsEVM = view.findViewById(R.id.cbIsEVM);
+
+        etCode.setText(cc.code);
+        etName.setText(cc.name);
+        etRpc.setText(cc.rpc);
+        etSymbol.setText(cc.symbol);
+        etDecimals.setText(String.valueOf(cc.decimals));
+        cbIsEVM.setChecked(cc.isEVM);
+        // code 是链的唯一标识，编辑时锁定，避免影响已关联的钱包与 NFT 数据
+        etCode.setEnabled(false);
+        etCode.setFocusable(false);
+
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_edit_custom_chain))
+            .setView(view)
+            .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
+                String name = etName.getText().toString().trim();
+                String rpc = etRpc.getText().toString().trim();
+                String symbol = etSymbol.getText().toString().trim();
+                String decimalsStr = etDecimals.getText().toString().trim();
+                if (name.isEmpty() || rpc.isEmpty() || symbol.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.toast_please_fill_all_fields), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                int decimals = original.decimals;
+                try { decimals = Integer.parseInt(decimalsStr); } catch (Exception ignored) {}
+
+                ChainAPI.CustomChain updated = new ChainAPI.CustomChain();
+                updated.code = original.code;
+                updated.name = name;
+                updated.rpc = rpc;
+                updated.symbol = symbol;
+                updated.decimals = decimals;
+                updated.isEVM = cbIsEVM.isChecked();
+
+                ChainAPI.updateCustomChain(this, updated);
+                Logger.info(this, "链管理", "已编辑自定义链 " + original.code + "：名称=" + name + "，RPC=" + rpc + "，代币=" + symbol);
+                Toast.makeText(this, getString(R.string.toast_custom_chain_updated, original.code), Toast.LENGTH_SHORT).show();
+                showWalletSwitcher();
             })
             .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
@@ -3099,7 +3926,7 @@ public class HomeActivity extends BaseActivity {
             double nativePrice = 0;
             try {
                 prices = ChainAPI.getPrices(this);
-                nativePrice = prices.getOrDefault(chain, 0.0);
+                nativePrice = ChainAPI.resolveNativePrice(prices, this, chain);
             } catch (Exception e) {
                 prices = new HashMap<>();
             }
@@ -3122,7 +3949,7 @@ public class HomeActivity extends BaseActivity {
                 try {
                     double balance = Double.parseDouble(token[2]);
                     String symbol = token[0];
-                    double price = prices.getOrDefault(symbol, 0.0);
+                    double price = ChainAPI.resolveTokenPrice(prices, this, chain, symbol);
                     double value = balance * price;
                     totalValue += value;
                     token[3] = String.valueOf(value);
@@ -3402,7 +4229,7 @@ public class HomeActivity extends BaseActivity {
                 try {
                     double walletTotal = 0;
                     double nativeBalance = ChainAPI.getNativeBalance(this, chain, w.address);
-                    double nativePrice = prices.getOrDefault(chain, 0.0);
+                    double nativePrice = ChainAPI.resolveNativePrice(prices, this, chain);
                     walletTotal += nativeBalance * nativePrice;
 
                     // 轻量代币余额：只做内置热门 + 自定义 + 持久化代币，不做远程发现
@@ -3412,7 +4239,7 @@ public class HomeActivity extends BaseActivity {
                             if (token.length < 4) continue;
                             try {
                                 double balance = Double.parseDouble(token[2]);
-                                double price = prices.getOrDefault(token[0], 0.0);
+                                double price = ChainAPI.resolveTokenPrice(prices, this, chain, token[0]);
                                 walletTotal += balance * price;
                             } catch (Exception ignored) {}
                         }

@@ -5,6 +5,7 @@ import android.util.Log;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -77,6 +78,7 @@ public class DexTrader {
 
     // 各链 chainId（EIP-155），用于签名防跨链重放
     private static long getChainIdForChain(String chain) {
+        if (chain == null) return 1;
         switch (chain) {
             case "ETH": return 1;
             case "BNB": return 56;
@@ -87,6 +89,8 @@ public class DexTrader {
             case "KAVA": return 2222;
             case "CELO": return 42220;
             case "ONE": return 1666600000;
+            // 自定义测试网：BSC 测试网 chainId=97，签名必须用 97，否则广播报 invalid chain ID
+            case "BSC-TESTNET": return 97;
             default: return 1;
         }
     }
@@ -429,8 +433,80 @@ public class DexTrader {
             Collections.emptyList()
         );
         String data = FunctionEncoder.encode(approveFn);
-        sendTransactionWithNonce(ctx, rpcUrl, mnemonic, token, data, BigInteger.ZERO, chainId, nonce);
+        String txHash = sendTransactionWithNonce(ctx, rpcUrl, mnemonic, token, data, BigInteger.ZERO, chainId, nonce);
+        // 修复：等待 approve 上链后再 swap。
+        // estimateGas 基于最新已确认区块状态模拟，若 approve 尚未入块，allowance 仍为 0，
+        // swap 的 transferFrom 会 revert（TransferHelper: TRANSFER_FROM_FAILED）。
+        // 之前的实现广播 approve 后立刻调 swap，必然命中该竞态。
+        // 超时 45 秒并以多节点查询，避免 BSC 网络拥塞或单节点 403 造成假超时
+        waitForReceipt(rpcUrl, txHash, 45_000);
         return nonce; // 返回给调用方，swap 用 nonce+1
+    }
+
+    /**
+     * 轮询等待交易上链（用于 approve 后确认额度生效再执行 swap）。
+     * 修复：主节点可能返回 403 Forbidden（如 bsc.publicnode.com）导致查询不到回执而误判超时，
+     * 因此在主节点失败时自动切换备用节点查询，避免假超时。
+     * @param timeoutMs 最大等待毫秒数，超时抛异常（不继续 swap 以免在旧额度状态下失败）
+     */
+    private void waitForReceipt(String rpcUrl, String txHash, long timeoutMs) throws Exception {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        List<String> nodes = buildQueryNodes(rpcUrl);
+        int nodeIndex = 0;
+        while (System.currentTimeMillis() < deadline) {
+            String node = nodes.get(nodeIndex);
+            JSONObject body = new JSONObject();
+            body.put("jsonrpc", "2.0");
+            body.put("id", 1);
+            body.put("method", "eth_getTransactionReceipt");
+            JSONArray params = new JSONArray();
+            params.put(txHash);
+            body.put("params", params);
+
+            Request request = new Request.Builder()
+                .url(node)
+                .post(RequestBody.create(body.toString(), JSON_TYPE))
+                .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                String resp = response.body() != null ? response.body().string() : "";
+                JSONObject json = new JSONObject(resp);
+                String result = json.optString("result", "");
+                if (result != null && !result.isEmpty() && !"null".equalsIgnoreCase(result)) {
+                    JSONObject receipt = new JSONObject(result);
+                    if (!receipt.optString("status", "").isEmpty()) {
+                        return; // 已上链
+                    }
+                }
+                // 正常返回但未上链（可能有 error 或空 result），继续固定节点轮询
+            } catch (Exception ignore) {
+                // 当前节点异常（403/网络抖动），切换下一个备用节点再试
+                nodeIndex = (nodeIndex + 1) % nodes.size();
+            }
+            try {
+                Thread.sleep(1200);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new Exception("等待 approve 上链被打断");
+            }
+        }
+        throw new Exception("approve 交易未在 " + (timeoutMs / 1000) + " 秒内上链: " + txHash);
+    }
+
+    /**
+     * 构造用于查询回执的节点列表：主节点 + BSC 备用节点。
+     * 主节点（如 bsc.publicnode.com）可能返回 403，备用节点保证回执可查。
+     */
+    private List<String> buildQueryNodes(String primary) {
+        List<String> nodes = new ArrayList<>();
+        nodes.add(primary);
+        // 仅当主节点是 BSC 相关节点时附加公网备用节点
+        if (primary != null && primary.toLowerCase().contains("bsc")) {
+            nodes.add("https://bsc-dataseed1.binance.org");
+            nodes.add("https://bsc-dataseed.binance.org");
+            nodes.add("https://rpc.ankr.com/bsc");
+        }
+        return nodes;
     }
 
     private String sendTransaction(Context ctx, String rpcUrl, String mnemonic,
@@ -639,7 +715,9 @@ public class DexTrader {
             String resp = response.body() != null ? response.body().string() : "";
             JSONObject json = new JSONObject(resp);
             String gasPriceHex = json.optString("result", "0x0");
-            return new BigInteger(gasPriceHex.substring(2), 16);
+            BigInteger base = new BigInteger(gasPriceHex.substring(2), 16);
+            // 加 25% 溢价，提升交易确认速度，避免网络拥塞时卡在 pending
+            return base.multiply(BigInteger.valueOf(125)).divide(BigInteger.valueOf(100));
         }
     }
 

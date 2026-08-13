@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#1a1a2e">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/str_contract_address_hint"
+        android:textColor="#8892b0"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etFContract"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:hint="0x..."
+        android:textColor="#ffffff"
+        android:textColorHint="#4a4a6a"
+        android:textSize="13sp"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:singleLine="true"
+        android:inputType="text"
+        android:imeOptions="actionNext"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/str_token_symbol_hint"
+        android:textColor="#8892b0"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etFSymbol"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:hint="USDT"
+        android:textColor="#ffffff"
+        android:textColorHint="#4a4a6a"
+        android:textSize="13sp"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:singleLine="true"
+        android:inputType="text"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/str_token_decimals_hint"
+        android:textColor="#8892b0"
+        android:textSize="12sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etFDecimals"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:hint="18"
+        android:textColor="#ffffff"
+        android:textColorHint="#4a4a6a"
+        android:textSize="13sp"
+        android:background="@drawable/input_background"
+        android:padding="12dp"
+        android:singleLine="true"
+        android:inputType="number"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/str_tip_when_you_leave"
+        android:textColor="#4a4a6a"
+        android:textSize="11sp"
+        android:layout_marginTop="4dp" />
+</LinearLayout>

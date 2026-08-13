@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_contract_address"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+        <EditText
+            android:id="@+id/etNftContract"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:hint="0x..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#6E6E7A"
+            android:background="@drawable/input_background"
+            android:padding="8dp"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/str_nft_token_id"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:layout_marginTop="12dp" />
+        <EditText
+            android:id="@+id/etNftTokenId"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:hint="e.g. 1"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#6E6E7A"
+            android:background="@drawable/input_background"
+            android:padding="8dp"
+            android:layout_marginTop="4dp"
+            android:inputType="number" />
+    </LinearLayout>
+</ScrollView>
