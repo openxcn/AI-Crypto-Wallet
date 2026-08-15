@@ -61,10 +61,38 @@ public class VerifyMnemonicActivity extends BaseActivity {
         renderCandidateButtons(count);
 
         findViewById(R.id.btnVerifyConfirm).setOnClickListener(v -> doVerify());
+
+        // 退格：撤销最近填入的一个助记词，并归还候选词
+        findViewById(R.id.btnBackspace).setOnClickListener(v -> {
+            int last = -1;
+            for (int i = 0; i < selectedWords.length; i++) {
+                if (selectedWords[i] != null) last = i;
+            }
+            if (last == -1) return;
+
+            String removed = selectedWords[last];
+            selectedWords[last] = null;
+
+            TextView slot = inputSlots[last];
+            slot.setText((last + 1) + "");
+            slot.setTextColor(Color.parseColor("#6b7280"));
+
+            // 归还对应的候选词
+            for (int i = 0; i < candidateButtons.length; i++) {
+                int wi = (int) candidateButtons[i].getTag();
+                if (candidateUsed[wi] && originalWords[wi].equals(removed)) {
+                    candidateUsed[wi] = false;
+                    candidateButtons[i].setAlpha(1.0f);
+                    candidateButtons[i].setEnabled(true);
+                    break;
+                }
+            }
+        });
     }
 
     private void renderInputSlots(int count) {
-        int cols = 3;
+        // 2 列布局：保证长单词完整显示
+        int cols = 2;
         int rows = (count + cols - 1) / cols;
         inputSlots = new TextView[count];
 
@@ -125,7 +153,8 @@ public class VerifyMnemonicActivity extends BaseActivity {
         for (int i = 0; i < count; i++) indices.add(i);
         Collections.shuffle(indices);
 
-        int cols = 4;
+        // 3 列布局：保证长单词完整显示
+        int cols = 3;
         int rows = (count + cols - 1) / cols;
         candidateButtons = new TextView[count];
 

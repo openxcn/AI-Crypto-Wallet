@@ -73,6 +73,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
+
+            <!-- 退格按钮：撤销最近填入的一个助记词 -->
+            <TextView
+                android:id="@+id/btnBackspace"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="⌫ @string/text_backspace"
+                android:textColor="#6C5CE7"
+                android:textSize="14sp"
+                android:padding="10dp"
+                android:layout_marginTop="16dp" />
         </LinearLayout>
     </ScrollView>
 

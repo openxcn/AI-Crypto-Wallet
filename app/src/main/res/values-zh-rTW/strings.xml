@@ -434,8 +434,11 @@
     <string name="str_to_2">接收方</string>
     <string name="str_recommended_node">推薦節點</string>
     <string name="str_tip_when_you_leave">提示：留空 Symbol/Name/Decimals 時，會從合約自動讀取</string>
+    <string name="toast_token_auto_detected">已自動識別：%1$s，精度 %2$s</string>
+    <string name="toast_token_auto_detect_failed">無法自動識別該合約，請手動填寫</string>
     <string name="str_search_or_enter_url">搜索或輸入網址（如 baidu.com）</string>
     <string name="text_undo">撤銷</string>
+    <string name="text_backspace">退格</string>
     <string name="toast_undo_failed">撤銷失敗: %1$s</string>
     <string name="title_revoke_authorisation">撤銷授權</string>
     <string name="btn_operation_log">操作日誌</string>
@@ -704,6 +707,7 @@
     <string name="toast_risk_log_saved_to">風險日誌已保存到: %1$s</string>
     <string name="toast_risk_log_copied_to">風險日誌已複製到剪貼簿</string>
     <string name="str_official_website">🌐 官方網站</string>
+    <string name="str_open_website">開啟 →</string>
     <string name="text_chat">💬 聊天</string>
     <string name="str_income_area_2">💰 收益專區</string>
     <string name="str_white_paper">📄 白皮書</string>

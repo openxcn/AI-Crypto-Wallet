@@ -424,8 +424,11 @@
     <string name="str_to_2">Empfänger</string>
     <string name="str_recommended_node">Empfohlener Knoten</string>
     <string name="str_tip_when_you_leave">Tipp: Wenn Sie das Symbol/den Namen/die Dezimalstellen leer lassen, wird es automatisch aus dem Vertrag gelesen</string>
+    <string name="toast_token_auto_detected">Automatisch erkannt: %1$s, Dezimalstellen %2$s</string>
+    <string name="toast_token_auto_detect_failed">Dieser Vertrag konnte nicht automatisch erkannt werden, bitte manuell ausfüllen</string>
     <string name="str_search_or_enter_url">Suchen oder geben Sie eine URL ein (z. B. baidu.com)</string>
     <string name="text_undo">Widerruf</string>
+    <string name="text_backspace">Rücktaste</string>
     <string name="toast_undo_failed">Rückgängigmachen fehlgeschlagen: 1</string>
     <string name="title_revoke_authorisation">Autorisierung widerrufen</string>
     <string name="btn_operation_log">Betriebsprotokoll</string>
@@ -700,6 +703,7 @@
     <string name="toast_risk_log_saved_to">Risikoprotokoll gespeichert unter: 1</string>
     <string name="toast_risk_log_copied_to">Risikoprotokoll in Zwischenablage kopiert</string>
     <string name="str_official_website">🌐 Offizielle Website</string>
+    <string name="str_open_website">Öffnen →</string>
     <string name="text_chat">Chat</string>
     <string name="str_income_area_2">💰 Einkommensbereich</string>
     <string name="str_white_paper">Weißbuch</string>

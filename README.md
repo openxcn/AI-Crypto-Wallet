@@ -44,8 +44,7 @@ The first AI crypto wallet with a built-in self-trading agent. Non-custodial —
 
 - **Product Landing Page**: https://openxcn.github.io/AI-Crypto-Wallet/
 - **User Guide**: [aicw-user-guide.html](aicw-user-guide/aicw-user-guide.html)
-- **Product Intro (PPT)**: [AI_Crypto_Wallet_介绍.pptx](ppt_build/AI_Crypto_Wallet_介绍.pptx)
-- **Whitepaper (PDF)**: [AI-Crypto-Wallet-Whitepaper.pdf](AI-Crypto-Wallet-Whitepaper.pdf)
+- **Whitepaper**: https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom
 
 ## Whitepaper
 
@@ -113,8 +112,7 @@ AI Crypto Wallet（AI 炒币助手）是一款内置 AI 交易助手的 AI 加�
 
 - 产品落地页：https://openxcn.github.io/AI-Crypto-Wallet/
 - 使用说明：`aicw-user-guide/aicw-user-guide.html`
-- 产品介绍（PPT）：`ppt_build/AI_Crypto_Wallet_介绍.pptx`
-- 白皮书（PDF）：`AI-Crypto-Wallet-Whitepaper.pdf`
+- 白皮书：https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom
 
 ## 免责声明
 

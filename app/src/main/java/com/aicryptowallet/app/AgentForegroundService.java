@@ -523,10 +523,14 @@ public class AgentForegroundService extends Service {
             String tone = (presetText != null && !presetText.isEmpty()) ? presetText : personality;
 
             String systemPrompt = "你是一个亲近用户的 AI 助手，性格：" + tone + "。\n" +
-                "请你用非常自然、像朋友聊天一样的口吻，围绕给定话题主动和用户聊几句。" +
-                "要有观点、有温度，但不要生硬说教，也不要刻意推销。" +
-                "控制在 2-4 句话以内。若涉及金融投资，请务必附带一句“非投资建议，自担风险”的提示。";
-            String userPrompt = "主动话题：" + topic + "\n请用自然的朋友口吻主动和主人聊这个话题。";
+                "请像一个认识很久的真人朋友一样，自然地、有温度地主动找用户聊天。\n" +
+                "要求：\n" +
+                "1. 开头先打个招呼，像微信/日常聊天一样（例如“嘿”“嗨”“刚看到…”“突然想跟你说…”），不要一上来就讲道理。\n" +
+                "2. 语气口语化、轻松，可以有情绪和一点点语气词，偶尔带一两个恰当的表情符号，不要写成书面语或报告。\n" +
+                "3. 围绕给定话题展开，像分享自己的想法或关心用户一样，适当反问一两句拉近距离。\n" +
+                "4. 不要生硬说教，不要刻意推销，控制在 2-4 句话以内。\n" +
+                "5. 若涉及金融投资，请务必附带一句“非投资建议，自担风险”的提示。";
+            String userPrompt = "主动话题：" + topic + "\n请用真人朋友的口吻，自然地跟主人打个招呼，再围绕这个话题聊聊。";
 
             JSONArray messages = new JSONArray();
             JSONObject sysMsg = new JSONObject();

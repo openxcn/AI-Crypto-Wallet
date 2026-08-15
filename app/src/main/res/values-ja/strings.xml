@@ -430,8 +430,11 @@
     <string name="str_to_2">受信側</string>
     <string name="str_recommended_node">推奨ノード</string>
     <string name="str_tip_when_you_leave">ヒント：シンボル/名前/小数点以下を空白のままにすると、契約から自動的に読み取られます</string>
+    <string name="toast_token_auto_detected">自動認識しました：%1$s、精度 %2$s</string>
+    <string name="toast_token_auto_detect_failed">このコントラクトを自動認識できませんでした。手動で入力してください</string>
     <string name="str_search_or_enter_url">URLを検索または入力します（例： baidu.com ）</string>
     <string name="text_undo">元に戻す</string>
+    <string name="text_backspace">バックスペース</string>
     <string name="toast_undo_failed">元に戻せませんでした： 1</string>
     <string name="title_revoke_authorisation">承認を取り消す</string>
     <string name="btn_operation_log">操作ログ</string>
@@ -700,6 +703,7 @@
     <string name="toast_risk_log_saved_to">リスクログの保存先： 1</string>
     <string name="toast_risk_log_copied_to">リスクログをクリップボードにコピーしました</string>
     <string name="str_official_website">🌐 公式ウェブサイト</string>
+    <string name="str_open_website">開く →</string>
     <string name="text_chat">チャット</string>
     <string name="str_income_area_2">💰 収入エリア</string>
     <string name="str_white_paper">📄 ホワイトペーパー</string>

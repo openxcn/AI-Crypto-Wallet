@@ -40,7 +40,7 @@ public class BackupMnemonicActivity extends BaseActivity {
         }
 
         findViewById(R.id.btnBack).setOnClickListener(v -> {
-            WalletManager.removeWalletByAddress(this, address);
+            // 仅返回上一页，不删除钱包（钱包已保存，可随时在钱包管理中重新查看助记词）
             finish();
         });
 
@@ -82,7 +82,8 @@ public class BackupMnemonicActivity extends BaseActivity {
     private void renderMnemonicGrid() {
         LinearLayout grid = findViewById(R.id.mnemonicGrid);
         String[] words = mnemonic.trim().split("\\s+");
-        int cols = 3;
+        // 2 列布局：保证长单词完整显示
+        int cols = 2;
         int count = words.length;
 
         for (int r = 0; r < count; r += cols) {
@@ -102,7 +103,7 @@ public class BackupMnemonicActivity extends BaseActivity {
                 cell.setGravity(Gravity.CENTER_VERTICAL);
                 cell.setBackground(getDrawable(R.drawable.mnemonic_word_bg));
                 cell.setPadding(dp(12), dp(10), dp(12), dp(10));
-                LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+                LinearLayout.LayoutParams cellParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
                 if (c < cols - 1 && idx + 1 < count) cellParams.rightMargin = dp(8);
                 cell.setLayoutParams(cellParams);
 
@@ -119,7 +120,6 @@ public class BackupMnemonicActivity extends BaseActivity {
                 tvWord.setText(words[idx]);
                 tvWord.setTextColor(Color.parseColor("#ffffff"));
                 tvWord.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-                tvWord.setSingleLine(true);
                 LinearLayout.LayoutParams wordParams = new LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
                 tvWord.setLayoutParams(wordParams);

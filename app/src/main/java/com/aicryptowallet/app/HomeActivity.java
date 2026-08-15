@@ -126,6 +126,8 @@ public class HomeActivity extends BaseActivity {
     // 行情置顶币种（持久化）
     private static final String PREFS_MARKET = "market_prefs";
     private static final String KEY_PINNED_COINS = "pinned_coins";
+    // 红魔团队官网
+    private static final String OFFICIAL_WEBSITE_URL = "https://redmagic-glv.pages.dev/";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ExecutorService allWalletsExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService marketExecutor = Executors.newSingleThreadExecutor();
@@ -1625,6 +1627,20 @@ public class HomeActivity extends BaseActivity {
             Toast.makeText(this, getString(R.string.toast_scanning_function_under_development), Toast.LENGTH_SHORT).show();
         });
 
+        // 红魔团队官网入口：用系统浏览器打开
+        View btnOfficialWebsite = findViewById(R.id.btnOfficialWebsite);
+        if (btnOfficialWebsite != null) {
+            btnOfficialWebsite.setOnClickListener(v -> {
+                Logger.action(this, "UI操作", "打开官网", OFFICIAL_WEBSITE_URL);
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(OFFICIAL_WEBSITE_URL));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(this, getString(R.string.toast_failed_to_open_ai, e.getMessage()), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         final TextView tabHot = findViewById(R.id.tabDiscoverHot);
         final TextView tabExplore = findViewById(R.id.tabDiscoverExplore);
         final TextView tabFav = findViewById(R.id.tabDiscoverFav);
@@ -2728,6 +2744,7 @@ public class HomeActivity extends BaseActivity {
                     tokenDetectInFlight = false;
                     if (info == null) {
                         Logger.info(this, "代币识别", "合约 " + contract + " 识别失败或该合约不支持 symbol()/decimals()");
+                        Toast.makeText(this, getString(R.string.toast_token_auto_detect_failed), Toast.LENGTH_SHORT).show();
                         return;
                     }
                     Logger.info(this, "代币识别", "合约 " + contract + " 识别结果 symbol=" + info[0] + " name=" + info[1] + " decimals=" + info[2]);
@@ -2737,9 +2754,13 @@ public class HomeActivity extends BaseActivity {
                     if (etDecimals.getText().toString().trim().isEmpty() && info[2] != null) {
                         etDecimals.setText(info[2]);
                     }
+                    Toast.makeText(this, getString(R.string.toast_token_auto_detected, info[0], info[2]), Toast.LENGTH_SHORT).show();
                 });
-            } catch (Exception ignored) {
-                handler.post(() -> tokenDetectInFlight = false);
+            } catch (Exception e) {
+                handler.post(() -> {
+                    tokenDetectInFlight = false;
+                    Toast.makeText(this, getString(R.string.toast_token_auto_detect_failed), Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }

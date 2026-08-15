@@ -65,10 +65,10 @@ public class AIAgentSettings {
     public static int getDailyChatLimit(Context c) {
         switch (getChatFrequency(c)) {
             case FREQ_OCCASIONAL: return 3;          // 每周几次 → 简单按每天少量控制
-            case FREQ_TALKY:      return 12;         // 话痨模式
+            case FREQ_TALKY:      return -1;         // 话痨模式：不限，仅靠间隔控制
             case FREQ_UNLIMITED:  return -1;         // 不限
             case FREQ_NORMAL:
-            default:              return 6;          // 正常互动
+            default:              return -1;         // 正常互动：不限，仅靠间隔控制
         }
     }
 

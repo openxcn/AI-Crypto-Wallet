@@ -430,8 +430,11 @@
     <string name="str_to_2">To</string>
     <string name="str_recommended_node">Recommended Node</string>
     <string name="str_tip_when_you_leave">Tip: When you leave the Symbol/Name/Decimals blank, it will be automatically read from the contract</string>
+    <string name="toast_token_auto_detected">Auto-detected: %1$s, decimals %2$s</string>
+    <string name="toast_token_auto_detect_failed">Could not detect this contract automatically, please fill in manually</string>
     <string name="str_search_or_enter_url">Search or enter a URL (e.g. baidu.com)</string>
     <string name="text_undo">Undo</string>
+    <string name="text_backspace">Backspace</string>
     <string name="toast_undo_failed">Undo failed: 1</string>
     <string name="title_revoke_authorisation">Revoke authorisation</string>
     <string name="btn_operation_log">Operation Log</string>
@@ -700,6 +703,7 @@
     <string name="toast_risk_log_saved_to">Risk log saved to: 1</string>
     <string name="toast_risk_log_copied_to">Risk log copied to clipboard</string>
     <string name="str_official_website">Official Website</string>
+    <string name="str_open_website">Open →</string>
     <string name="text_chat">Chat</string>
     <string name="str_income_area_2">💰 Income area</string>
     <string name="str_white_paper">White paper</string>
