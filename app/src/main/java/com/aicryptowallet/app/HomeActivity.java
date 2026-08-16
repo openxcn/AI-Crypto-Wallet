@@ -126,8 +126,6 @@ public class HomeActivity extends BaseActivity {
     // 行情置顶币种（持久化）
     private static final String PREFS_MARKET = "market_prefs";
     private static final String KEY_PINNED_COINS = "pinned_coins";
-    // 红魔团队官网
-    private static final String OFFICIAL_WEBSITE_URL = "https://redmagic-glv.pages.dev/";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ExecutorService allWalletsExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService marketExecutor = Executors.newSingleThreadExecutor();
@@ -1627,20 +1625,6 @@ public class HomeActivity extends BaseActivity {
             Toast.makeText(this, getString(R.string.toast_scanning_function_under_development), Toast.LENGTH_SHORT).show();
         });
 
-        // 红魔团队官网入口：用系统浏览器打开
-        View btnOfficialWebsite = findViewById(R.id.btnOfficialWebsite);
-        if (btnOfficialWebsite != null) {
-            btnOfficialWebsite.setOnClickListener(v -> {
-                Logger.action(this, "UI操作", "打开官网", OFFICIAL_WEBSITE_URL);
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(OFFICIAL_WEBSITE_URL));
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Toast.makeText(this, getString(R.string.toast_failed_to_open_ai, e.getMessage()), Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
         final TextView tabHot = findViewById(R.id.tabDiscoverHot);
         final TextView tabExplore = findViewById(R.id.tabDiscoverExplore);
         final TextView tabFav = findViewById(R.id.tabDiscoverFav);
@@ -2919,6 +2903,7 @@ public class HomeActivity extends BaseActivity {
         View btnClose = view.findViewById(R.id.btnCloseWalletSheet);
         View btnCreateWallet = view.findViewById(R.id.btnCreateWallet);
         View btnOneClickImport = view.findViewById(R.id.btnOneClickImport);
+        View btnAddWatchWallet = view.findViewById(R.id.btnAddWatchWallet);
 
         // 底部半屏弹窗
         BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.BottomSheetDialog);
@@ -2961,6 +2946,13 @@ public class HomeActivity extends BaseActivity {
                 Logger.info(this, "链管理", "一键导入可用钱包：无可复用主链钱包或无待导入链");
                 Toast.makeText(this, getString(R.string.toast_no_wallet_reusable), Toast.LENGTH_SHORT).show();
             }
+        });
+
+        // 添加观察钱包（仅地址查看，无需私钥）
+        btnAddWatchWallet.setOnClickListener(v -> {
+            Logger.action(this, "UI操作", "钱包弹窗-添加观察钱包", null);
+            dialog.dismiss();
+            showAddWatchWalletDialog();
         });
 
         // 加载所有钱包
@@ -5274,6 +5266,35 @@ public class HomeActivity extends BaseActivity {
         prefs.edit().putString(key, TextUtils.join(",", hidden)).apply();
         Toast.makeText(this, getString(R.string.toast_hidden), Toast.LENGTH_SHORT).show();
         loadAssets();
+    }
+
+    /** 供其他页面（如代币详情页一键隐藏）复用的静态隐藏方法，写入同一 hidden_tokens 存储 */
+    public static void hideTokenStatic(Context ctx, String chain, String contractAddr) {
+        android.content.SharedPreferences prefs = ctx.getSharedPreferences("hidden_tokens", Context.MODE_PRIVATE);
+        String key = "hidden_" + chain;
+        java.util.Set<String> hidden = new java.util.HashSet<>();
+        String stored = prefs.getString(key, "");
+        if (!stored.isEmpty()) {
+            for (String addr : stored.split(",")) {
+                if (!addr.trim().isEmpty()) hidden.add(addr.trim().toLowerCase());
+            }
+        }
+        hidden.add(contractAddr.toLowerCase());
+        prefs.edit().putString(key, TextUtils.join(",", hidden)).apply();
+    }
+
+    /** 供其他页面（如代币详情页）读取已隐藏代币集合 */
+    public static java.util.Set<String> getHiddenTokensStatic(Context ctx, String chain) {
+        java.util.Set<String> hidden = new java.util.HashSet<>();
+        android.content.SharedPreferences prefs = ctx.getSharedPreferences("hidden_tokens", Context.MODE_PRIVATE);
+        String key = "hidden_" + chain;
+        String stored = prefs.getString(key, "");
+        if (!stored.isEmpty()) {
+            for (String addr : stored.split(",")) {
+                if (!addr.trim().isEmpty()) hidden.add(addr.trim().toLowerCase());
+            }
+        }
+        return hidden;
     }
 
     private void showAllHiddenTokens(String chain) {

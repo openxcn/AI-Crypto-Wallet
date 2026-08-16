@@ -270,18 +270,22 @@ public class MarketCoinAnalyzeActivity extends BaseActivity {
     }
 
     private String formatVolume(double v) {
+        // 成交额以 USDT(美元) 计价，需按用户所选货币做汇率换算
+        double converted = CurrencyManager.convertFromUsd(this, v);
         String symbol = CurrencyManager.getCurrencySymbol(CurrencyManager.getSelectedCurrency(this));
-        if (v >= 1_000_000_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", v / 1_000_000_000) + "B";
-        if (v >= 1_000_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", v / 1_000_000) + "M";
-        if (v >= 1_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", v / 1_000) + "K";
-        return symbol + String.format(java.util.Locale.getDefault(), "%.2f", v);
+        if (converted >= 1_000_000_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", converted / 1_000_000_000) + "B";
+        if (converted >= 1_000_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", converted / 1_000_000) + "M";
+        if (converted >= 1_000) return symbol + String.format(java.util.Locale.getDefault(), "%.2f", converted / 1_000) + "K";
+        return symbol + String.format(java.util.Locale.getDefault(), "%.2f", converted);
     }
 
     private String formatPrice(double price) {
+        // 价格以 USDT(美元) 计价，需按用户所选货币做汇率换算
+        double converted = CurrencyManager.convertFromUsd(this, price);
         String symbol = CurrencyManager.getCurrencySymbol(CurrencyManager.getSelectedCurrency(this));
-        if (price >= 1) return symbol + String.format(java.util.Locale.getDefault(), "%,.2f", price);
-        if (price >= 0.01) return symbol + String.format(java.util.Locale.getDefault(), "%.4f", price);
-        return symbol + String.format(java.util.Locale.getDefault(), "%.6f", price);
+        if (converted >= 1) return symbol + String.format(java.util.Locale.getDefault(), "%,.2f", converted);
+        if (converted >= 0.01) return symbol + String.format(java.util.Locale.getDefault(), "%.4f", converted);
+        return symbol + String.format(java.util.Locale.getDefault(), "%.6f", converted);
     }
 
     private void copyReport() {

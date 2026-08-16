@@ -75,6 +75,26 @@ public class NodeSelectorActivity extends BaseActivity {
         for (NodeManager.NodeEntry entry : presets) {
             addNodeItem(entry.name, entry.url, currentSelected, false);
         }
+
+        // Show Infura backup nodes if configured
+        for (NodeManager.NodeEntry entry : NodeManager.getInfuraNodes(this, chain)) {
+            addNodeItem(entry.name, entry.url, currentSelected, false);
+        }
+
+        // Show Ankr backup nodes if configured
+        for (NodeManager.NodeEntry entry : NodeManager.getAnkrNodes(this, chain)) {
+            addNodeItem(entry.name, entry.url, currentSelected, false);
+        }
+
+        // Show GetBlock backup nodes if configured
+        for (NodeManager.NodeEntry entry : NodeManager.getGetBlockNodes(this, chain)) {
+            addNodeItem(entry.name, entry.url, currentSelected, false);
+        }
+
+        // Show dRPC backup nodes if configured
+        for (NodeManager.NodeEntry entry : NodeManager.getDrpcNodes(this, chain)) {
+            addNodeItem(entry.name, entry.url, currentSelected, false);
+        }
     }
 
     private void addNodeItem(String name, String nodeUrl, String currentSelected, boolean isCustom) {
@@ -216,7 +236,7 @@ public class NodeSelectorActivity extends BaseActivity {
     }
 
     private void showMoreOptions() {
-        String[] options = {"自动选择最快节点", "刷新测速", "查看日志"};
+        String[] options = {"自动选择最快节点", "刷新测速", "查看日志", "Infura 备用节点", "Ankr 备用节点", "GetBlock 备用节点", "dRPC 备用节点"};
         new AlertDialog.Builder(this)
             .setTitle(getString(R.string.title_more_info))
             .setItems(options, (dialog, which) -> {
@@ -231,8 +251,108 @@ public class NodeSelectorActivity extends BaseActivity {
                     case 2:
                         startActivity(new android.content.Intent(this, LogViewerActivity.class));
                         break;
+                    case 3:
+                        showInfuraConfigDialog();
+                        break;
+                    case 4:
+                        showAnkrConfigDialog();
+                        break;
+                    case 5:
+                        showGetBlockConfigDialog();
+                        break;
+                    case 6:
+                        showDrpcConfigDialog();
+                        break;
                 }
             })
+            .show();
+    }
+
+    private void showDrpcConfigDialog() {
+        EditText etKey = new EditText(this);
+        etKey.setHint(getString(R.string.hint_drpc_api_key));
+        etKey.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        etKey.setPadding(32, 24, 32, 24);
+        etKey.setTextSize(14);
+        etKey.setText(NodeManager.getDrpcApiKey(this));
+
+        new AlertDialog.Builder(this)
+            .setTitle(getString(R.string.node_drpc_title))
+            .setMessage(getString(R.string.node_drpc_message))
+            .setView(etKey)
+            .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
+                NodeManager.setDrpcApiKey(this, etKey.getText().toString().trim());
+                Toast.makeText(this, getString(R.string.toast_drpc_node_configured), Toast.LENGTH_SHORT).show();
+                Logger.success(this, "节点设置", chain + " - dRPC API Key 已更新：" + (etKey.getText().toString().trim().isEmpty() ? "(已清除)" : "****"));
+                loadNodes();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    private void showInfuraConfigDialog() {
+        EditText etKey = new EditText(this);
+        etKey.setHint(getString(R.string.hint_infura_project_id));
+        etKey.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        etKey.setPadding(32, 24, 32, 24);
+        etKey.setTextSize(14);
+        etKey.setText(NodeManager.getInfuraApiKey(this));
+
+        new AlertDialog.Builder(this)
+            .setTitle(getString(R.string.node_infura_title))
+            .setMessage(getString(R.string.node_infura_message))
+            .setView(etKey)
+            .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
+                NodeManager.setInfuraApiKey(this, etKey.getText().toString().trim());
+                Toast.makeText(this, getString(R.string.toast_infura_node_configured), Toast.LENGTH_SHORT).show();
+                Logger.success(this, "节点设置", chain + " - Infura Project ID 已更新：" + (etKey.getText().toString().trim().isEmpty() ? "(已清除)" : "****"));
+                loadNodes();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    private void showAnkrConfigDialog() {
+        EditText etKey = new EditText(this);
+        etKey.setHint(getString(R.string.hint_ankr_api_key));
+        etKey.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        etKey.setPadding(32, 24, 32, 24);
+        etKey.setTextSize(14);
+        etKey.setText(NodeManager.getAnkrApiKey(this));
+
+        new AlertDialog.Builder(this)
+            .setTitle(getString(R.string.node_ankr_title))
+            .setMessage(getString(R.string.node_ankr_message))
+            .setView(etKey)
+            .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
+                NodeManager.setAnkrApiKey(this, etKey.getText().toString().trim());
+                Toast.makeText(this, getString(R.string.toast_ankr_node_configured), Toast.LENGTH_SHORT).show();
+                Logger.success(this, "节点设置", chain + " - Ankr API Key 已更新：" + (etKey.getText().toString().trim().isEmpty() ? "(已清除)" : "****"));
+                loadNodes();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    private void showGetBlockConfigDialog() {
+        EditText etUrl = new EditText(this);
+        etUrl.setHint(getString(R.string.hint_getblock_endpoint_url));
+        etUrl.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        etUrl.setPadding(32, 24, 32, 24);
+        etUrl.setTextSize(14);
+        etUrl.setText(NodeManager.getGetBlockUrl(this, chain));
+
+        new AlertDialog.Builder(this)
+            .setTitle(getString(R.string.node_getblock_title))
+            .setMessage(getString(R.string.node_getblock_message, Logger.getChainChineseName(chain)))
+            .setView(etUrl)
+            .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
+                NodeManager.setGetBlockUrl(this, chain, etUrl.getText().toString().trim());
+                Toast.makeText(this, getString(R.string.toast_getblock_node_configured), Toast.LENGTH_SHORT).show();
+                Logger.success(this, "节点设置", chain + " - GetBlock 端点已更新：" + (etUrl.getText().toString().trim().isEmpty() ? "(已清除)" : "****"));
+                loadNodes();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
     }
 

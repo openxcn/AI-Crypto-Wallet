@@ -267,7 +267,35 @@
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:background="@drawable/card_background" />
+
+                        <TextView
+                            android:id="@+id/btnHideToken"
+                            android:layout_width="wrap_content"
+                            android:layout_height="30dp"
+                            android:text="@string/text_hide_token"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:background="@drawable/card_background_red"
+                            android:layout_marginStart="8dp"
+                            android:visibility="gone" />
                     </LinearLayout>
+
+                    <!-- 粉尘攻击/凭空收到预警横幅 -->
+                    <TextView
+                        android:id="@+id/tvDustWarning"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/text_dust_warning"
+                        android:textColor="#FF6B6B"
+                        android:textSize="12sp"
+                        android:gravity="start"
+                        android:background="@drawable/card_background_red"
+                        android:padding="10dp"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone" />
 
                     <!-- 分享按钮 -->
                     <TextView

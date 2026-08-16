@@ -301,19 +301,23 @@ public class CoinDetailActivity extends BaseActivity {
     }
 
     private String formatPrice(double p) {
+        // 行情价格以 USDT(美元) 计价，需按用户所选货币做汇率换算
+        double converted = CurrencyManager.convertFromUsd(this, p);
         String symbol = CurrencyManager.getCurrencySymbol(CurrencyManager.getSelectedCurrency(this));
-        if (p >= 1000) return symbol + String.format("%.0f", p);
-        if (p >= 1) return symbol + String.format("%.2f", p);
-        if (p >= 0.01) return symbol + String.format("%.4f", p);
-        return symbol + String.format("%.6f", p);
+        if (converted >= 1000) return symbol + String.format("%.0f", converted);
+        if (converted >= 1) return symbol + String.format("%.2f", converted);
+        if (converted >= 0.01) return symbol + String.format("%.4f", converted);
+        return symbol + String.format("%.6f", converted);
     }
 
     private String formatVolume(double v) {
+        // 成交量以 USDT(美元) 计价，需按用户所选货币做汇率换算
+        double converted = CurrencyManager.convertFromUsd(this, v);
         String symbol = CurrencyManager.getCurrencySymbol(CurrencyManager.getSelectedCurrency(this));
-        if (v >= 1_000_000_000) return symbol + String.format("%.2f", v / 1_000_000_000) + "B";
-        if (v >= 1_000_000) return symbol + String.format("%.2f", v / 1_000_000) + "M";
-        if (v >= 1_000) return symbol + String.format("%.2f", v / 1_000) + "K";
-        return symbol + String.format("%.0f", v);
+        if (converted >= 1_000_000_000) return symbol + String.format("%.2f", converted / 1_000_000_000) + "B";
+        if (converted >= 1_000_000) return symbol + String.format("%.2f", converted / 1_000_000) + "M";
+        if (converted >= 1_000) return symbol + String.format("%.2f", converted / 1_000) + "K";
+        return symbol + String.format("%.0f", converted);
     }
 
     @Override

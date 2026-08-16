@@ -664,8 +664,8 @@ public class ChainAPI {
     }
 
     private static double getEVMBalanceFallback(Context ctx, String chain, String address) {
-        // Try other preset nodes
-        NodeManager.NodeEntry[] presets = NodeManager.getPresets(chain);
+        // 候选节点 = 当前节点 + 预设节点 + Infura 备用节点（多端点回退，参考 MetaMask）
+        NodeManager.NodeEntry[] presets = NodeManager.getCandidateNodes(ctx, chain);
         String currentRpc = getRpcUrl(ctx, chain);
 
         for (NodeManager.NodeEntry entry : presets) {
@@ -814,41 +814,43 @@ public class ChainAPI {
 
         String data = "0x70a08231000000000000000000000000" + walletAddress.toLowerCase().replace("0x", "");
 
-        Request request;
-        try {
-            JSONObject body = new JSONObject();
-            body.put("jsonrpc", "2.0");
-            body.put("method", "eth_call");
-            JSONArray params = new JSONArray();
-            JSONObject callObj = new JSONObject();
-            callObj.put("to", tokenContract);
-            callObj.put("data", data);
-            params.put(callObj);
-            params.put("latest");
-            body.put("params", params);
-            body.put("id", 1);
+        // 参考 MetaMask 多端点机制：候选节点列表 = 当前节点 + 预设节点 + Infura 备用节点
+        // 请求失败或被限流（Too Many Requests）时按序切换到下一节点重试，
+        // 避免主节点被限流时反复重试同一节点导致余额返回 0。
+        String[] nodes = NodeManager.getCandidateNodeUrls(ctx, chain);
+        if (nodes.length == 0) return 0;
 
-            request = new Request.Builder()
-                .url(rpcUrl)
-                .header("User-Agent", "Mozilla/5.0")
-                .post(RequestBody.create(body.toString(), JSON_TYPE))
-                .build();
-        } catch (Exception e) {
-            Logger.error(ctx, "代币余额", "构建请求失败: " + e.getMessage());
-            return 0;
-        }
-
-        int retryCount = 0;
-        int maxRetries = 2;
-        while (retryCount <= maxRetries) {
+        int attempt = 0;
+        int maxAttempts = Math.min(nodes.length, 4);
+        while (attempt < maxAttempts) {
+            String nodeUrl = nodes[attempt % nodes.length];
             try {
-                Logger.info(ctx, "代币余额", "查询 " + chain + " 代币 " + tokenContract + " 钱包=" + walletAddress + " decimals=" + decimals + (retryCount > 0 ? " (重试" + retryCount + ")" : ""));
+                Logger.info(ctx, "代币余额", "查询 " + chain + " 代币 " + tokenContract + " 钱包=" + walletAddress + " decimals=" + decimals + " 节点[" + (attempt + 1) + "/" + maxAttempts + "]=" + nodeUrl);
+
+                JSONObject body = new JSONObject();
+                body.put("jsonrpc", "2.0");
+                body.put("method", "eth_call");
+                JSONArray params = new JSONArray();
+                JSONObject callObj = new JSONObject();
+                callObj.put("to", tokenContract);
+                callObj.put("data", data);
+                params.put(callObj);
+                params.put("latest");
+                body.put("params", params);
+                body.put("id", 1);
+
+                Request request = new Request.Builder()
+                    .url(nodeUrl)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .post(RequestBody.create(body.toString(), JSON_TYPE))
+                    .build();
+
                 try (Response response = client.newCall(request).execute()) {
                     String resp = response.body() != null ? response.body().string() : "";
                     Logger.info(ctx, "代币余额", "RPC 响应: " + resp);
                     JSONObject json = new JSONObject(resp);
                     if (json.has("error")) {
-                        Logger.error(ctx, "代币余额", "RPC 返回错误: " + json.optJSONObject("error"));
+                        Logger.error(ctx, "代币余额", "RPC 返回错误: " + json.optJSONObject("error") + "，切换下一节点");
                         throw new Exception("RPC error");
                     }
                     String result = json.getString("result");
@@ -862,14 +864,14 @@ public class ChainAPI {
                     return value;
                 }
             } catch (Exception e) {
-                Logger.error(ctx, "代币余额", "查询代币 " + tokenContract + " 失败(attempt=" + retryCount + "): " + e.getMessage());
-                retryCount++;
-                if (retryCount <= maxRetries) {
-                    try { Thread.sleep(500); } catch (Exception ie) {}
+                Logger.error(ctx, "代币余额", "节点 " + nodeUrl + " 查询代币 " + tokenContract + " 失败(attempt=" + attempt + "): " + e.getMessage());
+                attempt++;
+                if (attempt < maxAttempts) {
+                    try { Thread.sleep(300); } catch (Exception ie) {}
                 }
             }
         }
-        Logger.warning(ctx, "代币余额", "查询代币 " + tokenContract + " 多次重试失败，返回0");
+        Logger.warning(ctx, "代币余额", "所有候选节点查询代币 " + tokenContract + " 失败，返回0");
         return 0;
     }
 
@@ -911,10 +913,10 @@ public class ChainAPI {
     }
 
     private static double getSolBalanceFallback(Context ctx, String address) throws Exception {
-        NodeManager.NodeEntry[] presets = NodeManager.getPresets("SOL");
         String currentRpc = getRpcUrl(ctx, "SOL");
+        NodeManager.NodeEntry[] candidates = NodeManager.getCandidateNodes(ctx, "SOL");
         Exception lastEx = new Exception("无 SOL 备用节点");
-        for (NodeManager.NodeEntry entry : presets) {
+        for (NodeManager.NodeEntry entry : candidates) {
             if (entry.url.equals(currentRpc)) continue;
             try {
                 double bal = getSolBalanceFromUrl(entry.url, address);
@@ -975,13 +977,8 @@ public class ChainAPI {
 
     // === SOL SPL 代币余额（非 EVM，不能用 eth_call，改用 getTokenAccountsByOwner） ===
     private static String[] solTokenEndpoints(Context ctx) {
-        List<String> list = new ArrayList<>();
-        String sel = getRpcUrl(ctx, "SOL");
-        if (sel != null && !sel.isEmpty()) list.add(sel);
-        for (NodeManager.NodeEntry e : NodeManager.getPresets("SOL")) {
-            if (!list.contains(e.url)) list.add(e.url);
-        }
-        return list.toArray(new String[0]);
+        // 候选节点 = 当前节点 + 预设节点 + Infura 备用节点（去重、按优先级排序）
+        return NodeManager.getCandidateNodeUrls(ctx, "SOL");
     }
 
     /** 一次 getTokenAccountsByOwner 拉取钱包全部 SPL 代币，返回 mint->原始余额(lamports) */

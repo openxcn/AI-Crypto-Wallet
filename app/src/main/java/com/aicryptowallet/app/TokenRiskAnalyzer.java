@@ -301,6 +301,8 @@ public class TokenRiskAnalyzer {
         public List<String> riskFactors;
         public List<String> safeFactors;
         public boolean isHighRisk;
+        /** 粉尘攻击 / 凭空收到的垃圾币标记 */
+        public boolean isDustToken;
         public List<String> dangerousFuncs;
         
         // 合约元数据
@@ -1176,6 +1178,29 @@ public class TokenRiskAnalyzer {
         else if (score >= 30) result.stars = 2;
         else result.stars = 1;
         result.isHighRisk = result.stars <= 3;
+
+        // ===== 粉尘攻击 / 凭空收到的垃圾币识别 =====
+        // 特征：非主流/稳定币 + 极高风险（≤2星） + 流动性缺失或极度集中 + 新合约/少持有者
+        if (!result.isStablecoin && result.stars <= 2) {
+            boolean noLiquidity = "未找到任何 DEX 交易对".equals(result.lpInfo)
+                    || "0%".equals(result.lpLockedPercent);
+            boolean ultraConcentrated = false;
+            if (result.top10Percent != null && !result.top10Percent.equals("未知")) {
+                try { ultraConcentrated = Double.parseDouble(result.top10Percent.replace("%", "")) >= 90; }
+                catch (NumberFormatException ignored) {}
+            }
+            boolean veryYoung = result.creationDays >= 0 && result.creationDays < 7;
+            boolean fewHolders = false;
+            if (result.holderCount != null && !result.holderCount.equals("未知")) {
+                try { fewHolders = Integer.parseInt(result.holderCount.replace(",", "")) < 50; }
+                catch (NumberFormatException ignored) {}
+            }
+            if (noLiquidity && (veryYoung || fewHolders || ultraConcentrated)) {
+                result.isDustToken = true;
+                result.riskFactors.add("【粉尘攻击】该代币疑似凭空空投到钱包的垃圾币，非你主动获取，切勿转账/授权");
+                Logger.warning(null, "AI风险分析", "识别为粉尘攻击/凭空收到的垃圾币: " + result.contractSymbol);
+            }
+        }
     }
 
     // ========================================================================
@@ -1259,6 +1284,10 @@ public class TokenRiskAnalyzer {
         sb.append("安全评分：").append(result.score).append("/100 分\n");
         sb.append("风险等级：").append(getRiskLevel(result.stars)).append("\n");
         sb.append("星级评定：").append(getStarDisplay(result.stars)).append("\n\n");
+        if (result.isDustToken) {
+            sb.append("🚨【粉尘攻击预警】该代币疑似凭空空投到你钱包的垃圾币，非你主动获取！\n");
+            sb.append("建议：立即点击【隐藏该代币】，切勿转账、授权或交易操作！\n\n");
+        }
         if (result.isHighRisk) sb.append("⚠️ 该代币存在较高风险，AI 建议禁止交易和授权操作！\n");
         else sb.append("✅ 该代币风险较低，可正常使用。\n");
 

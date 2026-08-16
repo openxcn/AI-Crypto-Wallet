@@ -37,6 +37,8 @@ public class TokenDetailActivity extends BaseActivity {
     private String tokenSymbol, tokenName, tokenBalance, tokenValue, contractAddress, chain;
     private int tokenDecimals = 18; // 默认18，通过RPC查询合约获取真实值
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // AI 分析独立线程池：避免与交易加载共用单线程导致分析排队卡死
+    private final ExecutorService aiExecutor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
     // AI 分析看门狗：网络分析超时后恢复按钮，避免按钮卡在禁用态"点不动"
     private Runnable aiBtnWatchdog;
@@ -55,6 +57,8 @@ public class TokenDetailActivity extends BaseActivity {
     private View layoutRiskActions;
     private TextView tvRiskStars;
     private TextView tvRiskLevel;
+    private TextView tvDustWarning;
+    private TextView btnHideToken;
     private TokenRiskAnalyzer.RiskResult riskResult;
 
     @Override
@@ -82,6 +86,9 @@ public class TokenDetailActivity extends BaseActivity {
         if (aiBtnWatchdog != null) handler.removeCallbacks(aiBtnWatchdog);
         if (!executor.isShutdown()) {
             executor.shutdownNow();
+        }
+        if (!aiExecutor.isShutdown()) {
+            aiExecutor.shutdownNow();
         }
         handler.removeCallbacksAndMessages(null);
     }
@@ -156,6 +163,13 @@ public class TokenDetailActivity extends BaseActivity {
     /** 通过 RPC 查询代币合约的 name()/symbol()/decimals()，获取链上真实规格 */
     private void queryTokenSpecsFromChain() {
         executor.execute(() -> {
+            // 0) 优先从本地缓存加载代币 name/symbol，避免每次都走链上 RPC（慢/易失败）
+            String[] cached = findCachedSpec();
+            if (cached != null) {
+                Logger.info(this, "TokenDetail", "使用本地缓存代币规格: symbol=" + cached[0] + " name=" + cached[1]);
+                handler.post(() -> applySpecsToUi(cached[0], cached[1], tokenDecimals));
+                return;
+            }
             try {
                 String[] specs = ChainAPI.getTokenInfo(this, chain, contractAddress);
                 if (specs != null && specs.length >= 3) {
@@ -174,27 +188,7 @@ public class TokenDetailActivity extends BaseActivity {
                     Logger.info(this, "TokenDetail", "RPC查询合约规格: symbol=" + chainSymbol
                         + " name=" + chainName + " decimals=" + chainDecimals);
 
-                    handler.post(() -> {
-                        // 用 RPC 查询到的权威 symbol 和 name 更新 UI
-                        if (chainSymbol != null && !chainSymbol.isEmpty()) {
-                            tokenSymbol = chainSymbol;
-                            ((TextView) findViewById(R.id.tvTokenTitle)).setText(chainSymbol);
-                            ((TextView) findViewById(R.id.tvTokenSymbol)).setText(chainSymbol);
-                        }
-                        if (chainName != null && !chainName.isEmpty()) {
-                            tokenName = chainName;
-                            ((TextView) findViewById(R.id.tvTokenFullName)).setText(chainName);
-                        }
-                        // 显示 decimals 信息
-                        View layoutSpecs = findViewById(R.id.layoutTokenSpecs);
-                        if (layoutSpecs != null) {
-                            layoutSpecs.setVisibility(View.VISIBLE);
-                            TextView tvDecimals = findViewById(R.id.tvTokenDecimals);
-                            if (tvDecimals != null) {
-                                tvDecimals.setText(getString(R.string.text_accuracy_decimal_place, chainDecimals));
-                            }
-                        }
-                    });
+                    handler.post(() -> applySpecsToUi(chainSymbol, chainName, chainDecimals));
                 } else {
                     handler.post(() -> showSpecsFallback());
                 }
@@ -207,6 +201,53 @@ public class TokenDetailActivity extends BaseActivity {
 
     private void showSpecsFallback() {
         Logger.warning(this, "TokenDetail", "RPC查询合约规格失败，使用传入的 symbol/name");
+    }
+
+    /** 从本地缓存查找当前代币的 symbol/name；找不到返回 null */
+    private String[] findCachedSpec() {
+        try {
+            if (contractAddress == null || contractAddress.isEmpty()) return null;
+            DataCache cache = new DataCache(this);
+            String addr = WalletManager.getWalletAddress(this);
+            cache.setCurrentWallet(addr);
+            if (!cache.hasValidCache(addr)) return null;
+            for (String[] token : cache.getCachedTokens()) {
+                if (token.length < 2) continue;
+                String c = token.length > 4 ? token[4] : "";
+                if (!c.isEmpty() && c.equalsIgnoreCase(contractAddress)) {
+                    String pathSymbol = token[0] != null ? token[0] : "";
+                    String pathName = token[1] != null ? token[1] : "";
+                    if (!pathSymbol.isEmpty() || !pathName.isEmpty()) {
+                        return new String[]{pathSymbol, pathName};
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Logger.warning(this, "TokenDetail", "读取本地缓存代币规格失败: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /** 将代币规格（symbol/name/decimals）应用到 UI */
+    private void applySpecsToUi(String chainSymbol, String chainName, final int chainDecimals) {
+        if (chainSymbol != null && !chainSymbol.isEmpty()) {
+            tokenSymbol = chainSymbol;
+            ((TextView) findViewById(R.id.tvTokenTitle)).setText(chainSymbol);
+            ((TextView) findViewById(R.id.tvTokenSymbol)).setText(chainSymbol);
+        }
+        if (chainName != null && !chainName.isEmpty()) {
+            tokenName = chainName;
+            ((TextView) findViewById(R.id.tvTokenFullName)).setText(chainName);
+        }
+        // 显示 decimals 信息
+        View layoutSpecs = findViewById(R.id.layoutTokenSpecs);
+        if (layoutSpecs != null) {
+            layoutSpecs.setVisibility(View.VISIBLE);
+            TextView tvDecimals = findViewById(R.id.tvTokenDecimals);
+            if (tvDecimals != null) {
+                tvDecimals.setText(getString(R.string.text_accuracy_decimal_place, chainDecimals));
+            }
+        }
     }
 
     // ===== 风险分析 =====
@@ -224,6 +265,8 @@ public class TokenDetailActivity extends BaseActivity {
         layoutRiskActions = findViewById(R.id.layoutRiskActions);
         tvRiskStars = findViewById(R.id.tvRiskStars);
         tvRiskLevel = findViewById(R.id.tvRiskLevel);
+        tvDustWarning = findViewById(R.id.tvDustWarning);
+        btnHideToken = findViewById(R.id.btnHideToken);
 
         // 显示风险分析区域
         if (layoutRiskAnalysis != null) {
@@ -251,6 +294,17 @@ public class TokenDetailActivity extends BaseActivity {
 
         // 强制白名单按钮
         findViewById(R.id.btnWhitelistToken).setOnClickListener(v -> { Logger.action(this, "UI操作", "白名单代币", null); whitelistToken(); });
+
+        // 一键隐藏（粉尘攻击/凭空收到的垃圾币）
+        if (btnHideToken != null) {
+            btnHideToken.setOnClickListener(v -> {
+                Logger.action(this, "UI操作", "隐藏代币", tokenSymbol + " (" + chain + ")");
+                HomeActivity.hideTokenStatic(this, chain, contractAddress);
+                if (btnHideToken != null) btnHideToken.setVisibility(View.GONE);
+                Toast.makeText(this, getString(R.string.toast_hidden_from_detail, tokenSymbol), Toast.LENGTH_SHORT).show();
+                Logger.actionResult(this, "UI操作", "隐藏代币", "已隐藏 " + tokenSymbol + "，返回资产列表后将不再显示");
+            });
+        }
 
         // 分享报告按钮
         TextView btnShare = findViewById(R.id.btnShareReport);
@@ -321,7 +375,7 @@ public class TokenDetailActivity extends BaseActivity {
         };
         handler.postDelayed(aiBtnWatchdog, 180000);
 
-        executor.execute(() -> {
+        aiExecutor.execute(() -> {
             try {
                 Logger.info(TokenDetailActivity.this, "AI风险分析", "开始 TokenRiskAnalyzer.analyze...");
                 TokenRiskAnalyzer.RiskResult result = TokenRiskAnalyzer.analyze(
@@ -422,6 +476,17 @@ public class TokenDetailActivity extends BaseActivity {
         if (isWhitelisted) {
             btnWhitelist.setText(getString(R.string.text_whitelisted));
             btnWhitelist.setTextColor(0xFF34C759);
+        }
+
+        // 粉尘攻击/凭空收到的垃圾币：显示预警横幅 + 一键隐藏按钮
+        boolean isDust = riskResult != null && riskResult.isDustToken;
+        if (tvDustWarning != null) {
+            tvDustWarning.setVisibility(isDust ? View.VISIBLE : View.GONE);
+        }
+        if (btnHideToken != null) {
+            boolean alreadyHidden = HomeActivity.getHiddenTokensStatic(this, chain)
+                    .contains(contractAddress.toLowerCase());
+            btnHideToken.setVisibility((isDust && !alreadyHidden) ? View.VISIBLE : View.GONE);
         }
     }
 
