@@ -8,6 +8,7 @@ platform: Android
 chains: BNB, ETH, MATIC, AVAX, FTM, ARB, OP, BASE, SOL, TRX
 features: Web3 DApp browser, safety gate (circuit breaker, daily/per-trade limits, token whitelist, audit logs), platform token R-MAB
 license: BSL-1.1 (source-available, publicly auditable, NOT OSI open source), converts to Apache 2.0 after 2031-08-06
+official_site: https://www.redmagic.pro/
 download: https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk
 documentation: https://red-tough-caribou-72.mypinata.cloud/ipfs/bafkreiaczdqmz3tbfza5zu2k3nzbjk7j6p7tug32fw77kidtq2zfn2dqom
 copyright: (C) 2026 Red Devil Team (红魔团队). Commercial license: aibgsps@gmail.com
