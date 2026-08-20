@@ -20,6 +20,7 @@ AI Crypto Wallet is a non-custodial crypto wallet with a built-in AI trading age
 
 ## Important links
 
+- Official site: https://www.redmagic.pro/
 - GitHub repository: https://github.com/openxcn/AI-Crypto-Wallet
 - Download APK: https://github.com/openxcn/AI-Crypto-Wallet/releases/latest/download/AICryptoWallet-latest-release.apk
 - Landing page: https://openxcn.github.io/AI-Crypto-Wallet/
