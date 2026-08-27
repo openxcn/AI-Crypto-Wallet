@@ -49,3 +49,20 @@ logo_processed.png
 
 # 安全审计报告(含真实 keystore 密码, 禁止上传)
 security_best_practices_report.md
+
+# 内部资料/备份/截图/凭据-禁止上传到公开仓库
+宣传资料_内部使用严禁外传/
+宣传资料_内部使用严禁外传_备份_20260820/
+官网文档中心/
+官网文档中心_备份_20260820/
+文章库_备份_域名更新前/
+/*.png
+/*.jpg
+_read_cred.ps1
+_read_cred2.ps1
+temp_testing/
+prompts-repo/
+contracts/
+ai-wallet-site/
+aicw-user-guide/
+.trae-html-share-packages/

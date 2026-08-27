@@ -876,6 +876,8 @@ Current auto-trading status: %1$s</string>
     <string name="freq_normal">Normal</string>
     <string name="freq_talky">Chatty</string>
     <string name="freq_unlimited">Unlimited</string>
+    <string name="str_analysis_interval">AI Analysis Interval</string>
+    <string name="str_analysis_interval_min"> min</string>
     <string name="str_personality_preset">AI tone</string>
     <string name="preset_none">Default</string>
     <string name="preset_steady">Steady and Rational</string>
@@ -883,6 +885,7 @@ Current auto-trading status: %1$s</string>
     <string name="preset_sarcasm">Sarcastic</string>
     <string name="preset_gentle">Gentle</string>
     <string name="preset_firm">Decisive</string>
+    <string name="str_auto_trade_switch">Auto Trading</string>
     <string name="str_enable_auto_trade">Enable Auto Trading</string>
     <string name="str_disable_auto_trade">Disable Auto Trading</string>
     <string name="msg_cross_chain_risk_normal">This transaction will be completed via [%1$s] for %2$s, estimated amount $%3$s. Cross-chain swaps involve bridge risk, slippage and arrival delays. Please confirm you understand the risks.</string>
@@ -921,6 +924,7 @@ To continue, please whitelist this token on the token details page first.
 Contract address: %2$s
 
 After blocking, transfers and approvals for this token will be intercepted.</string>
+    <string name="toast_rmab_exempt_whitelist">R-MAB is a platform token, permanently exempt, no whitelist needed</string>
     <string name="msg_token_whitelist_confirm">You are adding the high-risk token %1$s to the whitelist.
 
 This means the token will bypass AI security checks and can be traded and approved normally.
@@ -935,4 +939,10 @@ Do you want to continue?</string>
 %3$s
 Tip: Pull down to refresh on the assets page to see new tokens.</string>
     <string name="text_no_tokens_with_balance">(No tokens with balance found)</string>
+<string name="title_backup_not_complete">Backup Not Finished</string>
+    <string name="msg_backup_notify_body">Your recovery phrase backup is not finished yet. For asset safety, we recommend completing it first. You can also view it again later via Wallet Management — Export Phrase.</string>
+    <string name="btn_continue_backup">Continue Backup</string>
+    <string name="btn_exit_anyway">Exit Anyway</string>
+    <string name="msg_confirm_delete_current_wallet">Delete the current wallet? Once deleted, this wallet is recovery phrase and assets cannot be recovered.</string>
+    <string name="toast_wallet_deleted">Current wallet deleted</string>
 </resources>

@@ -579,8 +579,6 @@
     <string name="title_edit_custom_chain">编辑自定义链</string>
     <string name="toast_custom_chain_updated">自定义链 %1$s 已更新</string>
     <string name="toast_builtin_chain_not_editable">内置链不可编辑，仅可编辑自定义测试链</string>
-    <string name="btn_add_bsc_testnet">标准币安测试网</string>
-    <string name="toast_bsc_testnet_exists">标准币安测试网已存在，已为您切换</string>
     <!-- NFT -->
     <string name="str_add_nft">添加 NFT</string>
     <string name="str_contract_address">合约地址</string>
@@ -911,6 +909,8 @@
     <string name="freq_normal">正常互动</string>
     <string name="freq_talky">话痨模式</string>
     <string name="freq_unlimited">不限</string>
+    <string name="str_analysis_interval">AI 分析时间间隔</string>
+    <string name="str_analysis_interval_min"> 分钟</string>
     <string name="str_personality_preset">AI 语气</string>
     <string name="preset_none">默认</string>
     <string name="preset_steady">沉稳理性</string>
@@ -918,6 +918,7 @@
     <string name="preset_sarcasm">毒舌吐槽</string>
     <string name="preset_gentle">温柔陪伴</string>
     <string name="preset_firm">激进果断</string>
+    <string name="str_auto_trade_switch">自动交易</string>
     <string name="str_enable_auto_trade">启用自动交易</string>
     <string name="str_disable_auto_trade">关闭自动交易</string>
     <string name="msg_cross_chain_risk_normal">本次将通过【%1$s】完成 %2$s，预估金额 $%3$s。跨链兑换存在桥接风险、滑点和到账延迟，请确认已了解风险。</string>
@@ -956,6 +957,7 @@
 合约地址：%2$s
 
 禁止后，该代币的转账、授权等操作将被拦截。</string>
+    <string name="toast_rmab_exempt_whitelist">R-MAB 为平台币，永久豁免，无需加入白名单</string>
     <string name="msg_token_whitelist_confirm">您正在将高风险代币 %1$s 加入白名单。
 
 这意味着该代币将绕过 AI 安全检测，可以正常进行交易和授权。
@@ -991,4 +993,10 @@
     <string name="text_backed_up">✓ 已备份</string>
     <string name="text_not_backed_up">⚠ 未备份</string>
     <string name="text_no_backup_needed">无需备份</string>
+<string name="title_backup_not_complete">备份尚未完成</string>
+    <string name="msg_backup_notify_body">助记词备份尚未完成。为保障资产安全，建议先完成备份；你也可以稍后在「钱包管理 → 导出助记词」中再次查看助记词。</string>
+    <string name="btn_continue_backup">继续备份</string>
+    <string name="btn_exit_anyway">仍要退出</string>
+    <string name="msg_confirm_delete_current_wallet">确认删除当前钱包？删除后，该钱包的助记词与资产将无法恢复。</string>
+    <string name="toast_wallet_deleted">当前钱包已删除</string>
 </resources>

@@ -422,8 +422,9 @@ public class MarketShareGenerator {
     }
 
     private static String getDownloadUrl(Context ctx) {
-        SharedPreferences prefs = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
-        return prefs.getString("download_url", DEFAULT_DOWNLOAD_URL);
+        // 统一使用 GitHub 动态 latest 链接，强制忽略历史 SharedPreferences 中残留的固定版本死链，
+        // 确保每次生成的下载二维码都指向仓库最新 release 包。
+        return DEFAULT_DOWNLOAD_URL;
     }
 
     private static Bitmap generateQrCode(Context ctx, String content) {

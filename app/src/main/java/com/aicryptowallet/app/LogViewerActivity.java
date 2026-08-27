@@ -138,6 +138,9 @@ public class LogViewerActivity extends BaseActivity implements View.OnClickListe
         }).start();
     }
 
+    // 分批渲染每批条数，避免一次性创建过多 View 导致老手机卡死/闪退
+    private static final int BATCH_SIZE = 200;
+
     private void displayLogs(List<String> logs) {
         logContainer.removeAllViews();
 
@@ -155,9 +158,24 @@ public class LogViewerActivity extends BaseActivity implements View.OnClickListe
         if (logs.isEmpty()) {
             addEmptyMessage("暂无日志记录");
         } else {
-            for (String log : logs) {
-                addLogItem(log);
+            // 分批渲染，每批渲染完成后让出主线程，防止一次渲染过多 View 卡死闪退
+            renderLogBatch(logs, 0);
+        }
+    }
+
+    private void renderLogBatch(final List<String> logs, final int start) {
+        if (isFinishing() || isDestroyed()) return;
+        int end = Math.min(start + BATCH_SIZE, logs.size());
+        for (int i = start; i < end; i++) {
+            try {
+                addLogItem(logs.get(i));
+            } catch (Exception ignored) {
+                // 单条日志渲染失败不影响整个页面
             }
+        }
+        if (end < logs.size()) {
+            final int next = end;
+            mainHandler.post(() -> renderLogBatch(logs, next));
         }
     }
 
@@ -170,9 +188,23 @@ public class LogViewerActivity extends BaseActivity implements View.OnClickListe
         if (crashes.isEmpty()) {
             addEmptyMessage("暂无闪退记录");
         } else {
-            for (String crash : crashes) {
-                addCrashItem(crash);
+            renderCrashBatch(crashes, 0);
+        }
+    }
+
+    private void renderCrashBatch(final List<String> crashes, final int start) {
+        if (isFinishing() || isDestroyed()) return;
+        int end = Math.min(start + BATCH_SIZE, crashes.size());
+        for (int i = start; i < end; i++) {
+            try {
+                addCrashItem(crashes.get(i));
+            } catch (Exception ignored) {
+                // 单条闪退记录渲染失败不影响整个页面
             }
+        }
+        if (end < crashes.size()) {
+            final int next = end;
+            mainHandler.post(() -> renderCrashBatch(crashes, next));
         }
     }
 

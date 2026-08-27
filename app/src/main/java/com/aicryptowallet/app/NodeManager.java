@@ -164,6 +164,11 @@ public class NodeManager {
             new NodeEntry("Tezos IE", "https://mainnet.api.tez.ie"),
             new NodeEntry("TZStats", "https://api.tzstats.com")
         });
+        NODE_PRESETS.put("FIL", new NodeEntry[]{
+            new NodeEntry("Ankr FIL", "https://rpc.ankr.com/filecoin"),
+            new NodeEntry("Glif API", "https://api.node.glif.io/rpc/v1"),
+            new NodeEntry("PublicNode FIL", "https://filecoin.publicnode.com")
+        });
     }
 
     /**
@@ -232,7 +237,8 @@ public class NodeManager {
 
     // 内置默认 Infura Project ID（红魔团队注册，2026-08-16 获取，免费 Core 方案）。
     // 用户可在「节点设置 -> 更多 -> Infura 备用节点」中覆盖或清除，覆盖后以用户配置为准。
-    private static final String DEFAULT_INFURA_API_KEY = "dea361324a3f4b2c947fd0c2cfb71e68";
+    private static final String DEFAULT_INFURA_API_KEY =
+        assemble("dea361324a3f4b", "2c947fd0c2cfb", "71e68");
 
     // chain -> Infura 官方网络名（仅 Infura 支持、钱包也支持的链，含 EVM 与 Solana）
     // Infura 不提供钱包其余链（CORE/FTM/GLMR/KAVA/ONE 及 TRX/SUI/APT/ADA/NEAR/ATOM/DOT/ALGO/ICP/XTZ）的端点
@@ -245,6 +251,17 @@ public class NodeManager {
         INFURA_NETWORKS.put("AVAX", "avalanche-mainnet");
         INFURA_NETWORKS.put("CELO", "celo-mainnet");
         INFURA_NETWORKS.put("SOL", "solana-mainnet");
+    }
+
+    /**
+     * 运行时组装内置 RPC 密钥（拆段拼接），避免完整密钥以单一字符串常量暴露在 dex/APK 字符串表中，
+     * 提高反编译时直接提取的难度。纯客户端、零服务器成本、不影响用户体验；
+     * 仅用于内置默认值，用户在「节点设置」里配置/覆盖的 Key 始终优先于内置默认。
+     */
+    private static String assemble(String... parts) {
+        StringBuilder sb = new StringBuilder(parts.length * 8);
+        for (String p : parts) sb.append(p);
+        return sb.toString();
     }
 
     /**
@@ -288,7 +305,8 @@ public class NodeManager {
 
     // 内置默认 Ankr API Key（红魔团队注册，2026-08-16 获取，免费 Freemium 档）。
     // 用户可在「节点设置 -> 更多 -> Ankr 备用节点」中覆盖或清除，覆盖后以用户配置为准。
-    private static final String DEFAULT_ANKR_API_KEY = "4bb3223135fca0afaadcd5498987066125edd425be62fb51dcb64a1db353265f";
+    private static final String DEFAULT_ANKR_API_KEY =
+        assemble("4bb3223135fca0afaadcd5498987", "066125edd425be62fb51dcb64a1db353265f");
 
     // chain -> Ankr 网络 slug（免费档可用、钱包也支持的链）
     // SUI 与钱包的 JSON-RPC 协议一致可用；DOT 余额走 sidecar REST 不经节点 URL；APT 当前 Ankr 无节点
@@ -349,8 +367,14 @@ public class NodeManager {
     // chain -> GetBlock 端点 URL（内置默认，红魔团队注册）
     private static final Map<String, String> GETBLOCK_ENDPOINTS = new HashMap<>();
     static {
-        GETBLOCK_ENDPOINTS.put("ETH", "https://shared.ap-southeast-1.getblock.io/fef6ba4b5c4c48a599e19bc540ad1185");
-        GETBLOCK_ENDPOINTS.put("BNB", "https://shared.us-east-1.getblock.io/6721e367f4734f2aa5e4c001f5f074d7");
+        GETBLOCK_ENDPOINTS.put(
+            "ETH",
+            "https://shared.ap-southeast-1.getblock.io/"
+                + assemble("fef6ba4b5c4c48a5", "99e19bc540ad1185"));
+        GETBLOCK_ENDPOINTS.put(
+            "BNB",
+            "https://shared.us-east-1.getblock.io/"
+                + assemble("6721e367f4734f2a", "a5e4c001f5f074d7"));
     }
 
     /**
@@ -400,7 +424,8 @@ public class NodeManager {
     private static final String KEY_DRPC_API_KEY = "drpc_api_key";
 
     // 内置默认 dRPC API Key（红魔团队注册，2026-08-16 获取，免费 NodeCloud 档）。
-    private static final String DEFAULT_DRPC_API_KEY = "Am1PllmpG0QEn0nUpmv_faV8KWWhmQYR8YtTRoYgFhqK";
+    private static final String DEFAULT_DRPC_API_KEY =
+        assemble("Am1PllmpG0QEn0nUpm", "v_faV8KWWhmQYR8YtT", "RoYgFhqK");
 
     // chain -> dRPC 网络 slug（实测可用、与钱包查询协议一致的链）
     // BNB 免费档偶发 429 限流（slug 有效），作为最后备选节点仍可兜底。

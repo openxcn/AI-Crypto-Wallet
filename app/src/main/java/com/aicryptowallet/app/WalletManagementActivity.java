@@ -37,21 +37,56 @@ public class WalletManagementActivity extends BaseActivity {
         // 导出助记词
         findViewById(R.id.btnExportMnemonic).setOnClickListener(v -> showMnemonicExportDialog());
 
-        // 删除钱包
-        findViewById(R.id.btnDeleteWallet).setOnClickListener(v -> {
-            new AlertDialog.Builder(this, R.style.AlertDialogCustom)
-                .setTitle(getString(R.string.title_delete_wallet))
-                .setMessage(getString(R.string.msg_are_you_sure_you_2))
-                .setPositiveButton(getString(R.string.text_delete), (dialog, which) -> {
-                    WalletManager.clearWallet(WalletManagementActivity.this);
-                    Intent intent = new Intent(WalletManagementActivity.this, MainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-                })
-                .setNegativeButton(getString(R.string.btn_s_decline), null)
-                .show();
-        });
+        // 删除钱包：须输入密码验证，仅删除当前钱包（不再一次性清空全部）
+        findViewById(R.id.btnDeleteWallet).setOnClickListener(v -> showDeleteConfirm());
+    }
+
+    private void showDeleteConfirm() {
+        // 第一步：校验密码才能删除当前钱包
+        final EditText etPassword = new EditText(this);
+        etPassword.setHint(getString(R.string.hint_please_enter_your_wallet));
+        etPassword.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+            android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_security_verification))
+            .setMessage(getString(R.string.msg_password_verification_is_required))
+            .setView(etPassword)
+            .setPositiveButton(getString(R.string.btn_verify), (dialog, which) -> {
+                String inputPwd = etPassword.getText().toString().trim();
+                if (WalletManager.verifyPassword(this, inputPwd)) {
+                    confirmDeleteActiveWallet();
+                } else {
+                    Toast.makeText(this, getString(R.string.toast_wrong_password), Toast.LENGTH_SHORT).show();
+                    Logger.warning(this, "钱包", "删除钱包密码验证失败");
+                }
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
+    }
+
+    private void confirmDeleteActiveWallet() {
+        String walletId = WalletManager.getActiveWalletId(this);
+        String name = WalletManager.getWalletName(this);
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_delete_wallet))
+            .setMessage(getString(R.string.msg_confirm_delete_current_wallet))
+            .setPositiveButton(getString(R.string.text_delete), (dialog, which) -> {
+                if (walletId != null && !walletId.isEmpty()) {
+                    WalletManager.removeWallet(WalletManagementActivity.this, walletId);
+                } else {
+                    WalletManager.removeWalletByAddress(WalletManagementActivity.this,
+                        WalletManager.getWalletAddress(this));
+                }
+                Toast.makeText(this, getString(R.string.toast_wallet_deleted), Toast.LENGTH_SHORT).show();
+                Logger.info(this, "钱包", "已删除钱包：" + (name != null ? name : ""));
+                Intent intent = new Intent(WalletManagementActivity.this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            })
+            .setNegativeButton(getString(R.string.btn_s_decline), null)
+            .show();
     }
 
     private void showMnemonicExportDialog() {

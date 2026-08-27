@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 
 public class BackupMnemonicActivity extends BaseActivity {
 
@@ -39,10 +40,7 @@ public class BackupMnemonicActivity extends BaseActivity {
             return;
         }
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> {
-            // 仅返回上一页，不删除钱包（钱包已保存，可随时在钱包管理中重新查看助记词）
-            finish();
-        });
+        findViewById(R.id.btnBack).setOnClickListener(v -> showBackupIncompleteDialog());
 
         findViewById(R.id.btnCopyMnemonic).setOnClickListener(v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -77,6 +75,21 @@ public class BackupMnemonicActivity extends BaseActivity {
             startActivity(intent);
             finish();
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        showBackupIncompleteDialog();
+    }
+
+    private void showBackupIncompleteDialog() {
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_backup_not_complete))
+            .setMessage(getString(R.string.msg_backup_notify_body))
+            .setPositiveButton(getString(R.string.btn_exit_anyway), (d, w) -> finish())
+            .setNegativeButton(getString(R.string.btn_continue_backup), null)
+            .setCancelable(false)
+            .show();
     }
 
     private void renderMnemonicGrid() {

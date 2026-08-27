@@ -51,6 +51,14 @@ public class CryptoWalletApplication extends Application {
 
         // 版本升级时迁移节点配置
         migrateNodeConfig();
+
+        // 远程默认提示词库自动更新：启动时立即检查一次，此后每 12 小时自动检查。
+        // 有更新则替换生效并持久化，即使用户不升级 App 也能实时获得最新安全限制。
+        RemotePromptUpdater.checkUpdate(this);
+        RemotePromptUpdater.schedulePeriodicUpdate(this, 12L * 60L * 60L * 1000L);
+
+        // 应用自更新检测：启动时异步检查 GitHub 最新版本，有更新则后台通知提醒。
+        UpdateChecker.checkOnLaunch(this);
     }
 
     /**

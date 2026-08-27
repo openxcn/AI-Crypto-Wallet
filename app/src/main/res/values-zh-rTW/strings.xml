@@ -880,6 +880,8 @@
     <string name="freq_normal">正常互動</string>
     <string name="freq_talky">話嘮模式</string>
     <string name="freq_unlimited">不限</string>
+    <string name="str_analysis_interval">AI 分析時間間隔</string>
+    <string name="str_analysis_interval_min"> 分鐘</string>
     <string name="str_personality_preset">AI 語氣</string>
     <string name="preset_none">默認</string>
     <string name="preset_steady">沉穩理性</string>
@@ -887,6 +889,7 @@
     <string name="preset_sarcasm">毒舌吐槽</string>
     <string name="preset_gentle">溫柔陪伴</string>
     <string name="preset_firm">激進果斷</string>
+    <string name="str_auto_trade_switch">自動交易</string>
     <string name="str_enable_auto_trade">啟用自動交易</string>
     <string name="str_disable_auto_trade">關閉自動交易</string>
     <string name="msg_cross_chain_risk_normal">本次將通過【%1$s】完成 %2$s，預估金額 $%3$s。跨鏈兌換存在橋接風險、滑點和到帳延遲，請確認已了解風險。</string>
@@ -925,6 +928,7 @@
 合約地址：%2$s
 
 禁止後，該代幣的轉帳、授權等操作將被攔截。</string>
+    <string name="toast_rmab_exempt_whitelist">R-MAB 為平台幣，永久豁免，無需加入白名單</string>
     <string name="msg_token_whitelist_confirm">您正在將高風險代幣 %1$s 加入白名單。
 
 這意味著該代幣將繞過 AI 安全檢測，可以正常進行交易和授權。
@@ -960,4 +964,10 @@
     <string name="text_backed_up">✓ 已備份</string>
     <string name="text_not_backed_up">⚠ 未備份</string>
     <string name="text_no_backup_needed">無需備份</string>
+<string name="title_backup_not_complete">備份尚未完成</string>
+    <string name="msg_backup_notify_body">助記詞備份尚未完成。為保障資產安全，建議先完成備份；您也可以稍後在「錢包管理 → 匯出助記詞」中再次查看助記詞。</string>
+    <string name="btn_continue_backup">繼續備份</string>
+    <string name="btn_exit_anyway">仍要離開</string>
+    <string name="msg_confirm_delete_current_wallet">確認刪除目前錢包？刪除後，該錢包的助記詞與資產將無法復原。</string>
+    <string name="toast_wallet_deleted">目前錢包已刪除</string>
 </resources>

@@ -128,6 +128,11 @@ public class RiskManager {
      * 用户强制将高风险代币加入白名单（记录风险操作）
      */
     public static void addToWhitelist(Context ctx, String chain, String contractAddress, String symbol) {
+        // R-MAB 平台币永久豁免：无需加入白名单，也不记录为风险操作
+        if (TokenRiskAnalyzer.RMAB_CONTRACT.equalsIgnoreCase(contractAddress)) {
+            Logger.warning(null, "风险管理", "R-MAB 平台币永久豁免，跳过加入白名单及风险操作记录");
+            return;
+        }
         Set<String> whitelist = getStringSet(ctx, KEY_WHITELIST + chain);
         whitelist.add(contractAddress.toLowerCase());
         saveStringSet(ctx, KEY_WHITELIST + chain, whitelist);

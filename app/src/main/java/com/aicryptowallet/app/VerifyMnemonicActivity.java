@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +53,7 @@ public class VerifyMnemonicActivity extends BaseActivity {
         selectedWords = new String[count];
         candidateUsed = new boolean[count];
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+        findViewById(R.id.btnBack).setOnClickListener(v -> showBackupIncompleteDialog());
 
         inputGrid = findViewById(R.id.inputGrid);
         candidateGrid = findViewById(R.id.candidateGrid);
@@ -210,6 +211,21 @@ public class VerifyMnemonicActivity extends BaseActivity {
             }
             candidateGrid.addView(row);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        showBackupIncompleteDialog();
+    }
+
+    private void showBackupIncompleteDialog() {
+        new AlertDialog.Builder(this, R.style.AlertDialogCustom)
+            .setTitle(getString(R.string.title_backup_not_complete))
+            .setMessage(getString(R.string.msg_backup_notify_body))
+            .setPositiveButton(getString(R.string.btn_exit_anyway), (d, w) -> finish())
+            .setNegativeButton(getString(R.string.btn_continue_backup), null)
+            .setCancelable(false)
+            .show();
     }
 
     private void doVerify() {

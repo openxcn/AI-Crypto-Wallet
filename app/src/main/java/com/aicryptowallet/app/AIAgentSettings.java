@@ -59,6 +59,10 @@ public class AIAgentSettings {
     public static int getChatFrequency(Context c) { return sp(c).getInt("chat_frequency", FREQ_NORMAL); }
     public static void setChatFrequency(Context c, int v) { sp(c).edit().putInt("chat_frequency", v).apply(); }
 
+    /** AI 定时市场分析的间隔（分钟）。默认 5 分钟一次。 */
+    public static int getAnalysisIntervalMinutes(Context c) { return sp(c).getInt("analysis_interval_minutes", 5); }
+    public static void setAnalysisIntervalMinutes(Context c, int v) { sp(c).edit().putInt("analysis_interval_minutes", v).apply(); }
+
     /**
      * 按频率档位计算一天内最多允许的主动闲聊次数；不限档返回 -1（不限制）。
      */

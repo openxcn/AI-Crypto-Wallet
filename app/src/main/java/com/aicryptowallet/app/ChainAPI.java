@@ -151,10 +151,11 @@ public class ChainAPI {
         {"CELO",   "Celo",         "https://forno.celo.org",                "CELO", "18", "true"},
         {"XTZ",    "Tezos",        "https://mainnet.api.tez.ie",            "XTZ",  "6",  "false"},
         {"ONE",    "Harmony",      "https://api.s0.t.hmny.io",              "ONE",  "18", "true"},
+        {"FIL",    "Filecoin",     "https://rpc.ankr.com/filecoin",      "FIL",  "18", "true"},
     };
 
     private static final Set<String> EVM_CHAINS = new HashSet<>(Arrays.asList(
-        "ETH", "BNB", "AVAX", "MATIC", "ARB", "CORE", "FTM", "GLMR", "KAVA", "CELO", "ONE"
+        "ETH", "BNB", "AVAX", "MATIC", "ARB", "CORE", "FTM", "GLMR", "KAVA", "CELO", "ONE", "FIL"
     ));
 
     private static final Map<String, String[]> CHAIN_FALLBACK_RPCS = new HashMap<>();
@@ -204,6 +205,10 @@ public class ChainAPI {
             "https://api.s0.t.hmny.io",
             "https://harmony-rpc.publicnode.com"
         });
+        CHAIN_FALLBACK_RPCS.put("FIL", new String[]{
+            "https://api.node.glif.io/rpc/v1",
+            "https://rpc.ankr.com/filecoin"
+        });
         CHAIN_FALLBACK_RPCS.put("CELO", new String[]{
             "https://celo-rpc.publicnode.com"
         });
@@ -240,6 +245,7 @@ public class ChainAPI {
         COIN_IDS.put("CELO", "celo");
         COIN_IDS.put("XTZ", "tezos");
         COIN_IDS.put("ONE", "harmony");
+        COIN_IDS.put("FIL", "filecoin");
         COIN_IDS.put("USDT", "tether");
         COIN_IDS.put("USDC", "usd-coin");
         COIN_IDS.put("BUSD", "binance-usd");
@@ -267,6 +273,7 @@ public class ChainAPI {
         GATE_PAIRS.put("CELO", "CELO_USDT");
         GATE_PAIRS.put("XTZ", "XTZ_USDT");
         GATE_PAIRS.put("ONE", "ONE_USDT");
+        GATE_PAIRS.put("FIL", "FIL_USDT");
         GATE_PAIRS.put("USDT", "USDT_USDC");
         GATE_PAIRS.put("USDC", "USDC_USDT");
         GATE_PAIRS.put("BUSD", "BUSD_USDT");
@@ -296,6 +303,7 @@ public class ChainAPI {
         CHAIN_COLORS.put("ICP",   "#29ABE2");
         CHAIN_COLORS.put("CELO",  "#35D07F");
         CHAIN_COLORS.put("ONE",   "#00AEE9");
+        CHAIN_COLORS.put("FIL",   "#0090FF");
     }
 
     /** 获取链标识色 */
@@ -329,6 +337,7 @@ public class ChainAPI {
         put("CELO",  "celo");
         put("XTZ",   "tezos");
         put("ONE",   "harmony");
+        put("FIL",   "filecoin");
         put("BTC",   "bitcoin");
     }};
 

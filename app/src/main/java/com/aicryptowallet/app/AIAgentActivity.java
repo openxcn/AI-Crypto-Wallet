@@ -457,7 +457,7 @@ public class AIAgentActivity extends BaseActivity {
 
                     scheduler = Executors.newSingleThreadScheduledExecutor();
                     scheduler.scheduleAtFixedRate(() -> {
-                        runAnalysisCycle();
+                        runAutoAnalysisCycle();
                     }, 0, CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES);
 
                     // 同时启动前台服务，保证 App 关闭后 AI 仍可运行和推送
@@ -1694,6 +1694,33 @@ public class AIAgentActivity extends BaseActivity {
     }
 
     /**
+     * 注入远程同步的【安全限制】与【获取信息方式】提示词块。
+     * 内容来自 RemotePromptUpdater（GitHub 提示词库），无线上内容时静默返回空，不影响现有提示词。
+     */
+    private String buildRemoteSecurityBlock() {
+        try {
+            String security = RemotePromptUpdater.getSecurityRules(this);
+            String info = RemotePromptUpdater.getInfoGathering(this);
+            String crossChain = RemotePromptUpdater.getCrossChainWhitelist(this);
+            StringBuilder sb = new StringBuilder();
+            if (security != null && !security.isEmpty()) {
+                sb.append("【安全限制（远程同步）】\n").append(security).append("\n\n");
+            }
+            if (info != null && !info.isEmpty()) {
+                sb.append("【获取信息方式（远程同步）】\n").append(info).append("\n\n");
+            }
+            if (crossChain != null && !crossChain.isEmpty()) {
+                sb.append("【跨链/链内兑换池子白名单（第二层条件记忆，仅在评估兑换/跨链方案时参考，其余任务忽略）】\n")
+                  .append(crossChain).append("\n\n");
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            Logger.warning(this, "远程提示词", "注入远程提示词失败: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
      * 调用 LLM 进行多轮对话（OpenAI 兼容 / Claude）
      * 失败时返回友好错误，不抛异常给上层
      */
@@ -1788,7 +1815,9 @@ public class AIAgentActivity extends BaseActivity {
             "- 禁止使用 Markdown 格式符号：不要用 **粗体**、## 标题、| 表格、--- 分隔线、` 代码块等\n" +
             "- 用纯文本表达，重要内容用【】包裹，数字用空格缩进对齐即可\n" +
             "- 示例：'当前价格：565.32 USD' 而不是 '**当前价格**：**$565.32**'\n" +
+            "- 回复要像真人朋友一样自然、口语化、有人情味，语气轻松有温度，可以在开头自然打声招呼（如「嘿」「嗯嗯」「看到你的消息啦」「好久没聊了」），不要一条条讲道理或写成模板式的官方话术；但也不要每句都机械重复「你好」，自然随意即可。\n" +
             "- 请用简洁中文回答，避免给出具体投资建议的承诺。\n\n" +
+            buildRemoteSecurityBlock() +
             "【创建钱包处理规则】\n" +
             "- 当用户说'创建钱包'、'新建钱包'、'再开一个钱包'或指定链创建钱包时，必须调用 open_create_wallet 工具\n" +
             "- 如果用户没指定链，默认用当前主链 " + selectedChain + "\n" +
@@ -1907,6 +1936,63 @@ public class AIAgentActivity extends BaseActivity {
         throw lastException != null ? lastException : new Exception("LLM 调用失败，已重试" + maxRetries + "次");
     }
 
+    /**
+     * 自动定时分析入口：先做间隔与资产变动门控，避免空耗大模型 token。
+     * 手动点击的"立即分析"走 runAnalysisCycle()，不受此门控影响。
+     */
+    private void runAutoAnalysisCycle() {
+        try {
+            // 门控1：距上次分析未达用户配置间隔则跳过
+            int intervalMin = AIAgentSettings.getAnalysisIntervalMinutes(this);
+            if (intervalMin > 0) {
+                long lastTs = getSharedPreferences(PREFS, MODE_PRIVATE)
+                    .getLong("aiAgent_lastAnalysisTs", 0L);
+                if (lastTs > 0 && System.currentTimeMillis() - lastTs < intervalMin * 60L * 1000L) {
+                    return;
+                }
+            }
+            // 门控2：资产无变动（无买卖/转账）则跳过，省 token
+            if (!hasAssetActivity()) {
+                Logger.info(this, "AI Agent", "资产无变动，跳过 LLM 分析（省 token）");
+                return;
+            }
+        } catch (Exception e) {
+            Logger.warning(this, "AI Agent", "自动分析门控异常，放行本轮: " + e.getMessage());
+        }
+        runAnalysisCycle();
+    }
+
+    /** 轻量检测当前钱包资产是否有变动；失败或无可查地址时保守放行（返回 true） */
+    private boolean hasAssetActivity() {
+        try {
+            String chain = WalletManager.getChain(this);
+            String address = WalletManager.getWalletAddress(this);
+            if (chain == null || chain.isEmpty() || address == null || address.isEmpty()) return false;
+
+            double nativeBalance;
+            try {
+                nativeBalance = ChainAPI.getNativeBalance(this, chain, address);
+            } catch (Exception e) {
+                return true;
+            }
+            java.util.List<String[]> tokens;
+            try {
+                tokens = ChainAPI.getAllTokenBalances(this, chain, address, false);
+            } catch (Exception e) {
+                tokens = new java.util.ArrayList<>();
+            }
+            java.util.List<String[]> allTokens = new java.util.ArrayList<>();
+            allTokens.add(new String[]{chain, ChainAPI.getChainName(chain),
+                ChainAPI.formatAmount(nativeBalance), "0", "", "true"});
+            allTokens.addAll(tokens);
+            DataCache.AssetChangeResult chg = new DataCache(this)
+                .detectAssetChange(address, allTokens, nativeBalance);
+            return chg.shouldNotify;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     private void runAnalysisCycle() {
         try {
             // 获取主周期 K 线数据（按用户配置的周期，默认 1h）
@@ -1943,6 +2029,10 @@ public class AIAgentActivity extends BaseActivity {
             if (signal == null) {
                 signal = new TradingSignal(TradingSignal.SignalType.HOLD, "分析返回空", 0.5, 0.5);
             }
+
+            // 本轮已确认执行分析，更新"上次分析"时间戳
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putLong("aiAgent_lastAnalysisTs", System.currentTimeMillis()).apply();
 
             // 风控状态查询（用于 UI 显示，作为 SafetyGate 的第二道防线）
             double realBalance = 0;
@@ -2459,6 +2549,38 @@ public class AIAgentActivity extends BaseActivity {
 
         String currencyCode = CurrencyManager.getSelectedCurrency(this);
 
+        // ---------- AI 自动交易开关（醒目置顶） ----------
+        addSettingsSectionTitle(layout, getString(R.string.str_auto_trade_switch));
+        SwitchCompat swAutoTrade = new SwitchCompat(this);
+        swAutoTrade.setText(getString(R.string.str_auto_trade_switch) + " "
+            + getString(autoTradeEnabled ? R.string.str_enabled : R.string.str_disabled));
+        swAutoTrade.setTextSize(15);
+        swAutoTrade.setChecked(autoTradeEnabled);
+        swAutoTrade.setOnCheckedChangeListener((btn, checked) -> {
+            autoTradeEnabled = checked;
+            tradeAuthManager.setAutoTradeEnabled(checked);
+            swAutoTrade.setText(getString(R.string.str_auto_trade_switch) + " "
+                + getString(checked ? R.string.str_enabled : R.string.str_disabled));
+            if (checked) {
+                Toast.makeText(this, getString(R.string.toast_ai_automatic_trading_has_2), Toast.LENGTH_LONG).show();
+                Logger.info(this, "设置", "用户开启自动交易");
+            } else {
+                Toast.makeText(this, getString(R.string.toast_ai_automatic_trading_has), Toast.LENGTH_LONG).show();
+                Logger.info(this, "设置", "用户关闭自动交易");
+            }
+            updateUI();
+        });
+        layout.addView(swAutoTrade);
+
+        // 自动交易说明（原弹窗消息文字移到这里，随开关一起展示）
+        TextView tvAutoTradeHint = new TextView(this);
+        tvAutoTradeHint.setText(getString(R.string.msg_ai_trading_instructions,
+            getString(autoTradeEnabled ? R.string.str_enabled : R.string.str_disabled)));
+        tvAutoTradeHint.setTextSize(12);
+        tvAutoTradeHint.setTextColor(0xFF8a8aa8);
+        tvAutoTradeHint.setPadding(8, 0, 8, 10);
+        layout.addView(tvAutoTradeHint);
+
         // ---------- 交易设置 ----------
         android.widget.EditText etLossLimit = new android.widget.EditText(this);
         etLossLimit.setHint(getString(R.string.hint_maximum_daily_loss_limit, currencyCode));
@@ -2539,12 +2661,36 @@ public class AIAgentActivity extends BaseActivity {
                 .show();
         });
 
+        // ---------- AI 分析时间间隔 ----------
+        addSettingsSectionTitle(layout, getString(R.string.str_analysis_interval));
+        final int[] intervalHolder = { AIAgentSettings.getAnalysisIntervalMinutes(this) };
+        final int[] intervalOpts = {5, 10, 15, 30, 60};
+        TextView tvInterval = buildSettingsOptionButton(analysisIntervalName(intervalHolder[0]));
+        layout.addView(tvInterval);
+        tvInterval.setOnClickListener(v -> {
+            int checked = 0;
+            for (int i = 0; i < intervalOpts.length; i++) {
+                if (intervalOpts[i] == intervalHolder[0]) { checked = i; break; }
+            }
+            String[] names = new String[intervalOpts.length];
+            for (int i = 0; i < intervalOpts.length; i++) {
+                names[i] = intervalOpts[i] + getString(R.string.str_analysis_interval_min);
+            }
+            new androidx.appcompat.app.AlertDialog.Builder(this, R.style.AlertDialogCustom)
+                .setTitle(getString(R.string.str_analysis_interval))
+                .setSingleChoiceItems(names, checked, (d, which) -> {
+                    intervalHolder[0] = intervalOpts[which];
+                    tvInterval.setText(analysisIntervalName(intervalHolder[0]));
+                    d.dismiss();
+                })
+                .setNegativeButton(getString(R.string.btn_s_decline), null)
+                .show();
+        });
+
         int masterDefault = AIAgentSettings.isProactiveEnabled(this) ? 1 : 0;
         new androidx.appcompat.app.AlertDialog.Builder(this, R.style.AlertDialogCustom)
             .setTitle(getString(R.string.title_ai_trading_settings))
             .setView(scroller)
-            .setMessage(getString(R.string.msg_ai_trading_instructions,
-                getString(autoTradeEnabled ? R.string.str_enabled : R.string.str_disabled)))
             .setPositiveButton(getString(R.string.btn_saving), (dialog, which) -> {
                 try {
                     String lossLimitStr = etLossLimit.getText().toString().trim();
@@ -2562,26 +2708,12 @@ public class AIAgentActivity extends BaseActivity {
                 AIAgentSettings.setProactiveChatEnabled(this, swChat.isChecked());
                 AIAgentSettings.setChatFrequency(this, freqHolder[0]);
                 AIAgentSettings.setPersonalityPreset(this, presetHolder[0]);
+                AIAgentSettings.setAnalysisIntervalMinutes(this, intervalHolder[0]);
                 Logger.info(this, "设置", "主动聊天设置已保存 (总开关=" + swProactiveMaster.isChecked()
                     + " 交易=" + swTrading.isChecked() + " 闲聊=" + swChat.isChecked()
                     + " 频率=" + freqHolder[0] + " 语气=" + presetHolder[0]
+                    + " 分析间隔=" + intervalHolder[0] + " 分钟"
                     + "，旧状态 master=" + masterDefault + ")");
-            })
-            .setNeutralButton(
-                autoTradeEnabled ? getString(R.string.str_disable_auto_trade) : getString(R.string.str_enable_auto_trade),
-                (dialog, which) -> {
-                // 切换自动交易开关
-                autoTradeEnabled = !autoTradeEnabled;
-                tradeAuthManager.setAutoTradeEnabled(autoTradeEnabled);
-
-                if (autoTradeEnabled) {
-                    Toast.makeText(this, getString(R.string.toast_ai_automatic_trading_has_2), Toast.LENGTH_LONG).show();
-                    Logger.info(this, "设置", "用户开启自动交易");
-                } else {
-                    Toast.makeText(this, getString(R.string.toast_ai_automatic_trading_has), Toast.LENGTH_LONG).show();
-                    Logger.info(this, "设置", "用户关闭自动交易");
-                }
-                updateUI();
             })
             .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
@@ -2618,6 +2750,11 @@ public class AIAgentActivity extends BaseActivity {
             case AIAgentSettings.FREQ_NORMAL:
             default:                              return getString(R.string.freq_normal);
         }
+    }
+
+    /** AI 分析时间间隔显示名（分钟数 + 本地化单位） */
+    private String analysisIntervalName(int minute) {
+        return minute + getString(R.string.str_analysis_interval_min);
     }
 
     /** 语气预设显示名 */
@@ -2694,7 +2831,7 @@ public class AIAgentActivity extends BaseActivity {
                 try {
                     if (scheduler == null || scheduler.isShutdown()) {
                         scheduler = Executors.newSingleThreadScheduledExecutor();
-                        scheduler.scheduleAtFixedRate(() -> runAnalysisCycle(),
+                        scheduler.scheduleAtFixedRate(() -> runAutoAnalysisCycle(),
                             CHECK_INTERVAL_MINUTES, CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES);
                         Logger.info(this, "状态加载", "自动重启 Activity scheduler，间隔 " + CHECK_INTERVAL_MINUTES + " 分钟");
                     }

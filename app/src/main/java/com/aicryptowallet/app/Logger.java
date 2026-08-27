@@ -26,8 +26,20 @@ public class Logger {
     private static String LOG_FILE = "app_logs.txt";
     private static String CRASH_FILE = "crash_logs.txt";
     private static final int MAX_LOG_LINES = 10000;
+    // 日志查看器最多加载的日志行数（防止一次性渲染过多 View 导致 OOM/卡死闪退）
+    private static final int MAX_LOAD_LINES = 3000;
+    // 单条日志最大长度，防止超长内容（如 AI 参数/回复全文）撑爆日志文件
+    private static final int MAX_LINE_LENGTH = 3000;
     // 每 N 条日志才检查一次行数限制，避免每条日志都重写整个文件
     private static final int LIMIT_CHECK_INTERVAL = 500;
+    // ===== 分段日志配置 =====
+    // 每段最大行数：达到后自动切到新段文件，避免单个日志文件无限变大
+    private static final int MAX_SEGMENT_LINES = 1000;
+    // 最多保留的日志段数量（总日志约 6000 行），超出后滚动删除最旧段
+    private static final int MAX_SEGMENTS = 6;
+    // 段号索引持久化（按文件名存储当前段号）
+    private static final String SEG_PREFS = "logger_segments";
+    private static final String SEG_KEY_PREFIX = "seg_";
 
     public static final String LEVEL_INFO = "INFO";
     public static final String LEVEL_SUCCESS = "SUCCESS";
@@ -87,6 +99,11 @@ public class Logger {
             .format(new Date());
         String threadName = android.os.Process.myTid() + ":" + Thread.currentThread().getName();
 
+        // 限制单条消息长度，防止超长内容（如 AI 参数/回复全文）导致日志文件暴涨
+        if (message != null && message.length() > MAX_LINE_LENGTH) {
+            message = message.substring(0, MAX_LINE_LENGTH) + "...(日志过长已截断)";
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append(timestamp).append(" | ").append(level).append(" | ");
         sb.append(module).append(" | ").append(threadName).append(" | ");
@@ -98,8 +115,8 @@ public class Logger {
 
         String logEntry = sb.toString();
 
-        // 异步保存到文件（不阻塞调用线程）
-        saveToFile(LOG_FILE, logEntry);
+        // 异步分段保存到文件（不阻塞调用线程）
+        saveToFileSegmented(LOG_FILE, logEntry);
 
         // 输出到 Logcat（同步，开销小）
         if (level.equals(LEVEL_ERROR) || level.equals(LEVEL_CRASH)) {
@@ -195,6 +212,140 @@ public class Logger {
     }
 
     /**
+     * 异步分段保存到文件（投递到单线程 executor）
+     * 日志按段拆分：每段最多 MAX_SEGMENT_LINES 行，达到上限自动切到新段，
+     * 最多保留 MAX_SEGMENTS 个段，超出后滚动删除最旧段，保证单文件不会无限变大。
+     */
+    private static void saveToFileSegmented(String baseName, String entry) {
+        final Context ctx = appContext;
+        if (ctx == null) {
+            android.util.Log.d(TAG, "[no-init] " + entry);
+            return;
+        }
+        logExecutor.execute(() -> {
+            FileWriter fw = null;
+            try {
+                int seg = getSegmentIndex(baseName);
+                File file = segmentFile(baseName, seg);
+
+                // 首次使用当前段时校准行数（崩溃重启后也能准确切段）
+                AtomicInteger cnt = segCount(baseName);
+                if (!calibrated.contains(baseName)) {
+                    cnt.set(countLines(file));
+                    calibrated.add(baseName);
+                }
+
+                // 当前段已满则切到新段
+                if (cnt.get() >= MAX_SEGMENT_LINES) {
+                    seg = rollSegment(baseName, seg);
+                    file = segmentFile(baseName, seg);
+                    cnt.set(countLines(file));
+                }
+
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                fw = new FileWriter(file, true);
+                fw.write(entry + "\n");
+                fw.flush();
+                cnt.incrementAndGet();
+            } catch (Exception e) {
+                android.util.Log.e(TAG, "日志保存失败: " + baseName, e);
+            } finally {
+                if (fw != null) {
+                    try { fw.close(); } catch (Exception ignored) {}
+                }
+            }
+        });
+    }
+
+    /**
+     * 切到下一个日志段（仅在 logExecutor 线程执行）
+     * 段号 +1 并持久化，同时删除过期的最旧段文件
+     */
+    private static int rollSegment(String baseName, int currentSeg) {
+        int next = currentSeg + 1;
+        setSegmentIndex(baseName, next);
+        // 删除超出保留范围的最旧段
+        int oldestKeep = next - MAX_SEGMENTS + 1;
+        for (int i = 0; i < oldestKeep; i++) {
+            File f = segmentFile(baseName, i);
+            if (f.exists()) {
+                f.delete();
+            }
+        }
+        return next;
+    }
+
+    /**
+     * 统计文件非空行数（切段/校准时使用）
+     */
+    private static int countLines(File file) {
+        if (file == null || !file.exists()) return 0;
+        int n = 0;
+        try (java.io.BufferedReader br = new java.io.BufferedReader(
+            new java.io.FileReader(file))) {
+            while (br.readLine() != null) {
+                n++;
+            }
+        } catch (Exception ignored) {}
+        return n;
+    }
+
+    /**
+     * 段号索引的 SharedPreferences
+     */
+    private static SharedPreferences getSegPrefs() {
+        if (appContext == null) return null;
+        return appContext.getSharedPreferences(SEG_PREFS, Context.MODE_PRIVATE);
+    }
+
+    /**
+     * 获取当前段号（默认 0）
+     */
+    private static int getSegmentIndex(String baseName) {
+        SharedPreferences prefs = getSegPrefs();
+        if (prefs == null) return 0;
+        return prefs.getInt(SEG_KEY_PREFIX + baseName, 0);
+    }
+
+    /**
+     * 保存当前段号
+     */
+    private static void setSegmentIndex(String baseName, int idx) {
+        SharedPreferences prefs = getSegPrefs();
+        if (prefs == null) return;
+        prefs.edit().putInt(SEG_KEY_PREFIX + baseName, idx).apply();
+    }
+
+    /**
+     * 获取某段对应的文件
+     * 段文件命名：{baseName}.{seg}，例如 app_logs_v3.0.15.txt.0
+     */
+    private static File segmentFile(String baseName, int seg) {
+        return new File(appContext.getFilesDir(), baseName + "." + seg);
+    }
+
+    // 每个日志文件当前段已写行数的内存计数器（仅 logExecutor 线程访问）
+    private static final java.util.Map<String, AtomicInteger> segCounts =
+        new java.util.concurrent.ConcurrentHashMap<>();
+    // 标记某日志文件当前段行数是否已校准
+    private static final java.util.Set<String> calibrated =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * 获取日志文件的行数计数器（延迟创建）
+     */
+    private static AtomicInteger segCount(String baseName) {
+        AtomicInteger c = segCounts.get(baseName);
+        if (c == null) {
+            c = new AtomicInteger(0);
+            segCounts.put(baseName, c);
+        }
+        return c;
+    }
+
+    /**
      * 限制文件行数（仅在 logExecutor 线程执行）
      */
     private static void limitLines(String fileName, int maxLines) {
@@ -243,23 +394,61 @@ public class Logger {
 
     /**
      * 从文件加载
+     * 按段号 0→当前段（旧→新）合并所有段文件，
+     * 只保留最近 MAX_LOAD_LINES 行，且单行超过 MAX_LINE_LENGTH 截断，
+     * 防止日志文件过大时一次性读入内存导致 OOM 或渲染过多 View 闪退。
+     * 若段文件均不存在，则兼容读取旧版单文件。
      */
-    private static List<String> loadFromFile(String fileName) {
+    private static List<String> loadFromFile(String baseName) {
         List<String> logs = new ArrayList<>();
         try {
             File dir = appContext.getFilesDir();
-            File file = new File(dir, fileName);
-            if (!file.exists()) return logs;
+            java.util.ArrayDeque<String> deque = new java.util.ArrayDeque<>();
+            int currentSeg = getSegmentIndex(baseName);
+            boolean foundAny = false;
 
-            try (java.io.BufferedReader br = new java.io.BufferedReader(
-                new java.io.FileReader(file))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        logs.add(line);
+            for (int seg = 0; seg <= currentSeg; seg++) {
+                File file = new File(dir, baseName + "." + seg);
+                if (!file.exists()) continue;
+                foundAny = true;
+                try (java.io.BufferedReader br = new java.io.BufferedReader(
+                    new java.io.FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        if (line.trim().isEmpty()) continue;
+                        if (line.length() > MAX_LINE_LENGTH) {
+                            line = line.substring(0, MAX_LINE_LENGTH) + "...(截断)";
+                        }
+                        deque.addLast(line);
+                        if (deque.size() > MAX_LOAD_LINES) {
+                            deque.removeFirst();
+                        }
                     }
                 }
             }
+
+            // 兼容旧版单文件（段文件不存在时读取原始文件）
+            if (!foundAny) {
+                File legacy = new File(dir, baseName);
+                if (legacy.exists()) {
+                    try (java.io.BufferedReader br = new java.io.BufferedReader(
+                        new java.io.FileReader(legacy))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            if (line.trim().isEmpty()) continue;
+                            if (line.length() > MAX_LINE_LENGTH) {
+                                line = line.substring(0, MAX_LINE_LENGTH) + "...(截断)";
+                            }
+                            deque.addLast(line);
+                            if (deque.size() > MAX_LOAD_LINES) {
+                                deque.removeFirst();
+                            }
+                        }
+                    }
+                }
+            }
+
+            logs.addAll(deque);
         } catch (Exception e) {
             android.util.Log.e(TAG, "日志加载失败", e);
         }
@@ -291,22 +480,28 @@ public class Logger {
         if (appCtx == null) return;
         logExecutor.execute(() -> {
             try {
-                File file = new File(appCtx.getFilesDir(), LOG_FILE);
-                if (!file.exists()) return;
-                List<String> lines = new ArrayList<>();
-                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        if (line.trim().isEmpty()) continue;
-                        if (line.contains(" | " + module + " | ")) continue;
-                        lines.add(line);
+                File dir = appCtx.getFilesDir();
+                int currentSeg = getSegmentIndex(LOG_FILE);
+                for (int seg = 0; seg <= currentSeg; seg++) {
+                    File file = new File(dir, LOG_FILE + "." + seg);
+                    if (!file.exists()) continue;
+                    List<String> lines = new ArrayList<>();
+                    try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            if (line.trim().isEmpty()) continue;
+                            if (line.contains(" | " + module + " | ")) continue;
+                            lines.add(line);
+                        }
+                    }
+                    try (FileWriter fw = new FileWriter(file)) {
+                        for (String l : lines) {
+                            fw.write(l + "\n");
+                        }
                     }
                 }
-                try (FileWriter fw = new FileWriter(file)) {
-                    for (String l : lines) {
-                        fw.write(l + "\n");
-                    }
-                }
+                // 行数已变，重置校准保证后续切段准确
+                calibrated.remove(LOG_FILE);
                 android.util.Log.d(TAG, "已删除模块日志: " + module);
             } catch (Exception e) {
                 android.util.Log.e(TAG, "删除模块日志失败: " + module, e);
@@ -316,26 +511,36 @@ public class Logger {
 
     /**
      * 安全清空文件（在 logExecutor 线程执行，与写入串行化）
+     * 删除主文件及所有分段文件，并重置段号索引
      */
-    private static void clearFileSafe(String fileName) {
+    private static void clearFileSafe(String baseName) {
         try {
             File dir = appContext.getFilesDir();
-            File file = new File(dir, fileName);
-
-            // 直接删除文件
+            // 删除主文件（兼容旧单文件）
+            File file = new File(dir, baseName);
             if (file.exists()) {
                 file.delete();
             }
-
-            // 重新创建空文件
-            file.createNewFile();
-
-            // 重置计数器
+            // 删除所有分段文件
+            int currentSeg = getSegmentIndex(baseName);
+            for (int seg = 0; seg <= currentSeg; seg++) {
+                File f = new File(dir, baseName + "." + seg);
+                if (f.exists()) {
+                    f.delete();
+                }
+            }
+            // 重置段号索引和计数器
+            setSegmentIndex(baseName, 0);
+            segCounts.remove(baseName);
+            calibrated.remove(baseName);
             logCounter.set(0);
 
-            android.util.Log.d(TAG, "日志已清空: " + fileName);
+            // 重新创建空主文件（保证后续读取兼容）
+            file.createNewFile();
+
+            android.util.Log.d(TAG, "日志已清空: " + baseName);
         } catch (Exception e) {
-            android.util.Log.e(TAG, "清空日志失败: " + fileName, e);
+            android.util.Log.e(TAG, "清空日志失败: " + baseName, e);
         }
     }
 

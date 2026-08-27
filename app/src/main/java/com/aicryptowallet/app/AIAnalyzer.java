@@ -494,7 +494,23 @@ public class AIAnalyzer {
         sb.append("3. 不允许调用 send_native 转账到陌生地址（除非用户明确指示）\n");
         sb.append("4. 不允许授权给未知合约（白名单外的 spender）\n");
         sb.append("5. 单笔交易金额不超过用户配置的限额\n");
-        sb.append("6. 出现异常立即停止，返回 HOLD 并说明原因\n\n");
+        sb.append("6. 出现异常立即停止，返回 HOLD 并说明原因\n");
+        // 远程同步的安全限制（来自 GitHub 提示词库，未联网时为空则省略）
+        String remoteSecurity = RemotePromptUpdater.getSecurityRules(ctx);
+        if (remoteSecurity != null && !remoteSecurity.isEmpty()) {
+            sb.append("\n=== 安全限制（远程同步，优先级最高）===\n").append(remoteSecurity).append("\n");
+        }
+        String remoteInfo = RemotePromptUpdater.getInfoGathering(ctx);
+        if (remoteInfo != null && !remoteInfo.isEmpty()) {
+            sb.append("\n=== 获取信息方式（远程同步）===\n").append(remoteInfo).append("\n");
+        }
+        // 第二层条件记忆：跨链/链内兑换池子白名单，仅在涉及兑换/跨链方案时启用，其余任务忽略
+        String crossChainWhitelist = RemotePromptUpdater.getCrossChainWhitelist(ctx);
+        if (crossChainWhitelist != null && !crossChainWhitelist.isEmpty()) {
+            sb.append("\n=== 跨链/链内兑换池子白名单（第二层条件记忆，仅在评估兑换/跨链方案时参考，其余任务忽略）===\n")
+              .append(crossChainWhitelist).append("\n");
+        }
+        sb.append("\n");
 
         sb.append("=== 交易前必查：防坑守则（铁律，任何涉及资金/写入的操作前必须逐条核对，任一不满足即拒绝执行并返回 HOLD）===\n");
         sb.append("【一、合约陷阱（Contract Trap，目标代币真实性逐项彻查）】\n");

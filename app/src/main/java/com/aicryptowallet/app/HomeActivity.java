@@ -85,6 +85,7 @@ public class HomeActivity extends BaseActivity {
     private android.widget.PopupWindow discoverHistoryPopup;
     private LinearLayout gridFav;
     private androidx.swiperefreshlayout.widget.SwipeRefreshLayout assetsSwipeRefresh;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout marketSwipeRefresh;
     private LinearLayout marketListContainer;
     private LinearLayout manualRecordsContainer;
     private LinearLayout aiRecordsContainer;
@@ -395,6 +396,15 @@ public class HomeActivity extends BaseActivity {
                     Logger.error(HomeActivity.this, "HomeActivity", "updateLowBalanceCard failed: " + e.getMessage(), e);
                 }
             }, 500);
+
+            // 有可用新版本时提示升级（启动时异步检测缓存，延迟弹出避免打断初始化）
+            handler.postDelayed(() -> {
+                try {
+                    UpdateChecker.maybeShowDialog(HomeActivity.this);
+                } catch (Exception e) {
+                    Logger.warning(HomeActivity.this, "HomeActivity", "maybeShowDialog failed: " + e.getMessage());
+                }
+            }, 1500);
         } catch (Exception e) {
             Logger.error(this, "HomeActivity", "onResume error: " + e.getMessage(), e);
         }
@@ -439,6 +449,7 @@ public class HomeActivity extends BaseActivity {
             tabDiscover = findViewById(R.id.tabDiscover);
             tabSettings = findViewById(R.id.tabSettings);
             assetsSwipeRefresh = findViewById(R.id.assetsSwipeRefresh);
+            marketSwipeRefresh = findViewById(R.id.marketSwipeRefresh);
             marketListContainer = findViewById(R.id.marketListContainer);
             tvMarketLoading = findViewById(R.id.tvMarketLoading);
             manualRecordsContainer = findViewById(R.id.manualRecordsContainer);
@@ -629,6 +640,21 @@ public class HomeActivity extends BaseActivity {
         } else {
             Logger.error(this, "HomeActivity", "assetsSwipeRefresh is null in initTabs", null);
         }
+        if (marketSwipeRefresh != null) {
+            marketSwipeRefresh.setOnRefreshListener(() -> {
+                try {
+                    Logger.info(this, "行情刷新", "用户下拉触发行情刷新");
+                    loadMarketData();
+                } catch (Throwable t) {
+                    Logger.error(this, "行情刷新", "下拉刷新异常: " + t.getClass().getName() + ": " + t.getMessage(), t);
+                    if (marketSwipeRefresh != null) marketSwipeRefresh.setRefreshing(false);
+                    Toast.makeText(HomeActivity.this, getString(R.string.toast_refresh_exception, t.getMessage()), Toast.LENGTH_SHORT).show();
+                }
+            });
+            marketSwipeRefresh.setColorSchemeResources(
+                R.color.accent_blue, R.color.purple, R.color.green
+            );
+        }
         switchTab(0);
     }
 
@@ -636,6 +662,7 @@ public class HomeActivity extends BaseActivity {
         currentMainTab = index;
         if (assetsSwipeRefresh != null) assetsSwipeRefresh.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
         if (tabHome != null) tabHome.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
+        if (marketSwipeRefresh != null) marketSwipeRefresh.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
         if (tabTrade != null) tabTrade.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
         if (tabDiscover != null) tabDiscover.setVisibility(index == 3 ? View.VISIBLE : View.GONE);
         if (tabSettings != null) tabSettings.setVisibility(index == 4 ? View.VISIBLE : View.GONE);
@@ -1244,11 +1271,13 @@ public class HomeActivity extends BaseActivity {
                             tvMarketLoading.setText(getString(R.string.text_no_nfts));
                         }
                         Logger.actionResult(HomeActivity.this, "UI操作", "行情刷新", "成功 共 " + marketAllCoins.size() + " 币种");
+                        if (marketSwipeRefresh != null) marketSwipeRefresh.setRefreshing(false);
                     });
                 }
             } catch (Exception e) {
                 Logger.error(this, "行情", "加载失败: " + e.getMessage());
                 handler.post(() -> {
+                    if (marketSwipeRefresh != null) marketSwipeRefresh.setRefreshing(false);
                     marketLoadingMore = false;
                     Logger.actionResult(HomeActivity.this, "UI操作", "行情刷新", "失败");
                     for (int i = marketListContainer.getChildCount() - 1; i >= 0; i--) {
@@ -3128,24 +3157,6 @@ public class HomeActivity extends BaseActivity {
         });
         chainBarContainer.addView(addChainBtn);
 
-        // 一键添加标准币安测试网按钮（内置正确参数，自动复用主链钱包）
-        TextView addTestnetBtn = new TextView(this);
-        addTestnetBtn.setText(getString(R.string.btn_add_bsc_testnet));
-        addTestnetBtn.setTextColor(0xFF2997F4);
-        addTestnetBtn.setTextSize(14);
-        addTestnetBtn.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams testnetLp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, iconSize + 16);
-        testnetLp.setMargins(0, 4, 0, 4);
-        addTestnetBtn.setLayoutParams(testnetLp);
-        addTestnetBtn.setClickable(true);
-        addTestnetBtn.setFocusable(true);
-        addTestnetBtn.setOnClickListener(v -> {
-            dialog.dismiss();
-            addStandardBscTestnet();
-        });
-        chainBarContainer.addView(addTestnetBtn);
-
         // 构建右侧钱包卡片
         List<WalletManager.WalletInfo> selectedWallets = chainWallets.get(selectedChain[0]);
         if (selectedWallets != null) {
@@ -3553,45 +3564,6 @@ public class HomeActivity extends BaseActivity {
             })
             .setNegativeButton(getString(R.string.btn_s_decline), null)
             .show();
-    }
-
-    /** 一键添加标准币安测试网：内置正确参数，自动复用主链钱包 */
-    private void addStandardBscTestnet() {
-        final String code = "BSC-TESTNET";
-        final String name = "币安智能链测试网";
-        final String rpc = "https://bsc-testnet-rpc.publicnode.com";
-        final String symbol = "tBNB";
-
-        // 已存在则直接切换使用
-        for (ChainAPI.CustomChain cc : ChainAPI.getCustomChains(this)) {
-            if (cc.code.equals(code)) {
-                WalletManager.setChain(this, code);
-                Toast.makeText(this, getString(R.string.toast_bsc_testnet_exists), Toast.LENGTH_SHORT).show();
-                loadAssets();
-                return;
-            }
-        }
-
-        ChainAPI.CustomChain cc = new ChainAPI.CustomChain();
-        cc.code = code;
-        cc.name = name;
-        cc.rpc = rpc;
-        cc.symbol = symbol;
-        cc.decimals = 18;
-        cc.isEVM = true;
-        ChainAPI.addCustomChain(this, cc);
-        Toast.makeText(this, getString(R.string.toast_custom_chain_added, code), Toast.LENGTH_SHORT).show();
-
-        // 复用已有主链钱包：同一助记词/私钥，直接沿用之前的主链钱包
-        WalletManager.WalletInfo reused = WalletManager.addWalletForNewChain(this, name, code);
-        if (reused != null) {
-            Logger.info(this, "链管理", "一键添加标准币安测试网，复用主链助记词，地址=" + reused.getShortAddress());
-        } else {
-            Logger.info(this, "链管理", "标准币安测试网无既有钱包可复用，需用户手动创建");
-        }
-
-        WalletManager.setChain(this, code);
-        loadAssets();
     }
 
     /** 编辑自定义链（长按链图标触发），复用创建表单，预填当前值 */
@@ -4686,13 +4658,8 @@ public class HomeActivity extends BaseActivity {
                         tvAiNoRecords.setOnClickListener(null);
                     } else {
                         tvAiNoRecords.setVisibility(View.GONE);
-                        for (AIOperationLog log : finalLogs) {
-                            try {
-                                addAIOperationLogItem(log);
-                            } catch (Exception itemErr) {
-                                Logger.error(this, "AI操作记录", "渲染单条记录失败: " + itemErr.getMessage(), itemErr);
-                            }
-                        }
+                        // 分批渲染，防止老手机一次性创建过多 View 卡死闪退
+                        renderAIRecordBatch(finalLogs, 0);
                     }
                 });
             } catch (Exception e) {
@@ -4743,6 +4710,26 @@ public class HomeActivity extends BaseActivity {
             Logger.error(this, "AI操作记录", "合并日志失败: " + e.getMessage(), e);
         }
         return logs;
+    }
+
+    /**
+     * 分批渲染 AI 操作记录，防止老手机一次性创建过多 View 卡死闪退
+     */
+    private void renderAIRecordBatch(final List<AIOperationLog> logs, final int start) {
+        if (isFinishing() || isDestroyed()) return;
+        final int BATCH = 100;
+        int end = Math.min(start + BATCH, logs.size());
+        for (int i = start; i < end; i++) {
+            try {
+                addAIOperationLogItem(logs.get(i));
+            } catch (Exception itemErr) {
+                Logger.error(this, "AI操作记录", "渲染单条记录失败: " + itemErr.getMessage(), itemErr);
+            }
+        }
+        if (end < logs.size()) {
+            final int next = end;
+            handler.post(() -> renderAIRecordBatch(logs, next));
+        }
     }
 
     private void addTradeRecordItem(String[] tx, String myAddress) {

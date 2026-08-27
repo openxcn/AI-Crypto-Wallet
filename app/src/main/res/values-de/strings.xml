@@ -876,6 +876,8 @@ Aktueller Status des automatischen Handels: %1$s</string>
     <string name="freq_normal">Normal</string>
     <string name="freq_talky">Redselig</string>
     <string name="freq_unlimited">Unbegrenzt</string>
+    <string name="str_analysis_interval">AI-Analyseintervall</string>
+    <string name="str_analysis_interval_min"> min</string>
     <string name="str_personality_preset">KI-Ton</string>
     <string name="preset_none">Standard</string>
     <string name="preset_steady">Ruhig und Rational</string>
@@ -883,6 +885,7 @@ Aktueller Status des automatischen Handels: %1$s</string>
     <string name="preset_sarcasm">Sarkastisch</string>
     <string name="preset_gentle">Sanft</string>
     <string name="preset_firm">Entschlossen</string>
+    <string name="str_auto_trade_switch">Automatischer Handel</string>
     <string name="str_enable_auto_trade">Automatischen Handel aktivieren</string>
     <string name="str_disable_auto_trade">Automatischen Handel deaktivieren</string>
     <string name="msg_cross_chain_risk_normal">Diese Transaktion wird über [%1$s] für %2$s abgewickelt, geschätzter Betrag $%3$s. Cross-Chain-Swaps beinhalten Bridge-Risiko, Slippage und Ankunftsverzögerungen. Bitte bestätigen Sie, dass Sie die Risiken verstehen.</string>
@@ -921,6 +924,7 @@ Um fortzufahren, fügen Sie den Token bitte zuerst auf der Token-Detailseite zur
 Vertragsadresse: %2$s
 
 Nach dem Blockieren werden Überweisungen und Genehmigungen für diesen Token abgefangen.</string>
+    <string name="toast_rmab_exempt_whitelist">R-MAB ist ein Plattform-Token, dauerhaft ausgenommen, keine Whitelist erforderlich</string>
     <string name="msg_token_whitelist_confirm">Sie fügen den Hochrisiko-Token %1$s der Whitelist hinzu.
 
 Das bedeutet, dass der Token die AI-Sicherheitsprüfung umgeht und normal gehandelt/genehmigt werden kann.
@@ -935,4 +939,10 @@ Möchten Sie fortfahren?</string>
 %3$s
 Tipp: Ziehen Sie auf der Asset-Seite nach unten, um neue Token zu sehen.</string>
     <string name="text_no_tokens_with_balance">(Keine Token mit Guthaben gefunden)</string>
+<string name="title_backup_not_complete">Backup unvollständig</string>
+    <string name="msg_backup_notify_body">Ihr Recovery-Phrase-Backup ist noch nicht abgeschlossen. Aus Sicherheitsgründen empfehlen wir, es zuerst abzuschließen. Sie können es später erneut über Wallet-Verwaltung → Phrase exportieren einsehen.</string>
+    <string name="btn_continue_backup">Backup fortsetzen</string>
+    <string name="btn_exit_anyway">Trotzdem verlassen</string>
+    <string name="msg_confirm_delete_current_wallet">Die aktuelle Wallet löschen? Danach können die Recovery-Phrase und das Vermögen dieser Wallet nicht wiederhergestellt werden.</string>
+    <string name="toast_wallet_deleted">Aktuelle Wallet gelöscht</string>
 </resources>

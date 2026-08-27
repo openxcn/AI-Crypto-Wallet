@@ -220,7 +220,7 @@ public class AgentToolRegistry {
         ),
         new ToolDefinition(
             TOOL_CROSS_CHAIN_SWAP,
-            "打开跨链兑换网页，让用户在 DApp 浏览器中手动完成跨链资产兑换。当用户需要在不同链之间兑换原生币或代币时调用，例如 BNB 链 USDT 换成波场链 TRX。注意：Transit Finance（swap.transit.finance）已被系统禁止，禁止推荐/打开/连接。调用此工具必须先在可用的跨链桥中确认目标桥未被禁用，且不在应用内自动签名或广播交易。AI 仍应在调用前通过 ask_user 工具确认：付出链、目标链、付出资产、目标资产（原生币用 'NATIVE'，代币必须给出官方合约地址）、金额和目标地址。如果用户没有目标链钱包，应先调用 open_create_wallet 提醒用户创建。",
+            "后台自动执行跨链资产兑换：AI 直接聚合跨链桥报价、后台自动签名并广播交易，无需用户在前端页面手动确认或打开网页。当用户需要在不同链之间兑换原生币或代币时调用，例如 BNB 链 USDT 换成波场链 TRX。注意：Transit Finance（swap.transit.finance）已被系统禁止，禁止推荐/打开/连接。自动执行受跨链限额保护（单笔 $100 / 每日 $500），超出会被拦截。调用此工具需传入：付出链、目标链、付出资产、目标资产（原生币用 'NATIVE'，代币必须给出官方合约地址）、金额。destination_address 可选，为空时自动使用当前钱包在目标链的地址。",
             "{\"type\":\"object\",\"properties\":{\"from_chain\":{\"type\":\"string\",\"description\":\"付出链标识，如 ETH/BNB/SOL/TRX\"},\"to_chain\":{\"type\":\"string\",\"description\":\"目标链标识，如 ETH/BNB/SOL/TRX\"},\"from_token\":{\"type\":\"string\",\"description\":\"付出代币合约地址，原生币用 'NATIVE'\"},\"to_token\":{\"type\":\"string\",\"description\":\"得到代币合约地址，原生币用 'NATIVE'；必须明确该代币所在链和合约地址\"},\"amount\":{\"type\":\"number\",\"description\":\"付出数量（人类可读单位）\"},\"destination_address\":{\"type\":\"string\",\"description\":\"目标链收款地址；如为空则自动查找当前钱包中目标链的地址\"},\"slippage\":{\"type\":\"number\",\"description\":\"滑点百分比，默认 1.5\"},\"operation_desc\":{\"type\":\"string\",\"description\":\"操作描述（用于审计）\"}},\"required\":[\"from_chain\",\"to_chain\",\"from_token\",\"to_token\",\"amount\",\"operation_desc\"]}"
         ),
         new ToolDefinition(
@@ -945,45 +945,93 @@ public class AgentToolRegistry {
     }
 
     /**
-     * 执行跨链兑换：打开替代承兑商（跨链桥）页面，让用户在 DApp 浏览器中手动完成兑换。
-     * Transit Finance 已被系统标记为不安全，禁止 AI 自动使用，故改用替代承兑商。
+     * 执行跨链兑换：已放开前端显示限制，由 AI 在后台自动签名并广播交易，
+     * 无需用户在前端页面手动确认。复用 CrossChainSwapManager 完成聚合报价、限额检查、签名广播全流程。
      */
     private static ToolResult executeCrossChainSwap(Context ctx, JSONObject args, String defaultChain, SafetyGate safetyGate) throws Exception {
-        String fromChain = args.optString("from_chain", defaultChain);
-        String toChain = args.optString("to_chain", defaultChain);
+        String fromChain = args.optString("from_chain", defaultChain).toUpperCase();
+        String toChain = args.optString("to_chain", defaultChain).toUpperCase();
         String fromToken = args.optString("from_token", "NATIVE");
         String toToken = args.optString("to_token", "NATIVE");
         double amount = args.optDouble("amount", 0);
         String operationDesc = args.optString("operation_desc", "跨链兑换");
+        double slippage = args.optDouble("slippage", 1.5);
 
         // 保留基础校验与审计日志
-        if (amount < 0) {
-            return ToolResult.error("兑换数量不能为负数");
+        if (amount <= 0) {
+            return ToolResult.error("兑换数量必须大于 0");
         }
 
         Logger.action(ctx, "Agent跨链兑换",
             toolAuditLine(TOOL_CROSS_CHAIN_SWAP, fromChain + "->" + toChain,
                 fromToken + "->" + toToken + " amount=" + amount, operationDesc), null);
 
-        // Transit Finance 已被系统限制，改为使用替代承兑商（跨链桥）
-        String bridgeUrl = "https://li.fi";
-        Intent intent = new Intent(ctx, DAppBrowserActivity.class);
-        intent.putExtra("url", bridgeUrl);
-        if (!(ctx instanceof android.app.Activity)) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // 自动推导收款地址与源地址
+        String fromAddress = CrossChainUtils.getWalletAddress(ctx, fromChain);
+        if (fromAddress == null || fromAddress.isEmpty()) {
+            return ToolResult.error("未找到源链(" + fromChain + ")钱包地址，请先创建或选择对应链钱包");
         }
-        ctx.startActivity(intent);
+        String toAddress = args.optString("destination_address", "");
+        if (toAddress == null || toAddress.isEmpty()) {
+            toAddress = CrossChainUtils.getWalletAddress(ctx, toChain);
+        }
+        if (toAddress == null || toAddress.isEmpty()) {
+            toAddress = fromAddress; // 目标链无独立钱包地址时退化为同一地址
+        }
 
-        JSONObject out = new JSONObject();
-        out.put("from_chain", fromChain);
-        out.put("to_chain", toChain);
-        out.put("from_token", fromToken);
-        out.put("to_token", toToken);
-        out.put("amount", amount);
-        out.put("opened_url", bridgeUrl);
-        out.put("status", "manual_page_opened");
-        out.put("note", "Transit Finance 已被系统限制，已改用替代承兑商 LI.FI (https://li.fi) 打开跨链兑换页面，请在 DApp 浏览器中完成操作。");
-        return ToolResult.success(out.toString());
+        // 获取代币精度并换算为最小单位
+        int decimals = CrossChainUtils.getTokenDecimals(ctx, fromChain, fromToken);
+        String amountSmallest = CrossChainUtils.amountToSmallestUnit(amount, decimals);
+
+        // 估算 USD 价值用于跨链限额（单笔 $100 / 每日 $500）
+        double approxUsd = estimateCrossChainUsdValue(ctx, fromChain, amount);
+
+        CrossChainRequest request = new CrossChainRequest(
+            fromChain, toChain, fromToken, toToken,
+            amountSmallest, fromAddress, toAddress, slippage);
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<Boolean> successHolder = new AtomicReference<>(null);
+        final AtomicReference<Object> dataHolder = new AtomicReference<>();
+        final AtomicReference<String> errorHolder = new AtomicReference<>();
+
+        CrossChainSwapManager manager = new CrossChainSwapManager(ctx);
+        manager.execute(request, approxUsd, new CrossChainSwapManager.ExecutionCallback() {
+            @Override
+            public void onResult(boolean success, Object data, String error) {
+                successHolder.set(success);
+                dataHolder.set(data);
+                errorHolder.set(error);
+                latch.countDown();
+            }
+        });
+
+        // 等待后台执行完成（聚合报价 + 签名广播），超时 180 秒
+        if (!latch.await(180, TimeUnit.SECONDS)) {
+            return ToolResult.error("跨链兑换执行超时（180 秒），请稍后重试或检查链上 RPC 状态");
+        }
+
+        if (Boolean.TRUE.equals(successHolder.get())) {
+            Object data = dataHolder.get();
+            JSONObject out = new JSONObject();
+            out.put("from_chain", fromChain);
+            out.put("to_chain", toChain);
+            out.put("from_token", fromToken);
+            out.put("to_token", toToken);
+            out.put("amount", amount);
+            out.put("from_address", fromAddress);
+            out.put("to_address", toAddress);
+            if (data instanceof String) {
+                out.put("tx_hash", data);
+            } else {
+                out.put("result", data);
+            }
+            out.put("status", "auto_executed");
+            out.put("note", "跨链交易已由 AI 在后台自动签名并广播，无需前端手动确认。");
+            return ToolResult.success(out.toString());
+        }
+
+        return ToolResult.error("跨链兑换执行失败: " + errorHolder.get());
     }
 
     /**

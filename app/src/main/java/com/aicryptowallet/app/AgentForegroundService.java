@@ -125,6 +125,23 @@ public class AgentForegroundService extends Service {
                 return;
             }
 
+            // 门控1：距上次真正分析未达用户配置间隔则跳过（节省 LLM 调用）
+            int intervalMin = AIAgentSettings.getAnalysisIntervalMinutes(this);
+            if (intervalMin > 0) {
+                long lastTs = getSharedPreferences(PREFS, MODE_PRIVATE)
+                    .getLong("aiAgent_lastAnalysisTs", 0L);
+                long now = System.currentTimeMillis();
+                if (lastTs > 0 && now - lastTs < intervalMin * 60L * 1000L) {
+                    return;
+                }
+            }
+
+            // 门控2：资产没有变动（无买卖/转账/余额变化）则不调用大模型分析，避免空耗 token
+            if (!hasAssetActivity()) {
+                Logger.info(this, "FGS", "资产无变动，跳过 LLM 分析（省 token）");
+                return;
+            }
+
             // 注意：不检查 autoTradeEnabled —— 用户启动了 Agent 就要持续监控分析
             // 是否执行真实交易由 SafetyGate 在工具调用层拦截（autoTradeEnabled=false 时写入工具被拒绝）
 
@@ -136,6 +153,10 @@ public class AgentForegroundService extends Service {
             }
 
             String primaryCycle = TradingCycleConfig.getPrimaryCycle(this);
+            // 本轮已确认执行分析，更新"上次分析"时间戳
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putLong("aiAgent_lastAnalysisTs", System.currentTimeMillis()).apply();
+
             int analyzed = 0;
             for (String chain : chains) {
                 analyzed += analyzeChain(chain, primaryCycle);
@@ -170,6 +191,44 @@ public class AgentForegroundService extends Service {
             else set.add("ETH");
         }
         return new java.util.ArrayList<>(set);
+    }
+
+    /**
+     * 轻量检测当前钱包资产是否有变动（余额/代币变化）。
+     * 无变动返回 false，此时不调用大模型做分析，以达到省 token 的目的。
+     * 检测失败时保守放行（返回 true），避免漏掉真正的资产变动。
+     */
+    private boolean hasAssetActivity() {
+        try {
+            String chain = WalletManager.getChain(this);
+            String address = WalletManager.getWalletAddress(this);
+            if (chain == null || chain.isEmpty() || address == null || address.isEmpty()) return false;
+
+            double nativeBalance;
+            try {
+                nativeBalance = ChainAPI.getNativeBalance(this, chain, address);
+            } catch (Exception e) {
+                return true;
+            }
+            java.util.List<String[]> tokens;
+            try {
+                tokens = ChainAPI.getAllTokenBalances(this, chain, address, false);
+            } catch (Exception e) {
+                tokens = new java.util.ArrayList<>();
+            }
+
+            java.util.List<String[]> allTokens = new java.util.ArrayList<>();
+            allTokens.add(new String[]{chain, ChainAPI.getChainName(chain),
+                ChainAPI.formatAmount(nativeBalance), "0", "", "true"});
+            allTokens.addAll(tokens);
+
+            DataCache.AssetChangeResult chg = new DataCache(this)
+                .detectAssetChange(address, allTokens, nativeBalance);
+            return chg.shouldNotify;
+        } catch (Exception e) {
+            Logger.warning(this, "FGS", "资产变动检测失败，保守放行: " + e.getMessage());
+            return true;
+        }
     }
 
     /** 对单条链执行一次完整分析，返回是否成功分析 */
@@ -461,7 +520,7 @@ public class AgentForegroundService extends Service {
             if (System.currentTimeMillis() - lastTs < minGap) return;
 
             String topic = pickChatTopic();
-            String content = callLLMForCasualChat(topic);
+            String content = buildProactiveChatMessage(topic);
             if (content == null || content.isEmpty()) return;
 
             appendToChatHistory("assistant", content);
@@ -509,66 +568,45 @@ public class AgentForegroundService extends Service {
         return CHAT_TOPICS[(int) (System.currentTimeMillis() % CHAT_TOPICS.length)];
     }
 
-    /** 调用 LLM 生成一条符合当前语气设定、贴近自然语言的主动闲聊消息 */
-    private String callLLMForCasualChat(String topic) {
+    /**
+     * 本地生成主动闲聊消息（不调用大模型，零 token 消耗）。
+     * 用户没回复时，AI 主动找用户聊天只应随手打个招呼、抛个话茬，
+     * 用预设话术随机组合，最大限度节省 token，同时保留人情味与打招呼。
+     */
+    private String buildProactiveChatMessage(String topic) {
         try {
-            String apiKey = AIAnalyzer.getApiKeyStatic(this);
-            String model = AIAnalyzer.getModelStatic(this);
-            String apiUrl = AIAnalyzer.getApiUrlStatic(this);
-            if (apiKey == null || apiKey.isEmpty() || model == null || model.isEmpty() || apiUrl == null || apiUrl.isEmpty()) {
-                return null;
-            }
-            String personality = (agentMemory != null) ? agentMemory.getPersonality() : "";
-            String presetText = AIAgentSettings.getPresetPersonalityText(this);
-            String tone = (presetText != null && !presetText.isEmpty()) ? presetText : personality;
+            String owner = (agentMemory != null && agentMemory.getOwnerName() != null
+                    && !agentMemory.getOwnerName().isEmpty())
+                ? agentMemory.getOwnerName() : "主人";
 
-            String systemPrompt = "你是一个亲近用户的 AI 助手，性格：" + tone + "。\n" +
-                "请像一个认识很久的真人朋友一样，自然地、有温度地主动找用户聊天。\n" +
-                "要求：\n" +
-                "1. 开头先打个招呼，像微信/日常聊天一样（例如“嘿”“嗨”“刚看到…”“突然想跟你说…”），不要一上来就讲道理。\n" +
-                "2. 语气口语化、轻松，可以有情绪和一点点语气词，偶尔带一两个恰当的表情符号，不要写成书面语或报告。\n" +
-                "3. 围绕给定话题展开，像分享自己的想法或关心用户一样，适当反问一两句拉近距离。\n" +
-                "4. 不要生硬说教，不要刻意推销，控制在 2-4 句话以内。\n" +
-                "5. 若涉及金融投资，请务必附带一句“非投资建议，自担风险”的提示。";
-            String userPrompt = "主动话题：" + topic + "\n请用真人朋友的口吻，自然地跟主人打个招呼，再围绕这个话题聊聊。";
+            // 打招呼开场白池（随机挑一个，避免一成不变）
+            String[] openers = {
+                "嘿" + owner + "，刚忙完歇了口气，",
+                "嗨" + owner + "，看到手机正好想起你，",
+                owner + "，这会儿闲着也是闲着，",
+                "嗯，" + owner + "，我正琢磨点事儿，",
+                "喂，" + owner + "，要不要听我念叨两句，"
+            };
+            // 话题衔接/反问池
+            String[] bridges = {
+                "突然想问问你：" + topic + "，你心里是咋想的？",
+                "我一直在想" + topic + "这档子事，挺想听你的看法，你怎么看？",
+                "你说" + topic + "，换你会上心吗？跟我唠唠呗。",
+                "我也说不准，但" + topic + "这问题挺有意思的，你觉得呢？"
+            };
 
-            JSONArray messages = new JSONArray();
-            JSONObject sysMsg = new JSONObject();
-            sysMsg.put("role", "system");
-            sysMsg.put("content", systemPrompt);
-            messages.put(sysMsg);
-            JSONObject userMsg = new JSONObject();
-            userMsg.put("role", "user");
-            userMsg.put("content", userPrompt);
-            messages.put(userMsg);
+            long seed = System.currentTimeMillis();
+            String opener = openers[(int) (seed % openers.length)];
+            String bridge = bridges[(int) ((seed / 7) % bridges.length)];
 
-            String chatUrl = apiUrl;
-            if (!chatUrl.endsWith("/chat/completions")) {
-                chatUrl = chatUrl.endsWith("/") ? chatUrl + "chat/completions" : chatUrl + "/chat/completions";
-            }
-            JSONObject body = new JSONObject();
-            body.put("model", model);
-            body.put("messages", messages);
-            body.put("max_tokens", 400);
-            body.put("temperature", 1.0);
+            // 金融相关话题自动附带免责声明
+            boolean fin = topic.contains("金融") || topic.contains("投资")
+                || topic.contains("市场") || topic.contains("波动");
+            String disclaimer = fin ? "\n\n（纯闲聊哈，非投资建议，自担风险）" : "";
 
-            Request req = new Request.Builder()
-                .url(chatUrl)
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .post(RequestBody.create(body.toString(), JSON_TYPE))
-                .build();
-
-            try (Response resp = httpClient.newCall(req).execute()) {
-                String respStr = resp.body() != null ? resp.body().string() : "";
-                JSONObject respJson = new JSONObject(respStr);
-                JSONArray choices = respJson.optJSONArray("choices");
-                if (choices != null && choices.length() > 0) {
-                    return choices.getJSONObject(0).getJSONObject("message").getString("content").trim();
-                }
-            }
+            return opener + "\n" + bridge + disclaimer;
         } catch (Exception e) {
-            Logger.error(this, "FGS", "主动闲聊 LLM 生成失败: " + e.getMessage(), e);
+            Logger.warning(this, "FGS", "主动闲聊本地生成失败: " + e.getMessage());
         }
         return null;
     }

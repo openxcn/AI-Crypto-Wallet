@@ -798,6 +798,11 @@
             android:visibility="gone"
             android:elevation="4dp" />
 
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/marketSwipeRefresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
         <androidx.core.widget.NestedScrollView
             android:id="@+id/tabHome"
             android:layout_width="match_parent"
@@ -937,6 +942,7 @@
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <ScrollView
             android:id="@+id/tabTrade"

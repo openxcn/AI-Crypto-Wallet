@@ -876,6 +876,8 @@
     <string name="freq_normal">通常</string>
     <string name="freq_talky">よく話す</string>
     <string name="freq_unlimited">無制限</string>
+    <string name="str_analysis_interval">AI分析の間隔</string>
+    <string name="str_analysis_interval_min"> 分</string>
     <string name="str_personality_preset">AIの口調</string>
     <string name="preset_none">デフォルト</string>
     <string name="preset_steady">冷静理知</string>
@@ -883,6 +885,7 @@
     <string name="preset_sarcasm">毒舌</string>
     <string name="preset_gentle">優しい</string>
     <string name="preset_firm">果断的</string>
+    <string name="str_auto_trade_switch">自動取引</string>
     <string name="str_enable_auto_trade">自動取引を有効にする</string>
     <string name="str_disable_auto_trade">自動取引を無効にする</string>
     <string name="msg_cross_chain_risk_normal">この取引は【%1$s】で%2$sを完了し、推定金額 $%3$sです。クロスチェーン兌換にはブリッジリスク、スリッページ、到着遅延があります。リスクを理解した上で確認してください。</string>
@@ -921,6 +924,7 @@
 コントラクトアドレス：%2$s
 
 禁止後、このトークンの送金や承認は傍受されます。</string>
+    <string name="toast_rmab_exempt_whitelist">R-MAB はプラットフォームトークンのため、恒久的に免除され、ホワイトリスト登録は不要です</string>
     <string name="msg_token_whitelist_confirm">高リスクトークン %1$s をホワイトリストに追加しようとしています。
 
 これにより、トークンはAIのセキュリティチェックをバイパスし、正常に取引や承認が行えるようになります。
@@ -935,4 +939,10 @@
 %3$s
 ヒント：資産ページをプルダウンして更新すると、新しいトークンが表示されます。</string>
     <string name="text_no_tokens_with_balance">（残高のあるトークンは見つかりませんでした）</string>
+<string name="title_backup_not_complete">バックアップ未完了</string>
+    <string name="msg_backup_notify_body">ニーモニック（回復フレーズ）のバックアップがまだ完了していません。資産を守るため、先に完了することをおすすめします。後から「ウォレット管理 → フレーズの書き出し」で再度確認することもできます。</string>
+    <string name="btn_continue_backup">バックアップを続ける</string>
+    <string name="btn_exit_anyway">それでも終了</string>
+    <string name="msg_confirm_delete_current_wallet">現在のウォレットを削除しますか？削除すると、このウォレットの回復フレーズと資産は復元できません。</string>
+    <string name="toast_wallet_deleted">現在のウォレットを削除しました</string>
 </resources>

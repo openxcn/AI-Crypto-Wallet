@@ -528,6 +528,12 @@ public class TokenDetailActivity extends BaseActivity {
     private void whitelistToken() {
         if (contractAddress == null || contractAddress.isEmpty()) return;
 
+        // R-MAB 平台币永久豁免，无需加入白名单
+        if (TokenRiskAnalyzer.RMAB_CONTRACT.equalsIgnoreCase(contractAddress)) {
+            Toast.makeText(this, getString(R.string.toast_rmab_exempt_whitelist), Toast.LENGTH_LONG).show();
+            return;
+        }
+
         new AlertDialog.Builder(this, R.style.AlertDialogCustom)
             .setTitle(getString(R.string.title_high_risk_operation_warning))
             .setMessage(getString(R.string.msg_token_whitelist_confirm, tokenSymbol))

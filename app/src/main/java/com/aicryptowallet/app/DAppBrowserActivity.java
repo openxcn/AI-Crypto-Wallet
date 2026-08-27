@@ -1565,6 +1565,11 @@ public class DAppBrowserActivity extends BaseActivity {
     private String currentOrigin = "";
     private android.widget.TextView tvWhitelistMarquee;
 
+    // accountsChanged 去重：记录上一次对该 origin 广播的地址，避免页面加载后重复广播
+    // 导致 DApp 的 window.location.reload() 触发无限刷新死循环；账户真实变化时仍立即广播
+    private String lastBroadcastOrigin = null;
+    private String lastBroadcastAddress = null;
+
     /**
      * 违背去中心化思想的 DApp 黑名单
      * 命中后一律禁止连接，并弹出提示
@@ -1780,9 +1785,19 @@ public class DAppBrowserActivity extends BaseActivity {
     }
 
     /**
-     * 通知 DApp 账户已连接
+     * 通知 DApp 账户已连接（带去重）
+     * 为避免页面加载后自动连接反复广播 accountsChanged，从而被 DApp 的 page reload
+     * 监听捕获造成无限刷新死循环：仅当该 origin 的账户地址真正发生变化时才广播。
      */
     private void notifyAccountsChanged(String address) {
+        // 同一 origin、同一地址：不重复广播（防止 reload 死循环）
+        if (address != null && address.equals(lastBroadcastAddress)
+                && currentOrigin != null && currentOrigin.equals(lastBroadcastOrigin)) {
+            return;
+        }
+        lastBroadcastOrigin = currentOrigin;
+        lastBroadcastAddress = address;
+
         String js = "(function(){\n" +
             "  if (window.ethereum && window.ethereum.listeners) {\n" +
             "    var arr = ['" + address + "'];\n" +
@@ -2205,35 +2220,16 @@ public class DAppBrowserActivity extends BaseActivity {
         // 1.5秒后主动调用 eth_requestAccounts，给 DApp 一点初始化时间
         uiHandler.postDelayed(() -> {
             if (webView == null) return;
-            // 直接在JS层设置 accounts，并触发 connect/accountsChanged 事件
-            // 这样即使DApp没主动调用 eth_requestAccounts，也能感知到已连接
-            String js = "(function(){\n" +
-                "  if (!window.ethereum || !window.__ethereumInjected) return;\n" +
-                "  // 模拟 MetaMask 已连接状态\n" +
-                "  window.ethereum.isConnected = function(){ return true; };\n" +
-                "  // 主动触发 connect 事件\n" +
-                "  if (window.ethereum.listeners) {\n" +
-                "    var addr = _nativeEth.getAddress();\n" +
-"    var chainId = _nativeEth.getChainId();\n" +
-                "    window.ethereum.listeners('connect') && window.ethereum.listeners('connect').forEach(function(h){ try{ h({chainId: chainId}); }catch(e){} });\n" +
-                "    window.ethereum.listeners('accountsChanged') && window.ethereum.listeners('accountsChanged').forEach(function(h){ try{ h([addr]); }catch(e){} });\n" +
-                "  }\n" +
-                "  // 触发 window#ethereum#initialized 事件（部分DApp监听）\n" +
-                "  window.dispatchEvent(new Event('ethereum#initialized'));\n" +
-                "  // 如果 DApp 有自动连接逻辑（如 web3-modal），触发它\n" +
-                "  if (typeof window.web3 !== 'undefined' && window.web3.currentProvider) {\n" +
-                "    window.web3.currentProvider.selectedAddress = _nativeEth.getAddress();\n" +
-                "  }\n" +
-                "  console.log('[AI Wallet] autoConnect triggered for origin=" + currentOrigin + "');\n" +
-                "})();";
-            webView.evaluateJavascript(js, null);
-            // 同时从Native层主动调用 eth_requestAccounts（通过JS）
+            // 说明：仅通过 eth_requestAccounts 完成自动连接，由 DApp 自身感知已连接。
+            // 不再手动触发 connect/accountsChanged 事件，避免钱包页面加载后反复广播，
+            // 被 DApp 的 window.location.reload() 监听捕获，造成无限刷新死循环。
+            // （MetaMask 等标准钱包也只在账号/链真实变化时才广播事件）
             String requestJs = "(function(){\n" +
                 "  if (window.ethereum && window.ethereum.request) {\n" +
                 "    window.ethereum.request({method: 'eth_requestAccounts'}).then(function(accounts){\n" +
-                "      console.log('[AI Wallet] autoConnect success: ' + accounts[0]);\n" +
+                "      console.log('[AI Wallet] autoConnect success: ' + (accounts && accounts[0] ? accounts[0] : 'null'));\n" +
                 "    }).catch(function(e){\n" +
-                "      console.log('[AI Wallet] autoConnect failed: ' + e.message);\n" +
+                "      console.log('[AI Wallet] autoConnect failed: ' + (e && e.message ? e.message : e));\n" +
                 "    });\n" +
                 "  }\n" +
                 "})();";
