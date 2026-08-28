@@ -25,7 +25,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
@@ -113,22 +112,8 @@ public final class UpdateChecker {
 
     private static void doCheck(Context app) {
         try {
-            if (!RELEASES_LATEST_API.startsWith("https://api.github.com/")) return;
-
-            Request req = new Request.Builder().url(RELEASES_LATEST_API)
-                .header("User-Agent", "AICryptoWallet").build();
-            String body;
-            try (Response resp = httpClient.newCall(req).execute()) {
-                if (!resp.isSuccessful() || resp.body() == null) return;
-                body = resp.body().string();
-            }
-            if (body == null || body.isEmpty()) return;
-
-            JSONObject root = new JSONObject(body);
-            String tag = root.optString("tag_name", "").trim();
-            // 例如 "v3.0.13"
-            String remoteVersion = stripLeadingV(tag);
-            if (remoteVersion.isEmpty()) return;
+            String remoteVersion = fetchLatestVersion();
+            if (remoteVersion == null || remoteVersion.isEmpty()) return;
 
             String localVersion = getLocalVersionName(app);
             if (localVersion == null || localVersion.isEmpty()) return;
@@ -156,6 +141,76 @@ public final class UpdateChecker {
         } catch (Exception e) {
             Logger.warning(app, TAG, "更新检测失败（保持现状）: " + e.getMessage());
         }
+    }
+
+    /**
+     * 主动检查更新：由"检查更新"按钮触发。
+     * 异步查询线上最新版本并给出明确结果——有新版本弹升级对话框，无新版本提示已是最新。
+     * 与启动时的被动检测互不冲突，不参与当日去重，始终给出即时反馈。
+     */
+    public static void checkNow(final Activity activity) {
+        if (activity == null || activity.isFinishing()) return;
+        executor.submit(() -> {
+            final String remoteVersion = fetchLatestVersion();
+            final String localVersion = getLocalVersionName(activity.getApplicationContext());
+            activity.runOnUiThread(() -> {
+                if (activity.isFinishing()) return;
+                try {
+                    if (remoteVersion == null || remoteVersion.isEmpty()) {
+                        showResult(activity,
+                            activity.getString(R.string.update_check_failed_title),
+                            activity.getString(R.string.update_check_failed_msg));
+                        return;
+                    }
+                    if (localVersion == null || localVersion.isEmpty()
+                            || isNewer(remoteVersion, localVersion)) {
+                        showResult(activity,
+                            activity.getString(R.string.update_found_title),
+                            String.format(java.util.Locale.US,
+                                activity.getString(R.string.update_found_msg),
+                                localVersion, remoteVersion));
+                    } else {
+                        showResult(activity,
+                            activity.getString(R.string.update_latest_title),
+                            String.format(java.util.Locale.US,
+                                activity.getString(R.string.update_latest_msg), localVersion));
+                    }
+                } catch (Exception e) {
+                    Logger.warning(activity, TAG, "主动检查更新提示失败: " + e.getMessage());
+                }
+            });
+        });
+    }
+
+    /** 查询 GitHub 最新 tag_name 并规范为不带 v 前缀的版本号；异常返回 null */
+    private static String fetchLatestVersion() {
+        try {
+            if (!RELEASES_LATEST_API.startsWith("https://api.github.com/")) return null;
+            Request req = new Request.Builder().url(RELEASES_LATEST_API)
+                .header("User-Agent", "AICryptoWallet").build();
+            String body;
+            try (Response resp = httpClient.newCall(req).execute()) {
+                if (!resp.isSuccessful() || resp.body() == null) return null;
+                body = resp.body().string();
+            }
+            if (body == null || body.isEmpty()) return null;
+            JSONObject root = new JSONObject(body);
+            String tag = root.optString("tag_name", "").trim(); // 例如 "v3.0.13"
+            String v = stripLeadingV(tag);
+            return v.isEmpty() ? null : v;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** 主动检查结果的通用对话框 */
+    private static void showResult(Activity activity, String title, String msg) {
+        if (activity == null || activity.isFinishing()) return;
+        new AlertDialog.Builder(activity)
+            .setTitle(title)
+            .setMessage(msg)
+            .setPositiveButton(activity.getString(R.string.dialog_ok), null)
+            .show();
     }
 
     /**
@@ -221,7 +276,8 @@ public final class UpdateChecker {
             String title = "发现新版本 v" + remoteVersion;
             String content = "已为你准备好最新版，点击前往下载（免费）.";
 
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(DOWNLOAD_URL));
+            Intent intent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse(DownloadLink.accelerate(DOWNLOAD_URL)));
             PendingIntent pi = PendingIntent.getActivity(ctx, NOTIF_ID_UPDATE, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
@@ -253,12 +309,8 @@ public final class UpdateChecker {
     }
 
     private static void openDownloadPage(Context ctx, String url) {
-        try {
-            ctx.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (Exception e) {
-            Toast.makeText(ctx, "无法打开下载页，请前往官网获取最新版", Toast.LENGTH_LONG).show();
-        }
+        // 优先走 dl.redmagic.pro 加速链接，启动失败时回退 GitHub 直连
+        DownloadLink.open(ctx, url);
     }
 
     /** 比较远端版本是否严格高于本地版本（支持 x.y.z 三段） */

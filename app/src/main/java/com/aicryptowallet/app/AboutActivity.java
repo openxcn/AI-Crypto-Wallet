@@ -10,6 +10,7 @@
 package com.aicryptowallet.app;
 
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -67,6 +68,12 @@ public class AboutActivity extends BaseActivity {
         TextView tvContact = findViewById(R.id.tvContact);
         if (tvContact != null) {
             tvContact.setText(LicenseManager.getContactInfo());
+        }
+
+        // 检查更新按钮：用户主动触发升级检查
+        Button btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
+        if (btnCheckUpdate != null) {
+            btnCheckUpdate.setOnClickListener(v -> UpdateChecker.checkNow(this));
         }
     }
 

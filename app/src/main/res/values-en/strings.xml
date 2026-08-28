@@ -207,6 +207,14 @@
     <string name="text_total_logs">Total %1$s logs</string>
     <string name="text_total_flashbacks">Total %1$s flashbacks</string>
     <string name="title_about_us">About Us</string>
+    <string name="str_check_update">Check for Updates</string>
+    <string name="update_found_title">New Version Available</string>
+    <string name="update_found_msg">Current version %1$s\nNew version %2$s\n\nTap the button below to go to the download page. Updating gives you the latest features, security fixes, and AI improvements.</string>
+    <string name="update_latest_title">You Are Up to Date</string>
+    <string name="update_latest_msg">You already have version v%1$s, no update needed.</string>
+    <string name="update_check_failed_title">Check Failed</string>
+    <string name="update_check_failed_msg">Could not connect to the update server. Please check your network and try again.</string>
+    <string name="dialog_ok">OK</string>
     <string name="btn_off">Off</string>
     <string name="str_input_your_password_again">Input your password again</string>
     <string name="str_share">Share</string>

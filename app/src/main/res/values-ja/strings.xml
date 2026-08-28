@@ -207,6 +207,14 @@
     <string name="text_total_logs">合計1つのログ</string>
     <string name="text_total_flashbacks">合計1回のフラッシュバック</string>
     <string name="title_about_us">当館について</string>
+    <string name="str_check_update">アップデートを確認</string>
+    <string name="update_found_title">新しいバージョンがあります</string>
+    <string name="update_found_msg">現在のバージョン %1$s\n新しいバージョン %2$s\n\n下のボタンをタップしてダウンロードページへ。アップデートで最新機能・セキュリティ修正・AI機能改善を入手できます。</string>
+    <string name="update_latest_title">最新バージョンです</string>
+    <string name="update_latest_msg">インストール済みのバージョンは v%1$s で、アップデートは不要です。</string>
+    <string name="update_check_failed_title">確認に失敗しました</string>
+    <string name="update_check_failed_msg">更新サーバーに接続できません。ネットワークを確認して再度お試しください。</string>
+    <string name="dialog_ok">OK</string>
     <string name="btn_off">オフ</string>
     <string name="str_input_your_password_again">パスワードを再入力</string>
     <string name="str_share">シェアする</string>

@@ -58,6 +58,20 @@
                 android:textColor="#888888"
                 android:textSize="13sp" />
 
+            <!-- 检查更新按钮（用户主动升级） -->
+            <Button
+                android:id="@+id/btnCheckUpdate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="14dp"
+                android:backgroundTint="#E53935"
+                android:minHeight="44dp"
+                android:minWidth="180dp"
+                android:text="@string/str_check_update"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
             <!-- 分隔线 -->
             <View
                 android:layout_width="match_parent"

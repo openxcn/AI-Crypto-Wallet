@@ -749,7 +749,8 @@ public class ReportShareGenerator {
     private static String getDownloadUrl(Context ctx) {
         // 统一使用 GitHub 动态 latest 链接，强制忽略历史 SharedPreferences 中残留的固定版本死链，
         // 确保每次生成的下载二维码都指向仓库最新 release 包。
-        return DEFAULT_DOWNLOAD_URL;
+        // 经 DownloadLink 重写为 dl.redmagic.pro 加速链接，扫码即走 Cloudflare 反代加速。
+        return DownloadLink.accelerate(DEFAULT_DOWNLOAD_URL);
     }
 
     private static int dpToPx(Context ctx, int dp) {
