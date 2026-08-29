@@ -20,6 +20,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -659,6 +660,12 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void switchTab(int index) {
+        // 切换 Tab 时收起软键盘并释放发现页搜索框焦点，避免键盘残留遮挡底部导航（对齐用户体验）
+        hideKeyboard();
+        if (index != 3) {
+            EditText etSearch = findViewById(R.id.etDappSearch);
+            if (etSearch != null) etSearch.clearFocus();
+        }
         currentMainTab = index;
         if (assetsSwipeRefresh != null) assetsSwipeRefresh.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
         if (tabHome != null) tabHome.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
@@ -696,6 +703,17 @@ public class HomeActivity extends BaseActivity {
         }
 
         Logger.actionResult(this, "UI操作", "切换Tab", "Tab" + index);
+    }
+
+    /** 收起软键盘（配合 switchTab 使用，防止键盘残留；焦点为空时回退到窗口 token） */
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (imm == null) return;
+        View v = getCurrentFocus();
+        if (v == null && getWindow() != null) v = getWindow().getDecorView();
+        if (v != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
     }
 
     // ============================================================

@@ -38,7 +38,9 @@
         <activity android:name=".SetupActivity" />
         <activity android:name=".BackupMnemonicActivity" />
         <activity android:name=".VerifyMnemonicActivity" />
-        <activity android:name=".HomeActivity" />
+        <activity
+            android:name=".HomeActivity"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity android:name=".TokenDetailActivity" />
         <activity android:name=".TxDetailActivity" />
         <activity android:name=".CoinDetailActivity" />
